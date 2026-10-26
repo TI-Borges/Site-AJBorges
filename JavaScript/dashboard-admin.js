@@ -3078,25 +3078,70 @@ async function carregarFiltroMotoristas() {
     });
 }
 
+// Baixa as fichas do Supabase e redesenha o painel (também quando o sino vê ficha nova)
+async function carregarFichasDoSupabase() {
+    if (typeof window.buscarFichasSupabase !== 'function') return;
+    try {
+        const fichasNuvem = await window.buscarFichasSupabase();
+        if (Array.isArray(fichasNuvem)) {
+            console.log(`📥 ${fichasNuvem.length} ficha(s) sincronizada(s) do Supabase.`);
+            appState.fichas = fichasNuvem;
+            salvarFichasNoStorage();
+            calcularMetricasDashboard();
+            renderizarTabelaFichas();
+            atualizarGraficos();
+            preencherSecoesSecundarias();
+            carregarFiltroMotoristas();
+        }
+    } catch (e) {
+        console.warn('Não foi possível sincronizar com o Supabase de imediato:', e);
+    }
+}
+
+// Sino de fichas novas: só as enviadas por motorista. No envio o trigger grava motorista_id e
+// data_envio (passo 11); rascunho fica só no aparelho do motorista; ficha criada pela gestão não
+// tem motorista_id. Consulta leve: count + as 10 últimas, só nº, motorista e data.
+function iniciarNotificacoesFichas(usuarioId) {
+    window.ajbNotificacoesGestao?.iniciar({
+        painel: 'frota',
+        usuarioId,
+        botao: document.getElementById('btn-notif-sino'),
+        titulo: 'Fichas de viagem novas',
+        vazio: 'Nenhuma ficha nova desde a última vez.',
+        buscar: async (desde) => {
+            const c = window.supabaseClient;
+            if (!c) return null;
+            let consulta = c.from('fichas_viagem')
+                .select('id, motorista, data_envio', { count: 'exact' })
+                .gt('data_envio', desde)
+                .neq('status', 'rascunho')
+                .not('motorista_id', 'is', null);
+            if (usuarioId) consulta = consulta.neq('motorista_id', usuarioId);
+            const { data, count, error } = await consulta.order('data_envio', { ascending: false }).limit(10);
+            if (error) {
+                console.warn('Erro ao conferir fichas novas:', error.message);
+                return null;
+            }
+            return {
+                total: count || 0,
+                itens: (data || []).map(f => ({ id: f.id, data: f.data_envio, texto: `Nº ${f.id} – ${f.motorista || 'Motorista'}` }))
+            };
+        },
+        // Se o Realtime já trouxe a ficha (e já avisou), não repete o toast
+        textoToast: (item, outros) => appState.fichas.some(f => f.id === item.id)
+            ? null
+            : `Nova ficha de viagem: ${item.texto}${outros > 0 ? ` (+${outros})` : ''}`,
+        aoAbrir: async (id) => {
+            if (!appState.fichas.some(f => f.id === id)) await carregarFichasDoSupabase();
+            abrirModalResumoFicha(id);
+        },
+        aoChegar: carregarFichasDoSupabase
+    });
+}
+
 // Sincronização em Nuvem e Tempo Real com o Supabase
 async function sincronizarFichasComSupabase() {
-    if (typeof window.buscarFichasSupabase === 'function') {
-        try {
-            const fichasNuvem = await window.buscarFichasSupabase();
-            if (Array.isArray(fichasNuvem)) {
-                console.log(`📥 ${fichasNuvem.length} ficha(s) sincronizada(s) do Supabase.`);
-                appState.fichas = fichasNuvem;
-                salvarFichasNoStorage();
-                calcularMetricasDashboard();
-                renderizarTabelaFichas();
-                atualizarGraficos();
-                preencherSecoesSecundarias();
-                carregarFiltroMotoristas();
-            }
-        } catch (e) {
-            console.warn('Não foi possível sincronizar com o Supabase de imediato:', e);
-        }
-    }
+    await carregarFichasDoSupabase();
 
     // Ativa escuta em tempo real (Realtime do Supabase)
     if (typeof window.escutarAlteracoesFichasSupabase === 'function') {
@@ -3164,11 +3209,12 @@ async function sincronizarFichasComSupabase() {
 // ==========================================================================
 
 // Só inicia depois que a sessão de admin/diretoria for validada no servidor (auth.js)
-ajbAoAutenticar(['admin', 'diretoria'], 'Login.html#admin', () => {
+ajbAoAutenticar(['admin', 'diretoria'], 'Login.html#admin', (usuarioSessao) => {
     window.ajbAuth.vigiarSessao('Login.html#admin');
     preencherUsuarioSidebar();
-    // Botão "Avisar atualização do site" (não depende do resto do painel)
+    // Botão "Avisar atualização do site" e sino de fichas novas (não dependem do resto do painel)
     window.ajbAvisoAtualizacaoGestao?.iniciar(document.getElementById('btn-aviso-atualizacao'));
+    iniciarNotificacoesFichas(usuarioSessao && usuarioSessao.id);
     // 1. Inicializa o banco de dados e carrega configurações dinâmicas
     inicializarBancoDados();
     carregarConfiguracoes();

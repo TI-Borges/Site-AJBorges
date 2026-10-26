@@ -3180,3 +3180,133 @@ body.admin-body {
         font-size: 16px; /* evita o zoom automático do iPhone */
     }
 }
+
+/* ==========================================================================
+   SINO DE NOTIFICAÇÕES (frota: fichas novas; Agregue-se: cadastros novos)
+   ========================================================================== */
+
+.notif-sino-wrap {
+    position: relative;
+}
+
+.btn-notif-sino {
+    position: relative;
+}
+
+.notif-contador {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--vermelho-perigo);
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+    box-shadow: 0 0 0 2px #ffffff;
+}
+
+.notif-contador[hidden] {
+    display: none;
+}
+
+.notif-painel {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: min(340px, calc(100vw - 24px));
+    max-height: 70vh;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+    z-index: 950;
+}
+
+.notif-painel[hidden] {
+    display: none;
+}
+
+.notif-painel-topo {
+    padding: 12px 14px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--cor-texto-primario);
+}
+
+.notif-lista {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+}
+
+.notif-item {
+    width: 100%;
+    display: grid;
+    gap: 2px;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.notif-item:hover,
+.notif-item:focus-visible {
+    background: #f1f5f9;
+}
+
+.notif-item strong {
+    font-size: 0.85rem;
+    color: var(--cor-texto-primario);
+    overflow-wrap: anywhere;
+}
+
+.notif-item span {
+    font-size: 0.75rem;
+    color: var(--cor-texto-mutado);
+}
+
+.notif-vazio {
+    padding: 10px;
+    font-size: 0.82rem;
+    color: var(--cor-texto-mutado);
+}
+
+/* Celular: a lista ocupa a largura da tela, logo abaixo do topo */
+@media (max-width: 640px) {
+    .notif-painel {
+        position: fixed;
+        top: calc(var(--topbar-altura, 70px) + 4px);
+        left: 12px;
+        right: 12px;
+        width: auto;
+    }
+}
+
+/* Celular: aviso, sino e recarregar cabem no topo sem rolagem lateral (360 px); com menos
+   espaço o título quebra em mais linhas, então o topo cresce em vez de cortar o texto */
+@media (max-width: 640px) {
+    .topbar-quick-actions {
+        gap: 6px;
+    }
+
+    .admin-topbar {
+        height: auto;
+        min-height: var(--topbar-altura);
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+
+    .topbar-title {
+        font-size: 1rem;
+    }
+}

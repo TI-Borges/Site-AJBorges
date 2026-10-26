@@ -501,6 +501,19 @@
                             </svg>
                             <span>Avisar atualização do site</span>
                         </button>
+                        <!-- Sino: Cadastros novos desde a última vez que olhei (JavaScript/notificacoes-gestao.js) -->
+                        <div class="notif-sino-wrap">
+                            <button type="button" class="btn-topbar-icon btn-notif-sino" id="btn-notif-sino"
+                                title="Cadastros novos" aria-label="Cadastros novos" aria-haspopup="dialog" aria-expanded="false">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                    <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                </svg>
+                                <span class="notif-contador" hidden>0</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -646,13 +659,15 @@
     <script src="../JavaScript/supabase-client.js"></script>
     <script src="../JavaScript/auth.js"></script>
     <script src="../JavaScript/aviso-atualizacao-gestao.js"></script>
+    <script src="../JavaScript/notificacoes-gestao.js"></script>
     <script>
         // Verificação de Sessão Administrativa: feita no servidor (JavaScript/auth.js).
         // A página fica oculta até a sessão de admin/diretoria ser confirmada.
-        ajbAoAutenticar(['admin', 'diretoria'], 'Login.html#admin', () => {
+        ajbAoAutenticar(['admin', 'diretoria'], 'Login.html#admin', (usuarioSessao) => {
             window.ajbAuth.vigiarSessao('Login.html#admin');
             iniciarPainel();
             window.ajbAvisoAtualizacaoGestao?.iniciar(document.getElementById('btn-aviso-atualizacao'));
+            iniciarNotificacoesCadastros(usuarioSessao && usuarioSessao.id);
         });
 
         // =====================================================================
@@ -1640,6 +1655,42 @@ ${secao('Documentos extras', listaExtras)}
                 if (avatarEl) avatarEl.textContent = iniciais.toUpperCase();
                 if (papelEl) papelEl.textContent = u.role === 'diretoria' ? 'Diretoria' : 'Administrador';
             } catch (e) { /* ignora */ }
+        }
+
+        // Sino de cadastros novos (só cadastros_agregados; fichas de viagem ficam no sino da frota).
+        // Consulta leve: count + os 10 últimos, só id, nome e data (nada de CPF/celular).
+        function iniciarNotificacoesCadastros(usuarioId) {
+            window.ajbNotificacoesGestao?.iniciar({
+                painel: 'agregue-se',
+                usuarioId,
+                botao: document.getElementById('btn-notif-sino'),
+                titulo: 'Cadastros novos',
+                vazio: 'Nenhum cadastro novo desde a última vez.',
+                buscar: async (desde) => {
+                    const c = window.supabaseClient;
+                    if (!c) return null;
+                    const { data, count, error } = await c.from('cadastros_agregados')
+                        .select('id, nome, criado_em', { count: 'exact' })
+                        .gt('criado_em', desde)
+                        .order('criado_em', { ascending: false })
+                        .limit(10);
+                    if (error) {
+                        console.warn('Erro ao conferir cadastros novos:', error.message);
+                        return null;
+                    }
+                    return {
+                        total: count || 0,
+                        itens: (data || []).map((x) => ({ id: x.id, data: x.criado_em, texto: x.nome || 'Sem nome' }))
+                    };
+                },
+                textoToast: (item, outros) => `Novo cadastro: ${item.texto}${outros > 0 ? ` (+${outros})` : ''}`,
+                aoAbrir: async (id) => {
+                    if (!cadastros.some((x) => x.id === id)) await carregarCadastros();
+                    if (cadastros.some((x) => x.id === id)) abrirModal(id);
+                    else aviso('Cadastro não encontrado. Ele pode ter sido apagado.');
+                },
+                aoChegar: carregarCadastros
+            });
         }
 
         // ?id=<cadastro> (vindo da aba Motoristas do dashboard admin): abre o modal desse cadastro
