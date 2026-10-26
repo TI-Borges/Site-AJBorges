@@ -95,7 +95,7 @@
                     <span class="motorista-icone-tag">🚛</span>
                     <div class="motorista-texto-aviso">
                         <strong id="motorista-saudacao-texto">Portal da Frota • Modo Motorista</strong><br>
-                        <span id="motorista-subtexto-aviso">Dados do veículo, fretes e pedágios são definidos pela
+                        <span id="motorista-subtexto-aviso">Dados do veículo e fretes são definidos pela
                             Frota. Preencha os KMs, seus abastecimentos e comprovantes.</span>
                     </div>
                 </div>
@@ -555,7 +555,7 @@
                                         <div class="badge-ativo">Formulário Oficial</div>
                                         <h3>Relatório de Viagem</h3>
                                         <p class="painel-subtitulo">Lançamento oficial da operação: Relação de
-                                            fretes por viagem, abastecimentos, imposto federal/pedágios e fechamento
+                                            fretes por viagem, abastecimentos, imposto federal<span data-so-gestao>/pedágios</span> e fechamento
                                             com indicadores.</p>
                                     </div>
                                     <div class="painel-header-right">
@@ -2234,7 +2234,7 @@
                                     </div>
                                 </div>
 
-                                <!-- 3. BLOCO: OUTRAS DESPESAS E PEDÁGIOS -->
+                                <!-- 3. BLOCO: OUTRAS DESPESAS (o bloco da gestão some para o motorista: data-so-gestao) -->
                                 <div class="bloco-formulario-interno">
                                     <div class="subbloco-cabecalho-linha">
                                         <div class="subbloco-titulo">
@@ -2246,14 +2246,15 @@
                                                 <line x1="8" y1="12" x2="16" y2="12"></line>
                                             </svg>
                                             <div>
-                                                <h3>Outras Despesas e Pedágios</h3>
-                                                <p>Lance os pedágios, outras despesas (com Imposto Federal
+                                                <h3>Outras Despesas<span data-so-gestao> e Pedágios</span></h3>
+                                                <p>Lance <span data-so-gestao>os pedágios, </span>outras despesas (com Imposto Federal
                                                     obrigatório) e anexe comprovantes.</p>
                                             </div>
                                         </div>
                                         <div class="subbloco-acoes-limpeza">
                                             <button type="button" class="btn-lixeira-bloco" id="btn-lixeira-despesas-ml"
-                                                title="Limpar pedágios e outras despesas" aria-expanded="false">
+                                                title="Limpar pedágios e outras despesas" data-titulo-motorista="Limpar outras despesas"
+                                                aria-expanded="false">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15"
                                                     viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2267,15 +2268,15 @@
                                                 <span>Limpar</span>
                                             </button>
 
-                                            <!-- Popover com opções de limpeza de despesas e pedágios ML -->
+                                            <!-- Popover com opções de limpeza das despesas ML -->
                                             <div class="popover-limpeza oculto" id="popover-limpar-despesas-ml">
                                                 <div class="popover-limpeza-header">
-                                                    <span>Limpar Despesas e Pedágios</span>
+                                                    <span>Limpar Despesas<span data-so-gestao> e Pedágios</span></span>
                                                     <button type="button" class="btn-fechar-popover"
                                                         id="fechar-popover-despesas-ml" title="Fechar">&times;</button>
                                                 </div>
                                                 <div class="popover-limpeza-corpo">
-                                                    <button type="button" class="opcao-limpeza-item"
+                                                    <button type="button" class="opcao-limpeza-item" data-so-gestao
                                                         id="btn-limpar-apenas-pedagios-ml">
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
                                                             viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -2311,7 +2312,7 @@
                                                                 Imposto Federal)</small>
                                                         </div>
                                                     </button>
-                                                    <button type="button" class="opcao-limpeza-item item-perigo"
+                                                    <button type="button" class="opcao-limpeza-item item-perigo" data-so-gestao
                                                         id="btn-limpar-todas-despesas-pedagios-ml">
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
                                                             viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -2335,8 +2336,8 @@
                                     </div>
 
                                     <div class="grid-despesas-dupla">
-                                        <!-- Coluna Pedágio (3 linhas) -->
-                                        <div class="card-secao-despesa card-pedagio" id="card-bloco-pedagio">
+                                        <!-- Coluna só da gestão (3 linhas) -->
+                                        <div class="card-secao-despesa card-pedagio" id="card-bloco-pedagio" data-so-gestao>
                                             <div class="card-despesa-topo">
                                                 <div class="card-despesa-ident">
                                                     <span class="badge-mini-tag" id="badge-pedagio-status">3
@@ -2608,7 +2609,7 @@
                                                 R$ 0,00
                                             </div>
                                             <div class="indicador-formula-base">
-                                                Combustível + Impostos/Pedágios + Despesas + Comissão + Descarga
+                                                Combustível + <span data-so-gestao>Impostos/Pedágios + </span>Despesas + Comissão + Descarga
                                             </div>
                                         </div>
 

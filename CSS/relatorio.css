@@ -1502,6 +1502,11 @@ select.input-tabela option {
     margin-top: 18px;
 }
 
+/* Motorista: sem a coluna de pedágios (só da gestão), Outras Despesas ocupa a linha toda */
+.grid-despesas-dupla > :only-child {
+    grid-column: 1 / -1;
+}
+
 .card-secao-despesa {
     background: #ffffff;
     border: 1.5px solid #e2e8f0;

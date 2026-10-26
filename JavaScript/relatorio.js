@@ -22,6 +22,13 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     }
     window.ajbAuth.vigiarSessao('Login.html');
 
+    // Pedágio é só da gestão: para o motorista, o que tem data-so-gestao (campos, totais, textos e
+    // botões de limpar do pedágio) sai da página antes de qualquer valor ser preenchido
+    if (!ehGestao) {
+        document.querySelectorAll('[data-so-gestao]').forEach(el => el.remove());
+        document.querySelectorAll('[data-titulo-motorista]').forEach(el => { el.title = el.dataset.tituloMotorista; });
+    }
+
     // Elementos do Formulário
     const form = document.getElementById('form-relatorio');
     const inputMotorista = document.getElementById('motorista');
@@ -2156,6 +2163,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         return total;
     }
 
+    // Motorista: os campos de pedágio não existem na página dele, então a Despesa total e o
+    // Resultado da viagem que ele vê não somam pedágio. Gestão: soma como sempre.
     function calcularTotaisDespesasMl() {
         const totalPedagio = calcularTotalPedagioMl();
         const totalOutras = calcularTotalOutrasDespesasMl();
