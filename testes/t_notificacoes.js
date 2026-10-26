@@ -112,7 +112,6 @@ const MOTORISTA_ID = '11111111-1111-1111-1111-111111111111';
       // eslint-disable-next-line no-undef
       ? appState.fichas.some(f => f.id === 'AJB-2026-500')
       : window.__consultas.some(c => c.startsWith('cadastros_agregados: select *')), nome);
-    m.abaEscondidaObs = nome === 'agregue-se' ? 'o Agregue-se já tinha um setInterval de 60 s próprio (recarrega a tabela); o do sino é o que para' : '';
 
     // Abrir a lista: mostra as novas e zera o contador e o título; grava a "última vez que vi"
     const vistoAntes = await page.evaluate((k) => { const x = Object.keys(localStorage).find(c => c.startsWith(k)); return localStorage.getItem(x); }, chave);

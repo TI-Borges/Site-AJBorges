@@ -1790,8 +1790,8 @@ ${secao('Documentos extras', listaExtras)}
                 }
             });
 
-            // Mantém a lista atualizada
-            setInterval(() => { if (!cadastroAberto) carregarCadastros(); }, 60000);
+            // Mantém a lista atualizada: cadastro novo chega pelo sino (iniciarNotificacoesCadastros,
+            // que recarrega a tabela); ao voltar para a aba, recarrega uma vez
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible' && !cadastroAberto) carregarCadastros();
             });
