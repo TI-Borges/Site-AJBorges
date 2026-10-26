@@ -1,0 +1,14 @@
+Options -Indexes
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteRule ^$ /HTML/index.html [L,R=302]
+RedirectMatch 404 ^/(supabase|testes|node_modules|\.git|\.github|\.vscode)(/|$)
+RedirectMatch 404 \.(sql|md|json|lock|csv|xlsx|xls|env|zip|yml)$
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=()"
+  Header always set Strict-Transport-Security "max-age=31536000"
+</IfModule>
