@@ -25,12 +25,13 @@ const LARGURAS = (process.argv[2] || '320,360,390,430').split(',').map(Number);
     }
     await digitar('#valor-adiantamento', '50000');
     const tabAbast = 'table.tabela-abastecimento:not(.tabela-fretes-ml)';
-    for (const [i, comb, placa, valor, litros] of [[1, 'diesel_s10', 'principal', '60000', '100'], [2, 'diesel_s10', 'principal', '90000', '150'], [3, 'diesel_s500', 'secundaria', '1000000', '1200']]) {
+    for (const [i, comb, placa, valor, litros] of [[1, 'diesel_s10', 'principal', '60000', '10000'], [2, 'diesel_s10', 'principal', '90000', '15000'], [3, 'diesel_s500', 'secundaria', '1000000', '120000']]) {
       if (i > 1) await page.click(`${tabAbast} .btn-adicionar-linha-celular`);
       await page.select(`[name="posto_ml_${i}"]`, 'Marília - Posto Esmeralda');
       await page.select(`[name="combustivel_ml_${i}"]`, comb);
       await page.select(`[name="placa_abast_ml_${i}"]`, placa);
       await digitar(`[name="valor_ml_${i}"]`, valor);
+      // Litros com máscara (começa em 0,00): 10000 = 100,00
       await digitar(`[name="litros_ml_${i}"]`, litros);
     }
     const m = await page.evaluate((tabAbast) => {
