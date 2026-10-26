@@ -3019,3 +3019,164 @@ body.admin-body {
         justify-content: center;
     }
 }
+
+/* ==========================================================================
+   AVISO DE ATUALIZAÇÃO DO SITE (botão no topo e modal; os dois dashboards)
+   ========================================================================== */
+
+.btn-topbar-aviso {
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    background-color: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+    font-family: inherit;
+    font-size: 0.82rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--transicao-rapida);
+}
+
+.btn-topbar-aviso:hover {
+    background-color: #fef3c7;
+    border-color: #f59e0b;
+}
+
+.btn-topbar-aviso svg {
+    flex-shrink: 0;
+}
+
+/* Telas menores: só o ícone (o nome fica no title e no aria-label) */
+@media (max-width: 1440px) {
+    .btn-topbar-aviso {
+        width: 38px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .btn-topbar-aviso span {
+        display: none;
+    }
+}
+
+.aviso-atu-explica {
+    margin: 0 0 14px;
+    font-size: 0.85rem;
+    color: var(--cor-texto-secundario);
+}
+
+.mot-campo textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.92rem;
+    color: var(--cor-texto-primario);
+    background: #ffffff;
+    outline: none;
+    resize: vertical;
+    transition: var(--transicao-rapida);
+}
+
+.mot-campo textarea:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+#modal-aviso-atualizacao .mot-alerta {
+    margin-bottom: 14px;
+}
+
+.aviso-atu-botoes {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.aviso-atu-lista-titulo {
+    margin: 22px 0 10px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+    color: var(--cor-texto-primario);
+}
+
+.aviso-atu-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+}
+
+.aviso-atu-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.aviso-atu-item-texto {
+    min-width: 0;
+    font-size: 0.85rem;
+    color: var(--cor-texto-primario);
+}
+
+.aviso-atu-item-texto p {
+    margin: 4px 0 0;
+    color: var(--cor-texto-secundario);
+    overflow-wrap: anywhere;
+}
+
+.aviso-atu-selo {
+    display: inline-block;
+    margin-right: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.aviso-atu-selo-andamento {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.aviso-atu-cancelar {
+    flex-shrink: 0;
+}
+
+.aviso-atu-vazio {
+    font-size: 0.85rem;
+    color: var(--cor-texto-mutado);
+}
+
+@media (max-width: 640px) {
+    .aviso-atu-item {
+        flex-direction: column;
+    }
+
+    .aviso-atu-cancelar,
+    .aviso-atu-botoes > * {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .mot-campo textarea {
+        font-size: 16px; /* evita o zoom automático do iPhone */
+    }
+}

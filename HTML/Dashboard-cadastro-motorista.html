@@ -487,7 +487,22 @@
                     </div>
                 </div>
 
-                <div class="topbar-right"></div>
+                <div class="topbar-right">
+                    <div class="topbar-quick-actions">
+                        <!-- Aviso de atualização do site (JavaScript/aviso-atualizacao-gestao.js) -->
+                        <button type="button" class="btn-topbar-aviso" id="btn-aviso-atualizacao"
+                            title="Avisar atualização do site" aria-label="Avisar atualização do site">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"></path>
+                                <path d="M15.5 8.5a5 5 0 0 1 0 7"></path>
+                                <path d="M18.5 5.5a9 9 0 0 1 0 13"></path>
+                            </svg>
+                            <span>Avisar atualização do site</span>
+                        </button>
+                    </div>
+                </div>
             </header>
 
             <!-- Área de Visualização e Tabelas -->
@@ -618,16 +633,26 @@
         </div>
     </div>
 
+    <!-- ====================================================================
+         TOAST DE NOTIFICAÇÃO (o mesmo do dashboard da frota)
+         ==================================================================== -->
+    <div class="admin-toast" id="admin-toast" role="alert" aria-live="assertive" aria-hidden="true">
+        <span class="toast-icon" id="toast-icon">✓</span>
+        <span class="toast-message" id="toast-message"></span>
+    </div>
+
     <!-- Script de Gestão Real Conectado Exclusivamente a FichaMultiCadastro -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../JavaScript/supabase-client.js"></script>
     <script src="../JavaScript/auth.js"></script>
+    <script src="../JavaScript/aviso-atualizacao-gestao.js"></script>
     <script>
         // Verificação de Sessão Administrativa: feita no servidor (JavaScript/auth.js).
         // A página fica oculta até a sessão de admin/diretoria ser confirmada.
         ajbAoAutenticar(['admin', 'diretoria'], 'Login.html#admin', () => {
             window.ajbAuth.vigiarSessao('Login.html#admin');
             iniciarPainel();
+            window.ajbAvisoAtualizacaoGestao?.iniciar(document.getElementById('btn-aviso-atualizacao'));
         });
 
         // =====================================================================
@@ -799,6 +824,31 @@
 
         function aviso(msg) {
             alert(msg);
+        }
+
+        // Toast no canto da tela (o mesmo do dashboard da frota); usado pelo aviso de atualização
+        // do site e pelas notificações
+        let toastTimeout = null;
+        function exibirToast(mensagem, tipo = 'sucesso') {
+            const toast = document.getElementById('admin-toast');
+            const msgEl = document.getElementById('toast-message');
+            const iconEl = document.getElementById('toast-icon');
+            if (!toast || !msgEl) return;
+            msgEl.textContent = mensagem;
+            const cores = { sucesso: ['✓', '#10b981'], erro: ['✕', '#ef4444'] };
+            const [icone, cor] = cores[tipo] || ['ℹ', '#3b82f6'];
+            if (iconEl) {
+                iconEl.textContent = icone;
+                iconEl.style.backgroundColor = cor;
+            }
+            toast.style.borderLeftColor = cor;
+            toast.classList.add('show');
+            toast.setAttribute('aria-hidden', 'false');
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+                toast.setAttribute('aria-hidden', 'true');
+            }, 4000);
         }
 
         async function carregarCadastros() {

@@ -3167,6 +3167,8 @@ async function sincronizarFichasComSupabase() {
 ajbAoAutenticar(['admin', 'diretoria'], 'Login.html#admin', () => {
     window.ajbAuth.vigiarSessao('Login.html#admin');
     preencherUsuarioSidebar();
+    // Botão "Avisar atualização do site" (não depende do resto do painel)
+    window.ajbAvisoAtualizacaoGestao?.iniciar(document.getElementById('btn-aviso-atualizacao'));
     // 1. Inicializa o banco de dados e carrega configurações dinâmicas
     inicializarBancoDados();
     carregarConfiguracoes();
