@@ -1399,49 +1399,87 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         return isNaN(n) ? 0 : n;
     }
 
-    function formatarTextoLitros(val) {
-        if (val === null || val === undefined || val === '') return '';
-        const num = parseLitros(val);
-        if (num === 0) return '';
-        return formatarLitros(num);
+    // Campo de litros no estilo caixa eletrônico: começa em 0,00 e os números entram pela direita
+    // (3 -> 0,03; 31 -> 0,31; 31292 -> 312,92). Sempre 2 casas e sem ponto de milhar (1250,50).
+    // 0,00 = campo vazio. O que vai para o banco é o texto do campo (312,92), como antes.
+    const LITROS_VAZIO = '0,00';
+    const MAX_DIGITOS_LITROS = 9;
+
+    function formatarCampoLitros(centavos) {
+        const c = Math.min(Math.max(0, Math.round(Number(centavos) || 0)), 10 ** MAX_DIGITOS_LITROS - 1);
+        return `${Math.floor(c / 100)},${String(c % 100).padStart(2, '0')}`;
+    }
+
+    // Litros já gravados (312,92 / 1.250,5 / 312924) no formato do campo (312,92 / 1250,50 / 312924,00)
+    function litrosParaCampo(val) {
+        return formatarCampoLitros(parseLitros(val) * 100);
+    }
+
+    // Colar: com vírgula ou ponto, o último separador é o decimal e os outros são ignorados
+    // (312,92 / 312.92 -> 312,92; 1.250,50 -> 1250,50; mais de 2 casas arredonda: 312,924 -> 312,92);
+    // só números = como se tivessem sido digitados (31292 -> 312,92)
+    function centavosLitrosColados(texto) {
+        const s = String(texto || '').replace(/[^\d.,]/g, '');
+        const pos = Math.max(s.lastIndexOf(','), s.lastIndexOf('.'));
+        if (pos < 0) return parseInt(s.replace(/^0+/, '').slice(0, MAX_DIGITOS_LITROS) || '0', 10);
+        const inteiro = s.slice(0, pos).replace(/\D/g, '') || '0';
+        const decimais = s.slice(pos + 1).replace(/\D/g, '') || '0';
+        return Math.round(parseFloat(`${inteiro}.${decimais}`) * 100);
     }
 
     function aplicarMascaraLitros(input, callback) {
         if (!input) return;
+        input.setAttribute('inputmode', 'numeric');
+        input.placeholder = LITROS_VAZIO;
+        if (!input.value.trim()) input.value = LITROS_VAZIO;
 
-        // Ao focar no campo: mantém o número editável limpo sem truncar dígitos
-        // Remove pontos de milhar para facilitar a edição pelo usuário, preservando a vírgula se houver decimal
-        input.addEventListener('focus', (e) => {
-            const val = e.target.value;
-            if (val) {
-                if (val.includes(',')) {
-                    const partes = val.split(',');
-                    e.target.value = partes[0].replace(/\./g, '') + ',' + partes.slice(1).join('').replace(/\./g, '');
-                } else {
-                    e.target.value = val.replace(/\./g, '');
-                }
+        // Os números sempre entram no fim do campo
+        const cursorNoFim = () => {
+            const fim = input.value.length;
+            try { input.setSelectionRange(fim, fim); } catch (e) { }
+        };
+        const digitosDoCampo = (texto) => texto.replace(/\D/g, '').replace(/^0+/, '');
+        const mostrar = (digitos) => {
+            input.value = formatarCampoLitros(parseInt(digitos.slice(0, MAX_DIGITOS_LITROS) || '0', 10));
+            cursorNoFim();
+            if (callback) callback();
+        };
+
+        // Número digitado entra no fim e Backspace tira o último, em qualquer posição do cursor
+        // (com o campo todo selecionado, o número digitado recomeça e o Backspace zera)
+        input.addEventListener('beforeinput', (e) => {
+            const tudoSelecionado = input.selectionStart === 0 && input.selectionEnd === input.value.length;
+            const atual = tudoSelecionado ? '' : digitosDoCampo(input.value);
+            if (e.inputType === 'insertText' && e.data !== null) {
+                e.preventDefault();
+                const novos = e.data.replace(/\D/g, '');
+                if (novos || tudoSelecionado) mostrar(atual + novos);
+            } else if (e.inputType === 'deleteContentBackward') {
+                e.preventDefault();
+                mostrar(atual.slice(0, -1));
             }
         });
 
-        // Durante a digitação: aceita dígitos e vírgula decimal (converte ponto em vírgula)
-        input.addEventListener('input', (e) => {
-            let val = e.target.value.replace(/\./g, ',');
-            val = val.replace(/[^0-9,]/g, '');
-            const partes = val.split(',');
-            if (partes.length > 2) {
-                val = partes[0] + ',' + partes.slice(1).join('').substring(0, 3);
-            } else if (partes.length === 2) {
-                val = partes[0] + ',' + partes[1].substring(0, 3);
-            }
-            e.target.value = val;
+        // Outras mudanças (teclado do celular, arrastar, navegador sem beforeinput): só os números ficam
+        input.addEventListener('input', () => mostrar(digitosDoCampo(input.value)));
+
+        input.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const texto = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+            input.value = formatarCampoLitros(centavosLitrosColados(texto));
+            cursorNoFim();
             if (callback) callback();
         });
 
-        // Ao perder o foco (blur): formata com separador de milhar pt-BR e decimais corretos
-        input.addEventListener('blur', (e) => {
-            if (e.target.value && e.target.value.trim() !== '') {
-                e.target.value = formatarTextoLitros(e.target.value);
-            }
+        input.addEventListener('focus', () => {
+            if (!input.value.trim()) input.value = LITROS_VAZIO;
+            cursorNoFim();
+            setTimeout(cursorNoFim, 0);
+        });
+        input.addEventListener('click', cursorNoFim);
+
+        input.addEventListener('blur', () => {
+            if (!input.value.trim()) input.value = LITROS_VAZIO;
             if (callback) callback();
         });
     }
@@ -1848,10 +1886,10 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     popularSelectsPostosConvenidos();
 
     // Litros acima do limite da linha (Diesel S10/S500 ou sem combustível: mais de 1.500 L; ARLA:
-    // mais de 150 L): quase sempre é o número digitado sem a vírgula (312924 em vez de 312,924)
+    // mais de 150 L): quase sempre é número a mais (3129200 = 31292,00 em vez de 312,92)
     const LIMITE_LITROS_DIESEL = 1500;
     const LIMITE_LITROS_ARLA = 150;
-    const AVISO_LITROS = 'Confira os litros: use vírgula para os decimais (ex.: 312,924).';
+    const AVISO_LITROS = 'Confira os litros: digite só os números, a vírgula entra sozinha (31292 = 312,92).';
 
     function litrosForaDoLimite(i) {
         const comb = document.querySelector(`select[name="combustivel_ml_${i}"]`)?.value || '';
@@ -2657,7 +2695,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             (nf && nf.value.trim() !== '') ||
             (km && km.value.trim() !== '') ||
             (valor && valor.value.trim() !== '') ||
-            (litros && litros.value.trim() !== ''));
+            (litros && parseLitros(litros.value) > 0));
     }
 
     function obterResumoLinhaAbast(i) {
@@ -2681,7 +2719,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         if (valor && valor.value.trim()) {
             partes.push(`R$ ${valor.value.trim()}`);
         }
-        if (litros && litros.value.trim()) {
+        if (litros && parseLitros(litros.value) > 0) {
             partes.push(`${litros.value.trim()} L`);
         }
 
@@ -2702,7 +2740,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         if (nf) nf.value = '';
         if (km) km.value = '';
         if (valor) valor.value = '';
-        if (litros) litros.value = '';
+        if (litros) litros.value = LITROS_VAZIO;
         limparCamposNovosAbast(i);
 
         calcularTotaisAbastecimentoMl();
@@ -2767,7 +2805,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                 if (nf) nf.value = '';
                 if (km) km.value = '';
                 if (valor) valor.value = '';
-                if (litros) litros.value = '';
+                if (litros) litros.value = LITROS_VAZIO;
                 limparCamposNovosAbast(i);
             }
             if (popoverLimparAbastMl) popoverLimparAbastMl.classList.add('oculto');
@@ -2975,7 +3013,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             if (nf) nf.value = '';
             if (km) km.value = '';
             if (vl) vl.value = '';
-            if (lit) lit.value = '';
+            if (lit) lit.value = LITROS_VAZIO;
             limparCamposNovosAbast(i);
         }
 
@@ -3150,7 +3188,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                         if (nf && ab.nf) { nf.value = ab.nf; temAbastPreenchido = true; }
                         if (km && ab.km) { km.value = ab.km; temAbastPreenchido = true; }
                         if (valor && ab.valor) { valor.value = ab.valor; temAbastPreenchido = true; }
-                        if (litros && ab.litros) { litros.value = ab.litros; temAbastPreenchido = true; }
+                        if (litros && parseLitros(ab.litros) > 0) { litros.value = litrosParaCampo(ab.litros); temAbastPreenchido = true; }
                         definirCamposNovosAbast(i, ab);
                         if (ab.combustivel) temAbastPreenchido = true;
                     });
@@ -3257,7 +3295,9 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             const nf = document.querySelector(`input[name="nf_ml_${i}"]`)?.value || '';
             const km = document.querySelector(`input[name="km_ml_${i}"]`)?.value || '';
             const valor = document.querySelector(`input[name="valor_ml_${i}"]`)?.value || '';
-            const litros = document.querySelector(`input[name="litros_ml_${i}"]`)?.value || '';
+            // 0,00 = sem litros
+            const litrosCampo = document.querySelector(`input[name="litros_ml_${i}"]`)?.value || '';
+            const litros = parseLitros(litrosCampo) > 0 ? litrosCampo : '';
             const combustivel = document.querySelector(`select[name="combustivel_ml_${i}"]`)?.value || '';
             // 'principal' | 'secundaria' só quando há placa secundária (a principal pode ser definida depois)
             const placa = segundoTrechoAtivo() ? placaDaLinhaAbast(i) : '';
@@ -3420,9 +3460,9 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                 if (nf && ab.nf) nf.value = ab.nf;
                 if (km && ab.km) km.value = ab.km;
                 if (valor && ab.valor) valor.value = ab.valor;
-                if (litros && ab.litros) litros.value = ab.litros;
+                if (litros) litros.value = litrosParaCampo(ab.litros);
                 definirCamposNovosAbast(i, ab);
-                // Litros acima do limite (provável falta da vírgula) já aparecem marcados ao abrir
+                // Litros acima do limite (provável número a mais) já aparecem marcados ao abrir
                 if (ab.litros) conferirLitrosDaLinha(i);
             });
         }
@@ -3548,7 +3588,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     function limparCamposLinha(tr) {
         camposDaLinha(tr).forEach(el => {
             if (el.tagName === 'SELECT') el.selectedIndex = 0; // placa volta para "principal"
-            else el.value = '';
+            else el.value = el.classList.contains('input-litros-abast-ml') ? LITROS_VAZIO : '';
             if ('editadoManual' in el.dataset) el.dataset.editadoManual = '';
         });
     }
@@ -4370,7 +4410,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             const partes = [ROTULOS_COMBUSTIVEL[comb] || 'Sem combustível'];
             if (secundaria) partes.push(rotuloPlacaAbast(placaDaLinhaAbast(i)));
             if (valor) partes.push(`R$ ${valor}`);
-            if (litros) partes.push(`${litros} L`);
+            if (parseLitros(litros) > 0) partes.push(`${litros} L`);
             abasts.push(linha(`#${abasts.length + 1}`, partes.join(' · ')));
         }
         if (abasts.length) {
@@ -4499,12 +4539,12 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             }
         }
 
-        // Litros acima do limite da linha (provável falta da vírgula): o motorista não envia;
+        // Litros acima do limite da linha (provável número a mais): o motorista não envia;
         // a gestão só vê o aviso nos campos e pode salvar
         for (let i = 1; i <= 10; i++) {
             const litros = document.querySelector(`input[name="litros_ml_${i}"]`);
             if (!litros || !linhaEmUso(litros) || !litrosForaDoLimite(i)) continue;
-            const mensagem = `Confira os litros do abastecimento ${i}: use vírgula para os decimais (ex.: 312,924).`;
+            const mensagem = `Confira os litros do abastecimento ${i}: digite só os números, a vírgula entra sozinha (31292 = 312,92).`;
             if (!modoAdmin) return falharValidacao(litros, mensagem);
             conferirLitrosDaLinha(i);
         }

@@ -38,7 +38,8 @@ const { abrir } = require('./harness');
     await page.select(`[name="combustivel_ml_${i}"]`, comb);
     if (placa) await page.select(`[name="placa_abast_ml_${i}"]`, placa);
     await limparEDigitar(`[name="valor_ml_${i}"]`, valor);
-    await limparEDigitar(`[name="litros_ml_${i}"]`, litros);
+    // Litros com máscara (começa em 0,00): só números, os 2 últimos são os centavos (1000 -> "100000" = 1000,00)
+    await limparEDigitar(`[name="litros_ml_${i}"]`, litros.includes(',') ? litros.replace(',', '') : `${litros}00`);
   };
   const r = {};
 
@@ -92,8 +93,8 @@ const { abrir } = require('./harness');
   await linhaAbast(6, 'diesel_s500', 'secundaria', '1200');
   r.duasPlacasIguais = await card();
   // Litros diferentes: secundária com 2.000 L (3,00) e principal com 2.500 L (2,00)
-  await limparEDigitar('[name="litros_ml_6"]', '800');
-  await limparEDigitar('[name="litros_ml_4"]', '1000');
+  await limparEDigitar('[name="litros_ml_6"]', '80000');
+  await limparEDigitar('[name="litros_ml_4"]', '100000');
   r.duasPlacasDiferentes = await card();
   // Secundária sem litros de diesel: "—" só para ela
   await page.select('[name="placa_abast_ml_5"]', 'principal');
@@ -217,7 +218,7 @@ const { abrir } = require('./harness');
   await linhaAbast(4, 'arla', 'secundaria', '25');
   r.duasPlacasComArla = await card();
 
-  // Litros sem a vírgula: diesel 312924 (querendo 312,924) e ARLA 15000 passam do limite
+  // Litros com número a mais: diesel 312924,00 (querendo 312,92) e ARLA 15000,00 passam do limite
   // (1.500 L no diesel, 150 L no ARLA): aviso embaixo do campo e envio bloqueado
   const avisoLitros = (i) => page.evaluate((i) => {
     const el = document.querySelector(`[name="litros_ml_${i}"]`);
@@ -240,11 +241,11 @@ const { abrir } = require('./harness');
   r.litros = {};
   r.litros.placeholder = await page.$eval('[name="litros_ml_1"]', el => el.placeholder);
   await linhaAbast(1, 'diesel_s10', null, '312924');
-  r.litros.diesel312924 = { campo: await avisoLitros(1), media: (await card()).valorUnico };
-  r.litros.envioDiesel312924 = await tentarEnviar();
+  r.litros.diesel312924_00 = { campo: await avisoLitros(1), media: (await card()).valorUnico };
+  r.litros.envioDiesel312924_00 = await tentarEnviar();
   r.litros.toastDiesel = await page.$eval('.toast-mensagem', el => el.textContent);
-  await linhaAbast(1, 'diesel_s10', null, '312,924');
-  r.litros.diesel312virgula924 = { campo: await avisoLitros(1), media: (await card()).valorUnico };
+  await linhaAbast(1, 'diesel_s10', null, '312,92');
+  r.litros.diesel312virgula92 = { campo: await avisoLitros(1), media: (await card()).valorUnico };
   await linhaAbast(2, 'arla', null, '15000');
   r.litros.arla15000 = await avisoLitros(2);
   r.litros.envioArla15000 = await tentarEnviar();
