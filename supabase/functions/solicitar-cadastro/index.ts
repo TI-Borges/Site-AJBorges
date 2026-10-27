@@ -289,9 +289,9 @@ const TIPOLOGIAS: Record<string, string[]> = {
   "Toco (4×2)": ["Caminhão"],
   "Truck (6×2)": ["Caminhão"],
   "Bitruck (8×2)": ["Caminhão"],
-  "Cavalo 4×2": ["Cavalo"],
-  "Cavalo 6×2": ["Cavalo"],
-  "Cavalo 6×4": ["Cavalo"],
+  "Cavalo 4×2": ["Cavalo", "Carreta"],
+  "Cavalo 6×2": ["Cavalo", "Carreta"],
+  "Cavalo 6×4": ["Cavalo", "Carreta"],
   "Carreta simples (2e)": ["Cavalo", "Carreta"],
   "Carreta LS 3e": ["Cavalo", "Carreta"],
   "Romeu e Julieta": ["Caminhão", "Reboque"],
@@ -948,6 +948,9 @@ Deno.serve(async (req: Request) => {
         dados: {
           ...dados,
           _tipologia: tipologia,
+          // Veículos (um CRLV cada) deste envio: o dashboard lê daqui, porque a
+          // lista da tipologia pode mudar depois (Cavalo passou a pedir a carreta).
+          _papeis: papeis,
           _sem_pdf: semPdf,
           _aceite_lgpd: {
             em: new Date().toISOString(),

@@ -755,11 +755,15 @@
             ['rntrc-doc', 'CPF/CNPJ do titular'], ['rntrc-categoria', 'Categoria']];
         const CAMPOS_RESIDENCIA_NOVOS = SECOES[3][1];
 
+        // Veículos do cadastro: os gravados no envio (dados._papeis, desde que o Cavalo passou a pedir
+        // a carreta); sem eles (cadastros anteriores), a lista da tipologia de quando foi enviado
+        const papeisDoCadastro = (d) => (Array.isArray(d._papeis) ? d._papeis.map(String) : (TIPOLOGIAS[d._tipologia] || []));
+
         // [{ doc, titulo, campos }] na ordem do formulário (todos obrigatórios)
         function documentosNovos(d) {
             return [
                 { doc: 'cnh', titulo: 'CNH', campos: CAMPOS_CNH_NOVOS },
-                ...(TIPOLOGIAS[d._tipologia] || []).map((papel, i) => ({ doc: `crlv_${i + 1}`, titulo: nomeCrlv(papel), campos: camposCrlvNovos(i + 1) })),
+                ...papeisDoCadastro(d).map((papel, i) => ({ doc: `crlv_${i + 1}`, titulo: nomeCrlv(papel), campos: camposCrlvNovos(i + 1) })),
                 { doc: 'rntrc', titulo: 'RNTRC', campos: CAMPOS_RNTRC_NOVOS },
                 { doc: 'residencia', titulo: 'Comprovante de residência', campos: CAMPOS_RESIDENCIA_NOVOS }
             ];

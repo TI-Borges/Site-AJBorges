@@ -126,22 +126,29 @@
                     <div class="form-row col-2">
                         <div class="form-group">
                             <label for="pj-tipologia">Tipo de Veículo: <span class="required-asterisk">*</span></label>
-                            <select id="pj-tipologia" name="tipologia" required>
+                            <select id="pj-tipologia" name="tipologia" required aria-describedby="pj-dica-tipologia">
                                 <option value="">--- Selecione a escolha ---</option>
-                                <option value="VUC/¾">VUC/¾</option>
-                                <option value="Toco (4×2)">Toco (4×2)</option>
-                                <option value="Truck (6×2)">Truck (6×2)</option>
-                                <option value="Bitruck (8×2)">Bitruck (8×2)</option>
-                                <option value="Cavalo 4×2">Cavalo 4×2</option>
-                                <option value="Cavalo 6×2">Cavalo 6×2</option>
-                                <option value="Cavalo 6×4">Cavalo 6×4</option>
-                                <option value="Carreta simples (2e)">Carreta simples (2e)</option>
-                                <option value="Carreta LS 3e">Carreta LS 3e</option>
-                                <option value="Romeu e Julieta">Romeu e Julieta</option>
-                                <option value="Bitrem">Bitrem</option>
-                                <option value="Rodotrem">Rodotrem</option>
-                                <option value="Treminhão/Tritrem">Treminhão/Tritrem</option>
+                                <optgroup label="Caminhão (sem carreta)">
+                                    <option value="VUC/¾">VUC/¾</option>
+                                    <option value="Toco (4×2)">Toco (4×2)</option>
+                                    <option value="Truck (6×2)">Truck (6×2)</option>
+                                    <option value="Bitruck (8×2)">Bitruck (8×2)</option>
+                                </optgroup>
+                                <optgroup label="Cavalo + carreta">
+                                    <option value="Cavalo 4×2">Cavalo 4×2</option>
+                                    <option value="Cavalo 6×2">Cavalo 6×2</option>
+                                    <option value="Cavalo 6×4">Cavalo 6×4</option>
+                                    <option value="Carreta simples (2e)">Carreta simples (2e)</option>
+                                    <option value="Carreta LS 3e">Carreta LS 3e</option>
+                                </optgroup>
+                                <optgroup label="Combinações">
+                                    <option value="Romeu e Julieta">Romeu e Julieta</option>
+                                    <option value="Bitrem">Bitrem</option>
+                                    <option value="Rodotrem">Rodotrem</option>
+                                    <option value="Treminhão/Tritrem">Treminhão/Tritrem</option>
+                                </optgroup>
                             </select>
+                            <span class="field-subtext" id="pj-dica-tipologia">Escolha o conjunto completo. Cavalo com carreta pede o documento dos dois.</span>
                         </div>
                         <div></div>
                     </div>
@@ -519,22 +526,29 @@
                     <div class="form-row col-2">
                         <div class="form-group">
                             <label for="pf-tipologia">Tipo de Veículo: <span class="required-asterisk">*</span></label>
-                            <select id="pf-tipologia" name="tipologia" required>
+                            <select id="pf-tipologia" name="tipologia" required aria-describedby="pf-dica-tipologia">
                                 <option value="">--- Selecione a escolha ---</option>
-                                <option value="VUC/¾">VUC/¾</option>
-                                <option value="Toco (4×2)">Toco (4×2)</option>
-                                <option value="Truck (6×2)">Truck (6×2)</option>
-                                <option value="Bitruck (8×2)">Bitruck (8×2)</option>
-                                <option value="Cavalo 4×2">Cavalo 4×2</option>
-                                <option value="Cavalo 6×2">Cavalo 6×2</option>
-                                <option value="Cavalo 6×4">Cavalo 6×4</option>
-                                <option value="Carreta simples (2e)">Carreta simples (2e)</option>
-                                <option value="Carreta LS 3e">Carreta LS 3e</option>
-                                <option value="Romeu e Julieta">Romeu e Julieta</option>
-                                <option value="Bitrem">Bitrem</option>
-                                <option value="Rodotrem">Rodotrem</option>
-                                <option value="Treminhão/Tritrem">Treminhão/Tritrem</option>
+                                <optgroup label="Caminhão (sem carreta)">
+                                    <option value="VUC/¾">VUC/¾</option>
+                                    <option value="Toco (4×2)">Toco (4×2)</option>
+                                    <option value="Truck (6×2)">Truck (6×2)</option>
+                                    <option value="Bitruck (8×2)">Bitruck (8×2)</option>
+                                </optgroup>
+                                <optgroup label="Cavalo + carreta">
+                                    <option value="Cavalo 4×2">Cavalo 4×2</option>
+                                    <option value="Cavalo 6×2">Cavalo 6×2</option>
+                                    <option value="Cavalo 6×4">Cavalo 6×4</option>
+                                    <option value="Carreta simples (2e)">Carreta simples (2e)</option>
+                                    <option value="Carreta LS 3e">Carreta LS 3e</option>
+                                </optgroup>
+                                <optgroup label="Combinações">
+                                    <option value="Romeu e Julieta">Romeu e Julieta</option>
+                                    <option value="Bitrem">Bitrem</option>
+                                    <option value="Rodotrem">Rodotrem</option>
+                                    <option value="Treminhão/Tritrem">Treminhão/Tritrem</option>
+                                </optgroup>
                             </select>
+                            <span class="field-subtext" id="pf-dica-tipologia">Escolha o conjunto completo. Cavalo com carreta pede o documento dos dois.</span>
                         </div>
                         <div></div>
                     </div>
