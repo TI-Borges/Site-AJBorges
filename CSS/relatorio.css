@@ -4610,3 +4610,49 @@ select[aria-invalid="true"] {
     border-color: #dc2626 !important;
     box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
 }
+
+/* As partes da ficha como no papel: cabeçalho (saída), lançamentos (durante a viagem), fechamento (chegada) */
+.quadro-como-preencher {
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    color: #1e1b4b;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.quadro-como-preencher ol {
+    margin: 6px 0 4px;
+    padding-left: 22px;
+}
+
+.quadro-como-preencher li + li {
+    margin-top: 2px;
+}
+
+.quadro-como-preencher p {
+    margin: 0;
+    font-weight: 600;
+    color: #3730a3;
+}
+
+.secao-subtitulo {
+    margin-top: 2px;
+    font-size: 13px;
+    color: #64748b;
+}
+
+.subtitulo-durante-viagem {
+    font-weight: 600;
+    color: #475569;
+}
+
+/* "NA CHEGADA" ao lado de "MOTORISTA", os dois à direita do rótulo */
+.label-com-tag .tag-na-chegada {
+    margin-left: auto;
+    margin-right: 6px;
+    color: #1d4ed8;
+    background: rgba(59, 130, 246, 0.12);
+}

@@ -179,6 +179,17 @@
 
                 <!-- Formulário -->
                 <form id="form-relatorio" class="form-relatorio" novalidate>
+                    <!-- Como preencher: as três partes da ficha de papel (só o motorista) -->
+                    <aside class="quadro-como-preencher" data-so-motorista>
+                        <strong>Como preencher:</strong>
+                        <ol>
+                            <li><b>Na saída:</b> placa, data, KM e destino inicial.</li>
+                            <li><b>Durante a viagem:</b> vá adicionando fretes, abastecimentos e despesas.</li>
+                            <li><b>Na chegada:</b> destino final, data e KM de chegada, e envie.</li>
+                        </ol>
+                        <p>Tudo fica salvo sozinho.</p>
+                    </aside>
+
                     <!-- BLOCO 1: Informações Gerais da Viagem -->
                     <div class="secao-formulario">
                         <div class="secao-titulo">
@@ -189,7 +200,10 @@
                                 <circle cx="5.5" cy="18.5" r="2.5"></circle>
                                 <circle cx="18.5" cy="18.5" r="2.5"></circle>
                             </svg>
-                            <h2>Informações Gerais da Viagem</h2>
+                            <div>
+                                <h2>Informações Gerais da Viagem</h2>
+                                <p class="secao-subtitulo">Cabeçalho: preencha na saída (o fechamento, na chegada)</p>
+                            </div>
                         </div>
 
                         <div class="grid-campos grid-3-col">
@@ -292,6 +306,7 @@
                                     <label for="data-chegada">
                                         DATA CHEGADA <span class="asterisco">*</span>
                                     </label>
+                                    <span class="tag-motorista tag-na-chegada">Na chegada</span>
                                     <span class="tag-motorista">Motorista</span>
                                 </div>
                                 <div class="input-wrapper input-wrapper-data">
@@ -351,6 +366,7 @@
                                     <label for="km-chegada">
                                         KM CHEGADA <span class="asterisco">*</span>
                                     </label>
+                                    <span class="tag-motorista tag-na-chegada">Na chegada</span>
                                     <span class="tag-motorista">Motorista</span>
                                 </div>
                                 <div class="input-wrapper">
@@ -490,6 +506,7 @@
                                     <label for="destino-final">
                                         DESTINO: FINAL <em class="dica-campo">(opcional)</em>
                                     </label>
+                                    <span class="tag-motorista tag-na-chegada">Na chegada</span>
                                     <span class="tag-motorista">Motorista</span>
                                 </div>
                                 <div class="input-wrapper combobox-cidade-wrapper">
@@ -576,12 +593,12 @@
                                     <div class="painel-header-left">
                                         <div class="badge-ativo">Formulário Oficial</div>
                                         <h3>Relatório de Viagem</h3>
-                                        <p class="painel-subtitulo">Lançamento oficial da operação: Relação de
+                                        <p class="painel-subtitulo" data-so-gestao>Lançamento oficial da operação: Relação de
                                             fretes por viagem, abastecimentos, imposto federal<span data-so-gestao>/pedágios</span> e fechamento
                                             com indicadores.</p>
                                     </div>
                                     <div class="painel-header-right">
-                                        <span class="badge-documento">Operação Unificada</span>
+                                        <span class="badge-documento" data-so-gestao>Operação Unificada</span>
                                     </div>
                                 </div>
 
@@ -599,8 +616,7 @@
                                             </svg>
                                             <div>
                                                 <h3>Relação de Fretes</h3>
-                                                <p>Discrimine até 8 fretes da operação (Data, Origem, Destino e
-                                                    Valor do Frete).</p>
+                                                <p>Cada carregamento da viagem é um frete. Vá adicionando conforme acontece (até 8).</p>
                                             </div>
                                         </div>
                                         <div class="subbloco-acoes-limpeza">
@@ -1607,6 +1623,7 @@
                                             </svg>
                                             <div>
                                                 <h3>Abastecimento de Combustível</h3>
+                                                <p class="subtitulo-durante-viagem">Vá adicionando durante a viagem.</p>
                                                 <p>Lance os abastecimentos realizados na viagem (Posto, Nota Fiscal,
                                                     KM, Valor em R$, Litros e Média).</p>
                                             </div>
@@ -2279,6 +2296,7 @@
                                             </svg>
                                             <div>
                                                 <h3>Outras Despesas<span data-so-gestao> e Pedágios</span></h3>
+                                                <p class="subtitulo-durante-viagem">Vá adicionando durante a viagem.</p>
                                                 <p>Lance <span data-so-gestao>os pedágios, </span>outras despesas (com Imposto Federal
                                                     obrigatório) e anexe comprovantes.</p>
                                             </div>
