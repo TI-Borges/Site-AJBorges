@@ -55,7 +55,7 @@ const { abrir } = require('./harness');
   await page.select('[name="combustivel_ml_1"]', 'diesel_s10');
   await digitar('[name="valor_ml_1"]', '180000');
   await page.$eval('[name="litros_ml_1"]', el => { el.value = ''; });
-  await digitar('[name="litros_ml_1"]', '31292');
+  await digitar('[name="litros_ml_1"]', '312920');
   await page.click('#btn-finalizar-relatorio-ml');
   await new Promise(res => setTimeout(res, 300));
   r.motoristaRevisao = await page.evaluate((re) => {

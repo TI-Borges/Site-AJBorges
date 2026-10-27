@@ -38,8 +38,9 @@ const { abrir } = require('./harness');
     await page.select(`[name="combustivel_ml_${i}"]`, comb);
     if (placa) await page.select(`[name="placa_abast_ml_${i}"]`, placa);
     await limparEDigitar(`[name="valor_ml_${i}"]`, valor);
-    // Litros com máscara (começa em 0,00): só números, os 2 últimos são os centavos (1000 -> "100000" = 1000,00)
-    await limparEDigitar(`[name="litros_ml_${i}"]`, litros.includes(',') ? litros.replace(',', '') : `${litros}00`);
+    // Litros com máscara (começa em 0,000): só números, os 3 últimos são as casas (1000 -> "1000000" = 1000,000)
+    const [inteiro, casas = ''] = litros.split(',');
+    await limparEDigitar(`[name="litros_ml_${i}"]`, `${inteiro}${casas.padEnd(3, '0')}`);
   };
   const r = {};
 
@@ -93,8 +94,8 @@ const { abrir } = require('./harness');
   await linhaAbast(6, 'diesel_s500', 'secundaria', '1200');
   r.duasPlacasIguais = await card();
   // Litros diferentes: secundária com 2.000 L (3,00) e principal com 2.500 L (2,00)
-  await limparEDigitar('[name="litros_ml_6"]', '80000');
-  await limparEDigitar('[name="litros_ml_4"]', '100000');
+  await limparEDigitar('[name="litros_ml_6"]', '800000');
+  await limparEDigitar('[name="litros_ml_4"]', '1000000');
   r.duasPlacasDiferentes = await card();
   // Secundária sem litros de diesel: "—" só para ela
   await page.select('[name="placa_abast_ml_5"]', 'principal');

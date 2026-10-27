@@ -268,7 +268,7 @@ function supabaseFalso() {
   await page.select('[name="posto_ml_1"]', 'Marília - Posto Esmeralda');
   await page.select('[name="combustivel_ml_1"]', 'diesel_s10');
   await digitar('[name="valor_ml_1"]', '60000');
-  await digitar('[name="litros_ml_1"]', '200000'); // 2.000 L: aviso de litros, mas salva
+  await digitar('[name="litros_ml_1"]', '2000000'); // 2.000 L: aviso de litros, mas salva
   await page.select('#ml-despesa-desc-2', 'Borracharia');
   await digitar('#ml-despesa-valor-2', '15000');
   await espera(3800);
@@ -453,7 +453,7 @@ function supabaseFalso() {
   await page.select('[name="posto_ml_1"]', 'Marília - Posto Esmeralda');
   await page.select('[name="combustivel_ml_1"]', 'diesel_s10');
   await digitar('[name="valor_ml_1"]', '60000');
-  await digitar('[name="litros_ml_1"]', '10000');
+  await digitar('[name="litros_ml_1"]', '100000');
   await page.click('#btn-finalizar-relatorio-ml');
   await espera(500);
   r.revisaoAbriu = await page.$eval('#modal-revisar-envio', m => m.classList.contains('ativo'));

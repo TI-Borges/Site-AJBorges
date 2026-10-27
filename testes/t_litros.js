@@ -1,5 +1,5 @@
-// Máscara dos litros (diesel e ARLA) no estilo caixa eletrônico: começa em 0,00, os números entram
-// pela direita, ponto/letra ignorados, Backspace, colar, 0,00 = vazio, valor gravado e ficha reaberta
+// Máscara dos litros (diesel e ARLA) no estilo caixa eletrônico, com 3 casas como a bomba: começa em 0,000,
+// os números entram pela direita, ponto/letra ignorados, Backspace, colar, 0,000 = vazio, valor gravado e ficha reaberta
 const { abrir } = require('./harness');
 
 (async () => {
@@ -50,31 +50,31 @@ const { abrir } = require('./harness');
   const r = {};
 
   await novaFicha();
-  // Todas as 10 linhas (inclusive as escondidas, que aparecem com "+ Adicionar") começam em 0,00
+  // Todas as 10 linhas (inclusive as escondidas, que aparecem com "+ Adicionar") começam em 0,000
   r.inicio = await page.evaluate(() => Array.from(document.querySelectorAll('.input-litros-abast-ml'))
     .map(el => `${el.name}=${el.value} (${el.getAttribute('inputmode')})`));
 
-  // Digitar 3, 1, 2, 9, 2
-  r.digitar31292 = await digitarUmAUm(1, '31292');
+  // Digitar 3, 1, 2, 9, 2, 0
+  r.digitar312920 = await digitarUmAUm(1, '312920');
   // Ponto e letra ignorados
   await page.$eval(campo(2), el => { el.value = ''; });
   await mostrar(2);
   r.pontoELetra = (await digitarUmAUm(2, '3a1.2,x9')).join(' | ');
-  // Backspace: tira o último número; tudo apagado volta para 0,00
+  // Backspace: tira o último número; tudo apagado volta para 0,000
   await page.focus(campo(1));
   await page.keyboard.press('Backspace');
   r.backspace1 = await valor(1);
-  for (let k = 0; k < 6; k++) await page.keyboard.press('Backspace');
+  for (let k = 0; k < 7; k++) await page.keyboard.press('Backspace');
   r.backspaceTudo = await valor(1);
   // Milhar sem ponto
   await page.$eval(campo(1), el => { el.value = ''; });
-  await digitarUmAUm(1, '125050');
+  await digitarUmAUm(1, '1250500');
   r.milhar = await valor(1);
   // Colar (substitui o que estava no campo)
   r.colar = {};
-  for (const t of ['312,92', '312.92', '31292', '1.250,50', '312,924', 'abc', '']) r.colar[JSON.stringify(t)] = await colar(1, t);
+  for (const t of ['312,92', '312.92', '312920', '1.250,50', '312,924', '128,501', '128.501', '128501', 'abc', '']) r.colar[JSON.stringify(t)] = await colar(1, t);
 
-  // 0,00 conta como vazio: só a linha 1 com litros apagados (0,00) não envia
+  // 0,000 conta como vazio: só a linha 1 com litros apagados (0,000) não envia
   await novaFicha();
   await cabecalho();
   await page.focus(campo(1));
@@ -100,17 +100,17 @@ const { abrir } = require('./harness');
     await page.focus(campo(i)); await page.keyboard.type(litros);
     await page.$eval(campo(i), el => el.blur());
   };
-  await linha(1, 'diesel_s10', '150001', '120000');
-  r.limiteDiesel150001 = await page.$eval(campo(1), el => `${el.value} | ${el.getAttribute('aria-invalid') === 'true' ? 'AVISO' : 'normal'}`);
-  await linha(1, 'diesel_s10', '20000', '120000');
-  await linha(2, 'diesel_s500', '10000', '60000');
-  await linha(3, 'arla', '5000', '25000');
+  await linha(1, 'diesel_s10', '1500010', '120000');
+  r.limiteDiesel1500_010 = await page.$eval(campo(1), el => `${el.value} | ${el.getAttribute('aria-invalid') === 'true' ? 'AVISO' : 'normal'}`);
+  await linha(1, 'diesel_s10', '200000', '120000');
+  await linha(2, 'diesel_s500', '100000', '60000');
+  await linha(3, 'arla', '50000', '25000');
   r.limiteDiesel200 = await page.$eval(campo(1), el => `${el.value} | ${el.getAttribute('aria-invalid') === 'true' ? 'AVISO' : 'normal'}`);
   r.media = await page.evaluate(() => [document.getElementById('ml-indicador-media-combustivel').textContent.trim().replace(/\s+/g, ' '),
     document.getElementById('ml-media-base-geral').textContent.trim().replace(/\s+/g, ' '),
     document.querySelector('#ml-media-arla .media-arla-linha')?.textContent.trim().replace(/\s+/g, ' ')]);
-  // Linha 4 com 31292 (= 312,92) para conferir o valor gravado; média enviada = 1.500 ÷ 612,92 = 2,45
-  await linha(4, 'diesel_s10', '31292', '150000');
+  // Linha 4 com 312920 (= 312,920) para conferir o valor gravado; média enviada = 1.500 ÷ 612,92 = 2,45
+  await linha(4, 'diesel_s10', '312920', '150000');
   r.envio = await tentarEnviar();
   r.revisaoAbast = await page.$eval('#revisar-detalhes-viagem', el => (el.innerText.match(/#\d[^\n]*\n[^\n]*/g) || []).map(t => t.replace(/\n/g, ': ')));
   await page.click('#btn-revisar-confirmar');
@@ -127,7 +127,7 @@ const { abrir } = require('./harness');
     };
   });
 
-  // Ficha salva reabre como 312,92 (gestão editando e motorista vendo a ficha concluída, mode=view);
+  // Ficha salva com 2 casas reabre como 312,920 (gestão editando e motorista vendo a ficha concluída, mode=view);
   // gravadas antes da máscara (1.250,5 / 15) também
   const FICHA = {
     id: 'AJB-2026-991', motorista: 'Motorista Ficticio', placas: 'ABC1D23', status: 'pendente',

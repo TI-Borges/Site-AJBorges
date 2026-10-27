@@ -186,9 +186,9 @@ async function testarFicha({ base, page }) {
     await page.focus(`[name="litros_ml_${i}"]`); await page.keyboard.type(litros);
     await page.$eval(`[name="litros_ml_${i}"]`, el => el.blur());
   };
-  await abast(1, 'diesel_s10', '60000', '10000'); // litros com máscara: 10000 = 100,00
-  await abast(2, 'diesel_s500', '90000', '15000');
-  await abast(3, 'arla', '10000', '2000');
+  await abast(1, 'diesel_s10', '60000', '100000'); // litros com máscara (3 casas): 100000 = 100,000
+  await abast(2, 'diesel_s500', '90000', '150000');
+  await abast(3, 'arla', '10000', '20000');
   const indicadores = () => page.evaluate(() => ({
     totalDiesel: `R$ ${document.getElementById('ml-total-valor-diesel').value} / ${document.getElementById('ml-total-litros-diesel').value} L`,
     totalArla: `R$ ${document.getElementById('ml-total-valor-arla').value} / ${document.getElementById('ml-total-litros-arla').value} L`,
