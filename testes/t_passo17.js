@@ -1,8 +1,8 @@
 // Roda supabase/sql/referencia_fichas_atual.sql + passo9 + passo11..15 + passo17 num Postgres em WASM (PGlite),
 // com auth.uid(), auth.jwt() e is_admin() simulados como no Supabase (is_admin lê auth.jwt() -> 'app_metadata' ->> 'role'),
 // reservar_numero_ficha() e storage.objects simulados e as policies que já existem em fichas_viagem
-// (fichas_admin_all, fichas_motorista_select e uma de insert do envio de hoje). O passo 17 roda duas vezes
-// (tem que poder ser reexecutado) e depois as conferências 6.x, bloco a bloco, como no SQL Editor.
+// (fichas_admin_all, fichas_motorista_select e uma de insert do envio de hoje) e a auditoria (trg_auditar_fichas). O passo 17 roda duas vezes
+// (tem que poder ser reexecutado) e depois as conferências 7.x, bloco a bloco, como no SQL Editor.
 // CENARIO=update_aberto simula uma policy de update antiga que deixasse o motorista alterar qualquer ficha dele:
 // o trigger tem que bloquear a ficha enviada do mesmo jeito.
 const fs = require('fs');
@@ -75,6 +75,25 @@ const B = '33333333-3333-3333-3333-333333333333';
     create policy fichas_motorista_select on public.fichas_viagem for select to authenticated using (motorista_id = auth.uid());
     create policy fichas_motorista_insert on public.fichas_viagem for insert to authenticated with check (motorista_id = auth.uid() and status = 'pendente');
   `);
+  // Auditoria de hoje (simulada como a do banco): trg_auditar_fichas AFTER INSERT OR DELETE OR UPDATE,
+  // gravar_auditoria_fichas() plpgsql, security definer, search_path 'public', grava to_jsonb(old) e to_jsonb(new)
+  await db.exec(`
+    create table public.auditoria_fichas (id bigserial primary key, operacao text, ficha_id text, usuario uuid,
+      dados_antigos jsonb, dados_novos jsonb, criado_em timestamptz default now());
+    create function public.gravar_auditoria_fichas() returns trigger language plpgsql security definer set search_path to 'public' as $$
+    begin
+      insert into public.auditoria_fichas (operacao, ficha_id, usuario, dados_antigos, dados_novos)
+      values (tg_op, coalesce(new.id, old.id), auth.uid(),
+              case when tg_op in ('UPDATE', 'DELETE') then to_jsonb(old) end,
+              case when tg_op in ('INSERT', 'UPDATE') then to_jsonb(new) end);
+      return coalesce(new, old);
+    end;
+    $$;
+    create trigger trg_auditar_fichas after insert or delete or update on public.fichas_viagem
+      for each row execute function public.gravar_auditoria_fichas();
+  `);
+  const defAuditoria = async () => (await db.query(`select pg_get_functiondef('public.gravar_auditoria_fichas()'::regprocedure) d`)).rows[0].d;
+  const funcaoAuditoriaAntes = await defAuditoria();
   if (process.env.CENARIO === 'update_aberto') {
     await db.exec(`create policy fichas_motorista_update_antiga on public.fichas_viagem for update to authenticated using (motorista_id = auth.uid()) with check (motorista_id = auth.uid());`);
   }
@@ -86,8 +105,26 @@ const B = '33333333-3333-3333-3333-333333333333';
   await db.exec(ateCommit(sql));
   r.reexecutou = 'ok (2x)';
 
+  // Item 6: uma linha a mais na função (uma vez só, mesmo rodando 2x); o resto do texto, o
+  // security definer e o search_path continuam iguais
+  const REGRA = "if tg_op in ('INSERT','UPDATE') and new.status = 'rascunho' then return new; end if;";
+  const funcaoAuditoria = await defAuditoria();
+  r.auditoriaFuncao = {
+    regraQuantasVezes: funcaoAuditoria.split(REGRA).length - 1,
+    restoIgual: funcaoAuditoria.replace('\n  ' + REGRA, '') === funcaoAuditoriaAntes,
+    seguranca: (await db.query(`select prosecdef, proconfig from pg_proc where proname = 'gravar_auditoria_fichas'`)).rows[0],
+    linhasPerto: funcaoAuditoria.split('\n').slice(5, 9)
+  };
+  // Função com 2 begin: o item 6 dá erro e não muda nada
+  const item6 = sql.slice(sql.indexOf('-- 6. Auditoria'), sql.indexOf('\ncommit;\n'));
+  await db.exec('begin');
+  await db.exec(funcaoAuditoriaAntes.replace(/begin\n/i, 'begin\n  begin\n    perform 1;\n  end;\n'));
+  try { await db.exec(item6); r.auditoriaDoisBegins = 'PASSOU (errado)'; } catch (e) { r.auditoriaDoisBegins = 'erro: ' + e.message; }
+  await db.exec('rollback').catch(() => {});
+  r.auditoriaDepoisDoErro = (await defAuditoria()) === funcaoAuditoria ? 'função como estava' : 'MUDOU';
+
   const resto = sql.slice(ateCommit(sql).length);
-  const blocos = resto.split(/^(?=-- 6\.\d+ )/m).filter(b => /^-- 6\.\d+ /.test(b));
+  const blocos = resto.split(/^(?=-- 7\.\d+ )/m).filter(b => /^-- 7\.\d+ /.test(b));
   const seqLer = async () => JSON.stringify((await db.query('select last_value, is_called from public.fichas_numero_seq')).rows[0]);
   const seqAntesConferencias = await seqLer();
   r.conferencias = {};
@@ -114,6 +151,8 @@ const B = '33333333-3333-3333-3333-333333333333';
     try { const res = await db.query(q, params); await db.exec('commit'); return res.rows; }
     catch (e) { await db.exec('rollback'); return 'ERRO: ' + e.message; }
   };
+  const auditoria = async () => Number((await db.query('select count(*) n from public.auditoria_fichas')).rows[0].n);
+  const audAntes = await auditoria();
   const seqAntes = (await db.query(`select last_value, is_called from public.fichas_numero_seq`)).rows[0];
   const ins = await como(A, `insert into public.fichas_viagem (id, motorista, status, data_saida, dados_completos) values ('RASC-x', 'A', 'rascunho', '2026-10-01', $1) returning id, status, data_envio, atualizado_em`, [{ kmSaida: '100000', dataSaida: '01/10/2026' }]);
   const idRasc = Array.isArray(ins) ? ins[0].id : null;
@@ -124,10 +163,19 @@ const B = '33333333-3333-3333-3333-333333333333';
   r.fluxoPagina.aEsvaziaRascunho = await como(A, `update public.fichas_viagem set placas = null, data_saida = null, abastecimentos = '[]', comprovantes = '[]', despesas_extras = '[]', dados_completos = '{}' where id = $1 and status = 'rascunho' returning id, status, km_saida, data_saida, placas`, [idRasc]);
   r.fluxoPagina.numeroNaoGastoNoRascunho = JSON.stringify((await db.query(`select last_value, is_called from public.fichas_numero_seq`)).rows[0]) === JSON.stringify(seqAntes);
   r.fluxoPagina.gestaoVeRascunho = await como('22222222-2222-2222-2222-222222222222', `select left(id, 5) id, status, atualizado_em is not null tem_atualizado from public.fichas_viagem where status = 'rascunho'`, [], true);
+  r.fluxoPagina.auditoriaDoRascunho = (await auditoria()) - audAntes;
+  const audEnvio = await auditoria();
   r.fluxoPagina.envia = await como(A, `update public.fichas_viagem set status = 'pendente', placas = 'ABC1D23', data_saida = '2026-10-01', data_chegada = '2026-10-05', dados_completos = $2 where id = $1 and status = 'rascunho' returning id, status, dados_completos->>'id' dc_id`, [idRasc, { kmSaida: '100000', kmEntrada: '101500' }]);
+  r.fluxoPagina.auditoriaDoEnvio = (await auditoria()) - audEnvio;
+  const audDireto = await auditoria();
   r.fluxoPagina.envioDiretoPendente = await como(A, `insert into public.fichas_viagem (id, motorista, status, placas, data_saida, data_chegada, dados_completos) values ('AJB-2026-900', 'A', 'pendente', 'ABC1D23', '2026-10-01', '2026-10-05', $1) returning id, status`, [{ kmSaida: '1', kmEntrada: '2' }]);
   r.fluxoPagina.motoristaAprova = await como(A, `update public.fichas_viagem set status = 'aprovado' where id = 'AJB-2026-900' returning id`);
   r.fluxoPagina.gestaoEditaPendente = await como('22222222-2222-2222-2222-222222222222', `update public.fichas_viagem set km_total = 9 where id = 'AJB-2026-900' returning id, km_total`, [], true);
+  // envio direto (insert pendente) + motorista tentando aprovar (recusado, não grava) + update da gestão
+  r.fluxoPagina.auditoriaEnvioDiretoEGestao = (await auditoria()) - audDireto;
+  const audDelete = await auditoria();
+  r.fluxoPagina.gestaoApaga = await como('22222222-2222-2222-2222-222222222222', `delete from public.fichas_viagem where id = 'AJB-2026-900' returning id`, [], true);
+  r.fluxoPagina.auditoriaDoDelete = (await auditoria()) - audDelete;
 
   console.log(JSON.stringify(r, null, 2));
 })().catch(e => { console.error(e); process.exit(1); });

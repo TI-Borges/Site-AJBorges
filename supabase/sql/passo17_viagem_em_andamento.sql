@@ -24,6 +24,12 @@
 --      arquivo da própria pasta só quando a ficha do caminho
 --      (<id do usuário>/<id da ficha>/<arquivo>) é dele e está em 'rascunho'.
 --      A consulta à ficha é feita por uma função security definer.
+--   6. Auditoria (trigger trg_auditar_fichas -> gravar_auditoria_fichas()):
+--      gravar rascunho (INSERT/UPDATE com status 'rascunho') não é mais
+--      auditado, senão o salvamento automático enche auditoria_fichas. O envio
+--      (rascunho -> pendente), as alterações da gestão e os DELETEs continuam.
+--      Só entra uma linha logo depois do primeiro begin da função; o resto do
+--      texto dela fica como está.
 --
 -- Não muda: admin/diretoria (continuam livres), regras do envio (placa, KM,
 -- datas, destino, veículo do Alimentício), comissão, Viana, média, _limpar_*,
@@ -67,6 +73,10 @@ select motorista_id, count(*) from public.fichas_viagem
 --     envio; tem que voltar 0 linhas)
 select conname, conrelid::regclass from pg_constraint
  where confrelid = 'public.fichas_viagem'::regclass;
+
+-- 0.6 Função da auditoria como está hoje (o item 6 acrescenta uma linha nela;
+--     guarde este texto: é o que volta se precisar desfazer)
+select pg_get_functiondef('public.gravar_auditoria_fichas()'::regprocedure);
 
 
 begin;
@@ -481,24 +491,50 @@ create policy comprovantes_motorista_apaga_do_rascunho on storage.objects
   using (bucket_id = 'comprovantes' and public._comprovante_de_rascunho_meu(name));
 
 
+-- -----------------------------------------------------------------------------
+-- 6. Auditoria: gravar_auditoria_fichas() deixa de auditar a gravação do rascunho
+--    Pega o texto atual da função, põe a linha abaixo logo depois do begin do
+--    corpo e recria a função com o resto igual (dono, security definer,
+--    search_path e permissões continuam). Dá erro (e nada é alterado) se o
+--    texto não tiver exatamente um "begin". Se a linha já estiver lá, não mexe
+--    (o arquivo pode rodar duas vezes).
+-- -----------------------------------------------------------------------------
+do $$
+declare
+  v_def    text := pg_get_functiondef('public.gravar_auditoria_fichas()'::regprocedure);
+  v_regra  constant text := 'if tg_op in (''INSERT'',''UPDATE'') and new.status = ''rascunho'' then return new; end if;';
+  v_begins int;
+begin
+  if position(v_regra in v_def) > 0 then
+    raise notice 'gravar_auditoria_fichas já tem a regra do rascunho; nada foi alterado.';
+    return;
+  end if;
+  select count(*) into v_begins from regexp_matches(v_def, '\mbegin\M', 'gi');
+  if v_begins <> 1 then
+    raise exception 'gravar_auditoria_fichas: esperava exatamente 1 "begin" no texto da função e achei %. Nada foi alterado.', v_begins;
+  end if;
+  execute regexp_replace(v_def, '(\mbegin\M)', '\1' || E'\n  ' || v_regra, 'i');
+end $$;
+
+
 commit;
 
 
 -- =============================================================================
--- 6. Conferência (depois do commit; rode cada bloco separadamente)
+-- 7. Conferência (depois do commit; rode cada bloco separadamente)
 --    Motorista A = primeiro perfil com role = 'motorista'; motorista B = o
 --    segundo (com um só motorista cadastrado, os testes de "outro motorista"
 --    não valem: aparece B=(sem segundo motorista)). Gestão = claims com
 --    app_metadata.role = 'admin' (é o que o is_admin() lê). Tudo é desfeito
 --    no final (rollback). Os perfis ficam como carreta, sem especial, só
 --    dentro da transação.
---    Em 6.6 e 6.7 o reset role / set role fica fora do bloco do $$, como no passo 16.
+--    Em 7.6 e 7.7 o reset role / set role fica fora do bloco do $$, como no passo 16.
 --    Rode logo depois do commit, antes de publicar a página nova: o motorista
 --    A ou B com rascunho aberto no banco faz o teste falhar (1 rascunho por
 --    motorista).
 -- =============================================================================
 
--- 6.1 Estrutura (esperado: coluna=t | triggers=<...>, zz_fichas_atualizado_em por último | indice=t | policies_fichas=fichas_motorista_atualiza_rascunho:UPDATE, fichas_motorista_cria_rascunho:INSERT | policies_storage=comprovantes_motorista_apaga_do_rascunho:DELETE, comprovantes_motorista_le_propria_pasta:SELECT)
+-- 7.1 Estrutura (esperado: coluna=t | triggers=<...>, zz_fichas_atualizado_em por último | indice=t | policies_fichas=fichas_motorista_atualiza_rascunho:UPDATE, fichas_motorista_cria_rascunho:INSERT | policies_storage=comprovantes_motorista_apaga_do_rascunho:DELETE, comprovantes_motorista_le_propria_pasta:SELECT)
 do $$
 begin
   raise exception 'RESULTADO: coluna=% | triggers=% | indice=% | policies_fichas=% | policies_storage=%',
@@ -511,7 +547,7 @@ begin
       where schemaname = 'storage' and tablename = 'objects' and policyname like 'comprovantes_motorista_%');
 end $$;
 
--- 6.2 Motorista A começa a viagem só com KM e data de saída (esperado: id=RASC-... | status=rascunho | km_saida=100000 | data_saida=2026-10-01 | placas=(vazio) | atualizado_em=t | segundo_rascunho=bloqueado)
+-- 7.2 Motorista A começa a viagem só com KM e data de saída (esperado: id=RASC-... | status=rascunho | km_saida=100000 | data_saida=2026-10-01 | placas=(vazio) | atualizado_em=t | segundo_rascunho=bloqueado)
 begin;
 update public.perfis set tipo_veiculo = 'carreta', comissao_alim_carreta = null, comissao_alim_rodotrem = null
  where id = (select id from public.perfis where role = 'motorista' order by id limit 1);
@@ -538,7 +574,7 @@ begin
 end $$;
 rollback;
 
--- 6.3 Outro dia: A acrescenta um abastecimento e uma despesa no rascunho (esperado: linhas=1 | km_saida=100000 | data_saida=2026-10-01 | abastecimentos=1 | despesa=Borracharia 150,00 | id_igual=t)
+-- 7.3 Outro dia: A acrescenta um abastecimento e uma despesa no rascunho (esperado: linhas=1 | km_saida=100000 | data_saida=2026-10-01 | abastecimentos=1 | despesa=Borracharia 150,00 | id_igual=t)
 begin;
 update public.perfis set tipo_veiculo = 'carreta', comissao_alim_carreta = null, comissao_alim_rodotrem = null
  where id = (select id from public.perfis where role = 'motorista' order by id limit 1);
@@ -569,7 +605,7 @@ begin
 end $$;
 rollback;
 
--- 6.4 Motorista B não lê nem altera o rascunho de A (esperado: B_ve=0 | B_altera=0 linhas | B_envia=0 linhas | rascunho_de_A_intacto=t; ou B=(sem segundo motorista))
+-- 7.4 Motorista B não lê nem altera o rascunho de A (esperado: B_ve=0 | B_altera=0 linhas | B_envia=0 linhas | rascunho_de_A_intacto=t; ou B=(sem segundo motorista))
 begin;
 select set_config('request.jwt.claims',
          (select json_build_object('sub', id, 'role', 'authenticated')::text
@@ -605,7 +641,7 @@ begin
 end $$;
 rollback;
 
--- 6.5 Envio incompleto e depois completo, na mesma ficha (esperado: incompleto=bloqueado: Informe a placa principal (ex.: ABC-1D23). | id=AJB-... | status=pendente | mesma_ficha=t | rascunhos_restantes=0 | data_envio_agora=t | data_envio_antes=3 dias atrás | dc_id=t | dc_data_envio=t | km_total=1500 | comissao=110,00)
+-- 7.5 Envio incompleto e depois completo, na mesma ficha (esperado: incompleto=bloqueado: Informe a placa principal (ex.: ABC-1D23). | id=AJB-... | status=pendente | mesma_ficha=t | rascunhos_restantes=0 | data_envio_agora=t | data_envio_antes=3 dias atrás | dc_id=t | dc_data_envio=t | km_total=1500 | comissao=110,00)
 --     Para provar a data do envio, a gestão volta a data_envio do rascunho 3 dias (dentro da transação tudo tem a mesma now()).
 begin;
 -- (número de teste só nesta transação: sequência não volta no rollback, e a conferência não pode gastar número)
@@ -656,7 +692,7 @@ begin
 end $$;
 rollback;
 
--- 6.6 Motorista não altera ficha pendente nem aprovada, nem volta para rascunho (esperado: pendente_altera=bloqueado | pendente_volta_rascunho=bloqueado | aprovado_altera=bloqueado | km_continua=101500)
+-- 7.6 Motorista não altera ficha pendente nem aprovada, nem volta para rascunho (esperado: pendente_altera=bloqueado | pendente_volta_rascunho=bloqueado | aprovado_altera=bloqueado | km_continua=101500)
 --     "bloqueado" = erro do trigger ou 0 linhas pela RLS. O 2º bloco lê como o usuário do SQL Editor.
 begin;
 -- (número de teste só nesta transação: sequência não volta no rollback, e a conferência não pode gastar número)
@@ -722,7 +758,7 @@ begin
 end $$;
 rollback;
 
--- 6.7 Fotos: A apaga foto do próprio rascunho, mas não a de ficha enviada nem a do rascunho de B (esperado: proprio_rascunho=1 | ficha_enviada=0 | rascunho_de_B=0 | B=<ok ou (sem segundo motorista)>)
+-- 7.7 Fotos: A apaga foto do próprio rascunho, mas não a de ficha enviada nem a do rascunho de B (esperado: proprio_rascunho=1 | ficha_enviada=0 | rascunho_de_B=0 | B=<ok ou (sem segundo motorista)>)
 --     Os arquivos de teste são só linhas em storage.objects (nada vai para o Storage de verdade).
 --     O 1º bloco cria as fichas e os arquivos como o usuário do SQL Editor; o 2º apaga como A.
 begin;
@@ -780,7 +816,7 @@ begin
 end $$;
 rollback;
 
--- 6.8 Regras de antes continuam iguais pelo rascunho: comissão, Viana, KM/média e placa (esperado: sem_placa=bloqueado: Informe a placa principal (ex.: ABC-1D23). | viana_rodotrem=800,00 | outro_destino=900,00 | shopee=110,00 | ml=400,00 | km_total=1500 | litros=500,00 | placas=ABC1D23 | vr_comissao=2210.00)
+-- 7.8 Regras de antes continuam iguais pelo rascunho: comissão, Viana, KM/média e placa (esperado: sem_placa=bloqueado: Informe a placa principal (ex.: ABC-1D23). | viana_rodotrem=800,00 | outro_destino=900,00 | shopee=110,00 | ml=400,00 | km_total=1500 | litros=500,00 | placas=ABC1D23 | vr_comissao=2210.00)
 begin;
 -- (número de teste só nesta transação: sequência não volta no rollback, e a conferência não pode gastar número)
 create or replace function public.reservar_numero_ficha() returns text language sql as $$ select 'AJB-TESTE-P17'::text $$;
@@ -819,5 +855,53 @@ begin
     r.dados_completos -> 'fretes' -> 0 ->> 'comissao', r.dados_completos -> 'fretes' -> 1 ->> 'comissao',
     r.dados_completos -> 'fretes' -> 2 ->> 'comissao', r.dados_completos -> 'fretes' -> 3 ->> 'comissao',
     r.km_total, r.abastecimentos -> 0 ->> 'litros', r.placas, r.vr_comissao::numeric(14,2);
+end $$;
+rollback;
+
+-- 7.9 Auditoria: 5 gravações de rascunho, o envio e um update da gestão (esperado: rascunho_5_gravacoes=0 linhas | envio=1 linha(s) | gestao=1 linha(s) | regra_na_funcao=1)
+--     Roda como o usuário do SQL Editor (lê auditoria_fichas sem depender da RLS dela); quem
+--     grava é decidido pelas claims, como nos outros testes.
+begin;
+-- (número de teste só nesta transação: sequência não volta no rollback, e a conferência não pode gastar número)
+create or replace function public.reservar_numero_ficha() returns text language sql as $$ select 'AJB-TESTE-P17'::text $$;
+update public.perfis set tipo_veiculo = 'carreta', comissao_alim_carreta = null, comissao_alim_rodotrem = null
+ where id = (select id from public.perfis where role = 'motorista' order by id limit 1);
+select set_config('request.jwt.claims',
+         (select json_build_object('sub', id, 'role', 'authenticated')::text
+            from public.perfis where role = 'motorista' order by id limit 1), true);
+do $$
+declare
+  v_a uuid := auth.uid();
+  v_id text;
+  v_antes bigint;
+  v_rascunho bigint;
+  v_envio bigint;
+  v_gestao bigint;
+begin
+  select count(*) into v_antes from public.auditoria_fichas;
+  -- 5 gravações do rascunho: a primeira cria, as outras 4 atualizam
+  insert into public.fichas_viagem (id, motorista, status, dados_completos)
+  values ('x', 'teste', 'rascunho', '{"kmSaida": "100000"}'::jsonb)
+  returning id into v_id;
+  for i in 1..4 loop
+    update public.fichas_viagem set dados_completos = jsonb_build_object('kmSaida', (100000 + i)::text) where id = v_id;
+  end loop;
+  select count(*) into v_rascunho from public.auditoria_fichas;
+  -- envio (rascunho -> pendente)
+  update public.fichas_viagem
+     set status = 'pendente', placas = 'ABC1D23', data_saida = '2026-10-01', data_chegada = '2026-10-05',
+         dados_completos = '{"kmSaida": "100000", "kmEntrada": "101500"}'::jsonb
+   where id = v_id
+  returning id into v_id;
+  select count(*) into v_envio from public.auditoria_fichas;
+  -- gestão altera a ficha enviada
+  perform set_config('request.jwt.claims', json_build_object('sub', v_a, 'role', 'authenticated',
+                     'app_metadata', json_build_object('role', 'admin'))::text, true);
+  update public.fichas_viagem set km_total = 1500 where id = v_id;
+  select count(*) into v_gestao from public.auditoria_fichas;
+  raise exception 'RESULTADO (nada foi salvo): rascunho_5_gravacoes=% linhas | envio=% linha(s) | gestao=% linha(s) | regra_na_funcao=%',
+    v_rascunho - v_antes, v_envio - v_rascunho, v_gestao - v_envio,
+    (select count(*) from regexp_matches(pg_get_functiondef('public.gravar_auditoria_fichas()'::regprocedure),
+                                         'and new\.status = ''rascunho'' then return new', 'g'));
 end $$;
 rollback;
