@@ -116,30 +116,6 @@ function cpfValido(cpf: string): boolean {
     digito(cpf.slice(0, 10), 11) === Number(cpf[10]);
 }
 
-function cnpjValido(cnpj: string): boolean {
-  if (!/^\d{14}$/.test(cnpj) || /^(\d)\1{13}$/.test(cnpj)) {
-    return false;
-  }
-
-  const digito = (base: string) => {
-    const pesos = base.length === 12
-      ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-      : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-
-    let soma = 0;
-
-    for (let i = 0; i < base.length; i++) {
-      soma += Number(base[i]) * pesos[i];
-    }
-
-    const resto = soma % 11;
-    return resto < 2 ? 0 : 11 - resto;
-  };
-
-  return digito(cnpj.slice(0, 12)) === Number(cnpj[12]) &&
-    digito(cnpj.slice(0, 13)) === Number(cnpj[13]);
-}
-
 function emailValido(email: string): boolean {
   return email.length <= 254 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -235,55 +211,6 @@ const CAMPOS_EMPRESA = [
   "responsavel",
 ];
 
-const CAMPOS_CNH = [
-  "nascimento",
-  "rg",
-  "rg-uf",
-  "uf-nasc",
-  "cidade-nasc",
-  "mae",
-  "cnh-registro",
-  "cnh-emissao",
-  "cnh-primeira",
-  "cnh-uf",
-  "cnh-validade",
-  "cnh-categoria",
-  "cnh-seguranca",
-];
-
-const CAMPOS_CRLV_SUFIXOS = [
-  "placa",
-  "renavam",
-  "chassi",
-  "marca",
-  "modelo",
-  "ano",
-  "cor",
-  "cidade-emp",
-  "uf",
-  "prop-nome",
-  "prop-doc",
-];
-
-const camposCrlv = (n: number) =>
-  CAMPOS_CRLV_SUFIXOS.map((s) => `crlv${n}-${s}`);
-
-const CAMPOS_RNTRC = [
-  "rntrc",
-  "val-rntrc",
-  "rntrc-doc",
-  "rntrc-categoria",
-];
-
-const CATEGORIAS_RNTRC = ["TAC", "ETC", "CTC"];
-
-const CAMPOS_RESIDENCIA = [
-  "mot-endereco",
-  "mot-cidade",
-  "mot-estado",
-  "mot-cep",
-];
-
 const TIPOLOGIAS: Record<string, string[]> = {
   "VUC/¾": ["Caminhão"],
   "Toco (4×2)": ["Caminhão"],
@@ -305,43 +232,13 @@ const TIPOLOGIAS: Record<string, string[]> = {
   ],
 };
 
-// As 27 UFs, no formato do select do formulário ("São Paulo (SP)").
-const UFS = [
-  "Acre (AC)",
-  "Alagoas (AL)",
-  "Amapá (AP)",
-  "Amazonas (AM)",
-  "Bahia (BA)",
-  "Ceará (CE)",
-  "Distrito Federal (DF)",
-  "Espírito Santo (ES)",
-  "Goiás (GO)",
-  "Maranhão (MA)",
-  "Mato Grosso (MT)",
-  "Mato Grosso do Sul (MS)",
-  "Minas Gerais (MG)",
-  "Pará (PA)",
-  "Paraíba (PB)",
-  "Paraná (PR)",
-  "Pernambuco (PE)",
-  "Piauí (PI)",
-  "Rio de Janeiro (RJ)",
-  "Rio Grande do Norte (RN)",
-  "Rio Grande do Sul (RS)",
-  "Rondônia (RO)",
-  "Roraima (RR)",
-  "Santa Catarina (SC)",
-  "São Paulo (SP)",
-  "Sergipe (SE)",
-  "Tocantins (TO)",
-];
-
 const nomeCrlv = (papel: string) =>
   `CRLV ${/carreta$/i.test(papel) ? "da" : "do"} ${papel}`;
 
 const MAX_ARQUIVOS = 3;
 
-// O anexo principal aceita PDF, JPG ou PNG (podendo misturar).
+// Documentos (CNH, CRLVs, RNTRC e comprovante de residência): só PDF.
+// Os dados deles não são mais digitados: vêm no PDF anexado.
 const TIPOS_PDF = ["application/pdf"];
 const TIPOS_FOTO = ["image/png", "image/jpeg"];
 
@@ -363,41 +260,6 @@ const ROTULOS: Record<string, string> = {
   "motorista-sobrenome": "Sobrenome",
   "cpf": "CPF",
   "celular": "Celular",
-  "nascimento": "Data de nascimento",
-  "rg": "RG",
-  "rg-uf": "UF do RG",
-  "uf-nasc": "Estado de nascimento",
-  "cidade-nasc": "Cidade de nascimento",
-  "mae": "Nome da mãe",
-  "cnh-registro": "Registro da CNH",
-  "cnh-emissao": "Emissão da CNH",
-  "cnh-primeira": "Data da 1ª CNH",
-  "cnh-uf": "UF da CNH",
-  "cnh-validade": "Validade da CNH",
-  "cnh-categoria": "Categoria da CNH",
-  "cnh-seguranca": "Código de segurança da CNH",
-  "rntrc": "RNTRC: Número",
-  "val-rntrc": "RNTRC: Validade",
-  "rntrc-doc": "RNTRC: CPF/CNPJ do titular",
-  "rntrc-categoria": "RNTRC: Categoria",
-  "mot-endereco": "Comprovante de residência: Endereço",
-  "mot-cidade": "Comprovante de residência: Cidade",
-  "mot-estado": "Comprovante de residência: Estado",
-  "mot-cep": "Comprovante de residência: CEP",
-};
-
-const ROTULOS_CRLV: Record<string, string> = {
-  "placa": "Placa",
-  "renavam": "RENAVAM",
-  "chassi": "Chassi",
-  "marca": "Marca",
-  "modelo": "Modelo",
-  "ano": "Ano",
-  "cor": "Cor",
-  "cidade-emp": "Cidade de emplacamento",
-  "uf": "UF",
-  "prop-nome": "Nome do proprietário",
-  "prop-doc": "CPF/CNPJ do proprietário",
 };
 
 // "a CNH" → "da CNH"; "o RNTRC" → "do RNTRC".
@@ -610,38 +472,29 @@ Deno.serve(async (req: Request) => {
     documentosDoEnvio.rntrc = "o RNTRC";
     documentosDoEnvio.residencia = "o comprovante de residência";
 
-    const semPdfBruto = objetoValido(corpo.sem_pdf)
-      ? corpo.sem_pdf
-      : {};
+    // Obrigatórios; o comprovante de residência é opcional.
+    const obrigatorios = [
+      "cnh",
+      ...papeis.map((_, i) => `crlv_${i + 1}`),
+      "rntrc",
+    ];
 
-    const semPdf: Record<string, boolean> = {};
-
-    for (const campo of Object.keys(documentosDoEnvio)) {
-      semPdf[campo] = semPdfBruto[campo] === true;
+    // "Não tenho o PDF" não existe mais: os dados dos documentos vêm no PDF.
+    if (
+      objetoValido(corpo.sem_pdf) &&
+      Object.values(corpo.sem_pdf).some((v) => v === true)
+    ) {
+      return resp(req, 400, {
+        erro: "Os documentos agora vão só em PDF. Atualize a página e anexe o PDF de cada documento.",
+      });
     }
 
     // ---------- Campos permitidos ----------
-
-    const camposDoc: Record<string, string[]> = {
-      cnh: CAMPOS_CNH,
-      rntrc: CAMPOS_RNTRC,
-      residencia: CAMPOS_RESIDENCIA,
-    };
-
-    for (let i = 1; i <= n; i++) {
-      camposDoc[`crlv_${i}`] = camposCrlv(i);
-    }
 
     const permitidos = new Set([
       ...CAMPOS_ACESSO,
       ...(tipo === "pj" ? CAMPOS_EMPRESA : []),
     ]);
-
-    for (const [campo, lista] of Object.entries(camposDoc)) {
-      if (semPdf[campo]) {
-        lista.forEach((c) => permitidos.add(c));
-      }
-    }
 
     const dadosBrutos = objetoValido(corpo.dados)
       ? corpo.dados
@@ -661,20 +514,6 @@ Deno.serve(async (req: Request) => {
       }
 
       dados[k] = valor;
-    }
-
-    // ---------- Estados (mesmos valores do select do formulário) ----------
-
-    for (const [k, v] of Object.entries(dados)) {
-      const ehEstado = k === "uf-nasc" ||
-        k === "mot-estado" ||
-        /^crlv\d+-uf$/.test(k);
-
-      if (ehEstado && !UFS.includes(v)) {
-        return resp(req, 400, {
-          erro: "Estado inválido.",
-        });
-      }
     }
 
     // ---------- Validação dos anexos ----------
@@ -713,12 +552,6 @@ Deno.serve(async (req: Request) => {
 
       const nomeDoc = documentosDoEnvio[campo];
 
-      if (semPdf[campo]) {
-        return resp(req, 400, {
-          erro: `Você marcou "não tenho o PDF" para ${nomeDoc}, mas anexou um arquivo. Desmarque a caixa ou remova o anexo.`,
-        });
-      }
-
       if (lista.length > MAX_ARQUIVOS) {
         return resp(req, 400, {
           erro: `Envie no máximo ${MAX_ARQUIVOS} arquivos para ${nomeDoc}.`,
@@ -735,9 +568,11 @@ Deno.serve(async (req: Request) => {
         const tipoArq = String(documento.tipo ?? "");
         const tamanho = Number(documento.tamanho ?? 0);
 
-        if (!TIPOS_PDF.includes(tipoArq) && !TIPOS_FOTO.includes(tipoArq)) {
+        if (!TIPOS_PDF.includes(tipoArq)) {
           return resp(req, 400, {
-            erro: `O anexo ${comDe(nomeDoc)} precisa ser PDF, JPG ou PNG.`,
+            erro: campo === "residencia"
+              ? "Envie o comprovante em PDF (a conta em PDF baixada do app ou do site da empresa)."
+              : `Envie o PDF ${comDe(nomeDoc)} (baixe pelo app CNH Digital / CRLV Digital / ANTT). Foto não é aceita.`,
           });
         }
 
@@ -766,21 +601,12 @@ Deno.serve(async (req: Request) => {
     const temDoc = (campo: string) =>
       (contagem[campo] ?? 0) > 0;
 
-    // ---------- Regra: anexo ou formulário ----------
+    // ---------- Anexos obrigatórios ----------
 
-    for (
-      const campo of [
-        "cnh",
-        ...papeis.map((_, i) => `crlv_${i + 1}`),
-        "rntrc",
-        "residencia",
-      ]
-    ) {
-      if (!semPdf[campo] && !temDoc(campo)) {
+    for (const campo of obrigatorios) {
+      if (!temDoc(campo)) {
         return resp(req, 400, {
-          erro: `Anexe ${
-            documentosDoEnvio[campo]
-          } ou marque que não tem o PDF nem a foto.`,
+          erro: `Anexe o PDF ${comDe(documentosDoEnvio[campo])}.`,
         });
       }
     }
@@ -810,71 +636,11 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    if (semPdf.cnh) {
-      exigir(
-        CAMPOS_CNH,
-        (campo) => ROTULOS[campo] ?? campo,
-      );
-    }
-
-    papeis.forEach((papel, i) => {
-      if (semPdf[`crlv_${i + 1}`]) {
-        exigir(
-          camposCrlv(i + 1),
-          (campo) =>
-            `${nomeCrlv(papel)}: ${
-              ROTULOS_CRLV[campo.replace(/^crlv\d+-/, "")] ?? campo
-            }`,
-        );
-      }
-    });
-
-    if (semPdf.rntrc) {
-      exigir(
-        CAMPOS_RNTRC,
-        (campo) => ROTULOS[campo] ?? campo,
-      );
-    }
-
-    if (semPdf.residencia) {
-      exigir(
-        CAMPOS_RESIDENCIA,
-        (campo) => ROTULOS[campo] ?? campo,
-      );
-    }
-
     if (faltando.length > 0) {
       return resp(req, 400, {
-        erro: 'Preencha os campos obrigatórios dos documentos que você marcou como "não tenho o PDF".',
+        erro: "Preencha os campos obrigatórios.",
         faltando,
       });
-    }
-
-    if (
-      semPdf.rntrc &&
-      !/^\d{8,12}$/.test(dados.rntrc)
-    ) {
-      return resp(req, 400, {
-        erro: "RNTRC inválido.",
-      });
-    }
-
-    if (semPdf.rntrc) {
-      const docRntrc = dados["rntrc-doc"].replace(/\D/g, "");
-
-      if (!cpfValido(docRntrc) && !cnpjValido(docRntrc)) {
-        return resp(req, 400, {
-          erro: "CPF/CNPJ do titular do RNTRC inválido.",
-        });
-      }
-
-      if (!CATEGORIAS_RNTRC.includes(dados["rntrc-categoria"])) {
-        return resp(req, 400, {
-          erro: "Categoria do RNTRC inválida.",
-        });
-      }
-
-      dados["rntrc-doc"] = docRntrc;
     }
 
     // ---------- CPF e celular ----------
@@ -951,7 +717,8 @@ Deno.serve(async (req: Request) => {
           // Veículos (um CRLV cada) deste envio: o dashboard lê daqui, porque a
           // lista da tipologia pode mudar depois (Cavalo passou a pedir a carreta).
           _papeis: papeis,
-          _sem_pdf: semPdf,
+          // Documentos só em PDF, sem dados digitados (o dashboard não mostra os campos deles)
+          _so_pdf: true,
           _aceite_lgpd: {
             em: new Date().toISOString(),
             versao: versaoPolitica,

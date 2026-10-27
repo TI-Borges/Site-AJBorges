@@ -42,9 +42,9 @@
                 comunicação.
             </p>
             <div class="attention-box">
-                <span class="attention-label">Atenção:</span> tenha em mãos, em PDF ou foto (JPG/PNG), a CNH (frente/verso), o CRLV de cada
-                veículo, o RNTRC e o comprovante de residência. Se não tiver o PDF nem a foto de algum documento,
-                marque a caixa abaixo dele e preencha os dados.
+                <span class="attention-label">Atenção:</span> tenha em mãos o PDF da CNH (app CNH Digital), do CRLV de cada
+                veículo (app CRLV Digital) e do RNTRC (app ANTT). Foto de documento não é aceita. O comprovante de
+                residência é opcional (em PDF).
             </div>
         </section>
 
@@ -161,7 +161,7 @@
                         <span class="step-bar"></span>
                         <h3 class="step-title">02 - Documentos</h3>
                     </div>
-                    <p class="step-subtitle">Anexe cada documento (PDF, JPG ou PNG). Se não tiver o PDF nem a foto, marque a caixa abaixo dele e preencha os dados.</p>
+                    <p class="step-subtitle">Anexe o PDF de cada documento, baixado pelo app do documento (CNH Digital, CRLV Digital, ANTT). Foto não é aceita.</p>
                 </div>
 
                 <div class="step-body">
@@ -182,151 +182,12 @@
                                         <line x1="12" y1="3" x2="12" y2="15" />
                                     </svg>
                                     <span class="upload-text"><span class="upload-texto-mouse">Arraste aqui ou <label for="pj-anexo-cnh"
-                                            class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o arquivo ou tirar a foto</span></span>
-                                    <span class="upload-subtext">PDF, JPG ou PNG. Até 3 arquivos (10 MB cada).</span>
+                                            class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o PDF</span></span>
+                                    <span class="upload-subtext">Somente PDF. Baixe pelo app do documento.</span>
                                     <input type="file" id="pj-anexo-cnh" class="file-input-hidden" multiple
-                                        accept="application/pdf,image/png,image/jpeg">
+                                        accept="application/pdf,.pdf">
                                 </div>
                                 <div class="file-preview-list" id="preview-pj-anexo-cnh"></div>
-                            </div>
-                        </div>
-                        <label class="caixa-sem-pdf">
-                            <input type="checkbox" id="pj-sem-pdf-cnh" data-doc="cnh">
-                            <span class="caixa-sem-pdf-quadrado" aria-hidden="true"></span>
-                            <span class="caixa-sem-pdf-texto">Não tenho o PDF nem a foto da CNH</span>
-                        </label>
-                        <div class="cartao-doc-form" hidden>
-                            <div class="form-row col-3">
-                                <div class="form-group">
-                                    <label for="pj-nascimento">Data de Nascimento: <span class="required-asterisk">*</span></label>
-                                    <input type="date" id="pj-nascimento" >
-                                </div>
-                                <div class="form-group">
-                                    <label for="pj-uf-nasc">Estado de Nascimento: <span class="required-asterisk">*</span></label>
-                                    <select id="pj-uf-nasc" data-cidade="pj-cidade-nasc"></select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="pj-cidade-nasc">Cidade de Nascimento: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pj-cidade-nasc" >
-                                </div>
-                            </div>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pj-rg">RG: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pj-rg" >
-                                </div>
-                                <div class="form-group">
-                                    <label for="pj-rg-uf">Estado Emissor do RG: <span class="required-asterisk">*</span></label>
-                                    <select id="pj-rg-uf">
-                                        <option value="">--- Selecione a escolha ---</option>
-                                        <option value="Acre (AC)">Acre (AC)</option>
-                                        <option value="Alagoas (AL)">Alagoas (AL)</option>
-                                        <option value="Amapá (AP)">Amapá (AP)</option>
-                                        <option value="Amazonas (AM)">Amazonas (AM)</option>
-                                        <option value="Bahia (BA)">Bahia (BA)</option>
-                                        <option value="Ceará (CE)">Ceará (CE)</option>
-                                        <option value="Distrito Federal (DF)">Distrito Federal (DF)</option>
-                                        <option value="Espírito Santo (ES)">Espírito Santo (ES)</option>
-                                        <option value="Goiás (GO)">Goiás (GO)</option>
-                                        <option value="Maranhão (MA)">Maranhão (MA)</option>
-                                        <option value="Mato Grosso (MT)">Mato Grosso (MT)</option>
-                                        <option value="Mato Grosso do Sul (MS)">Mato Grosso do Sul (MS)</option>
-                                        <option value="Minas Gerais (MG)">Minas Gerais (MG)</option>
-                                        <option value="Pará (PA)">Pará (PA)</option>
-                                        <option value="Paraíba (PB)">Paraíba (PB)</option>
-                                        <option value="Paraná (PR)">Paraná (PR)</option>
-                                        <option value="Pernambuco (PE)">Pernambuco (PE)</option>
-                                        <option value="Piauí (PI)">Piauí (PI)</option>
-                                        <option value="Rio de Janeiro (RJ)">Rio de Janeiro (RJ)</option>
-                                        <option value="Rio Grande do Norte (RN)">Rio Grande do Norte (RN)</option>
-                                        <option value="Rio Grande do Sul (RS)">Rio Grande do Sul (RS)</option>
-                                        <option value="Rondônia (RO)">Rondônia (RO)</option>
-                                        <option value="Roraima (RR)">Roraima (RR)</option>
-                                        <option value="Santa Catarina (SC)">Santa Catarina (SC)</option>
-                                        <option value="São Paulo (SP)">São Paulo (SP)</option>
-                                        <option value="Sergipe (SE)">Sergipe (SE)</option>
-                                        <option value="Tocantins (TO)">Tocantins (TO)</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pj-mae">Nome da Mãe: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pj-mae" >
-                                </div>
-                                <div class="form-group">
-                                    <label for="pj-cnh-registro">Nº Registro da CNH: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pj-cnh-registro" inputmode="numeric" >
-                                </div>
-                            </div>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pj-cnh-emissao">Data de Emissão (CNH): <span class="required-asterisk">*</span></label>
-                                    <input type="date" id="pj-cnh-emissao" >
-                                </div>
-                                <div class="form-group">
-                                    <label for="pj-cnh-primeira">Data da 1ª CNH: <span class="required-asterisk">*</span></label>
-                                    <input type="date" id="pj-cnh-primeira" >
-                                </div>
-                            </div>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pj-cnh-uf">UF emissor (CNH): <span class="required-asterisk">*</span></label>
-                                    <select id="pj-cnh-uf">
-                                        <option value="">--- Selecione a escolha ---</option>
-                                        <option value="Acre (AC)">Acre (AC)</option>
-                                        <option value="Alagoas (AL)">Alagoas (AL)</option>
-                                        <option value="Amapá (AP)">Amapá (AP)</option>
-                                        <option value="Amazonas (AM)">Amazonas (AM)</option>
-                                        <option value="Bahia (BA)">Bahia (BA)</option>
-                                        <option value="Ceará (CE)">Ceará (CE)</option>
-                                        <option value="Distrito Federal (DF)">Distrito Federal (DF)</option>
-                                        <option value="Espírito Santo (ES)">Espírito Santo (ES)</option>
-                                        <option value="Goiás (GO)">Goiás (GO)</option>
-                                        <option value="Maranhão (MA)">Maranhão (MA)</option>
-                                        <option value="Mato Grosso (MT)">Mato Grosso (MT)</option>
-                                        <option value="Mato Grosso do Sul (MS)">Mato Grosso do Sul (MS)</option>
-                                        <option value="Minas Gerais (MG)">Minas Gerais (MG)</option>
-                                        <option value="Pará (PA)">Pará (PA)</option>
-                                        <option value="Paraíba (PB)">Paraíba (PB)</option>
-                                        <option value="Paraná (PR)">Paraná (PR)</option>
-                                        <option value="Pernambuco (PE)">Pernambuco (PE)</option>
-                                        <option value="Piauí (PI)">Piauí (PI)</option>
-                                        <option value="Rio de Janeiro (RJ)">Rio de Janeiro (RJ)</option>
-                                        <option value="Rio Grande do Norte (RN)">Rio Grande do Norte (RN)</option>
-                                        <option value="Rio Grande do Sul (RS)">Rio Grande do Sul (RS)</option>
-                                        <option value="Rondônia (RO)">Rondônia (RO)</option>
-                                        <option value="Roraima (RR)">Roraima (RR)</option>
-                                        <option value="Santa Catarina (SC)">Santa Catarina (SC)</option>
-                                        <option value="São Paulo (SP)">São Paulo (SP)</option>
-                                        <option value="Sergipe (SE)">Sergipe (SE)</option>
-                                        <option value="Tocantins (TO)">Tocantins (TO)</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="pj-cnh-validade">Validade (CNH): <span class="required-asterisk">*</span></label>
-                                    <input type="date" id="pj-cnh-validade" >
-                                </div>
-                            </div>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pj-cnh-categoria">Categoria (CNH): <span class="required-asterisk">*</span></label>
-                                    <select id="pj-cnh-categoria">
-                                        <option value="">--- Selecione a escolha ---</option>
-                                        <option value="A">A</option>
-                                        <option value="B">B</option>
-                                        <option value="C">C</option>
-                                        <option value="D">D</option>
-                                        <option value="E">E</option>
-                                        <option value="AC">AC</option>
-                                        <option value="AD">AD</option>
-                                        <option value="AE">AE</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="pj-cnh-seguranca">Código de Segurança (CNH): <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pj-cnh-seguranca" inputmode="numeric" >
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -348,45 +209,12 @@
                                         <line x1="12" y1="3" x2="12" y2="15" />
                                     </svg>
                                     <span class="upload-text"><span class="upload-texto-mouse">Arraste aqui ou <label for="pj-anexo-rntrc"
-                                            class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o arquivo ou tirar a foto</span></span>
-                                    <span class="upload-subtext">PDF, JPG ou PNG. Até 3 arquivos (10 MB cada).</span>
+                                            class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o PDF</span></span>
+                                    <span class="upload-subtext">Somente PDF. Baixe pelo app do documento.</span>
                                     <input type="file" id="pj-anexo-rntrc" class="file-input-hidden" multiple
-                                        accept="application/pdf,image/png,image/jpeg">
+                                        accept="application/pdf,.pdf">
                                 </div>
                                 <div class="file-preview-list" id="preview-pj-anexo-rntrc"></div>
-                            </div>
-                        </div>
-                        <label class="caixa-sem-pdf">
-                            <input type="checkbox" id="pj-sem-pdf-rntrc" data-doc="rntrc">
-                            <span class="caixa-sem-pdf-quadrado" aria-hidden="true"></span>
-                            <span class="caixa-sem-pdf-texto">Não tenho o PDF nem a foto do RNTRC</span>
-                        </label>
-                        <div class="cartao-doc-form" hidden>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pj-rntrc">Nº do RNTRC: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pj-rntrc" inputmode="numeric" pattern="[0-9]{8,12}"
-                                        title="Somente números, de 8 a 12 dígitos">
-                                </div>
-                                <div class="form-group">
-                                    <label for="pj-val-rntrc">Validade (RNTRC): <span class="required-asterisk">*</span></label>
-                                    <input type="date" id="pj-val-rntrc">
-                                </div>
-                            </div>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pj-rntrc-doc">CPF/CNPJ do titular: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pj-rntrc-doc" inputmode="numeric" placeholder="CPF ou CNPJ, só números">
-                                </div>
-                                <div class="form-group">
-                                    <label for="pj-rntrc-categoria">Categoria: <span class="required-asterisk">*</span></label>
-                                    <select id="pj-rntrc-categoria">
-                                        <option value="">--- Selecione a escolha ---</option>
-                                        <option value="TAC">TAC – Transportador Autônomo de Cargas</option>
-                                        <option value="ETC">ETC – Empresa de Transporte Rodoviário de Cargas</option>
-                                        <option value="CTC">CTC – Cooperativa de Transporte Rodoviário de Cargas</option>
-                                    </select>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -394,7 +222,7 @@
                     <div class="cartao-doc" data-doc="residencia">
                         <div class="cartao-doc-topo">
                             <h4 class="cartao-doc-titulo">Comprovante de Residência</h4>
-                            <span class="etiqueta-doc etiqueta-obrigatorio">Obrigatório</span>
+                            <span class="etiqueta-doc etiqueta-opcional">Opcional</span>
                         </div>
                         <div class="cartao-doc-anexo">
                             <div class="upload-dropzone" data-target="pj-anexo-residencia">
@@ -406,37 +234,12 @@
                                         <line x1="12" y1="3" x2="12" y2="15" />
                                     </svg>
                                     <span class="upload-text"><span class="upload-texto-mouse">Arraste aqui ou <label for="pj-anexo-residencia"
-                                            class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o arquivo ou tirar a foto</span></span>
-                                    <span class="upload-subtext">PDF, JPG ou PNG. Até 3 arquivos (10 MB cada).</span>
+                                            class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o PDF</span></span>
+                                    <span class="upload-subtext">Somente PDF: a conta em PDF baixada do app ou do site da empresa.</span>
                                     <input type="file" id="pj-anexo-residencia" class="file-input-hidden" multiple
-                                        accept="application/pdf,image/png,image/jpeg">
+                                        accept="application/pdf,.pdf">
                                 </div>
                                 <div class="file-preview-list" id="preview-pj-anexo-residencia"></div>
-                            </div>
-                        </div>
-                        <label class="caixa-sem-pdf">
-                            <input type="checkbox" id="pj-sem-pdf-residencia" data-doc="residencia">
-                            <span class="caixa-sem-pdf-quadrado" aria-hidden="true"></span>
-                            <span class="caixa-sem-pdf-texto">Não tenho o PDF nem a foto do comprovante de residência</span>
-                        </label>
-                        <div class="cartao-doc-form" hidden>
-                            <div class="form-group mb-2">
-                                <label for="pj-mot-endereco">Endereço: <span class="required-asterisk">*</span></label>
-                                <input type="text" id="pj-mot-endereco" autocomplete="street-address">
-                            </div>
-                            <div class="form-row col-3">
-                                <div class="form-group">
-                                    <label for="pj-mot-estado">Estado: <span class="required-asterisk">*</span></label>
-                                    <select id="pj-mot-estado" data-cidade="pj-mot-cidade"></select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="pj-mot-cidade">Cidade: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pj-mot-cidade">
-                                </div>
-                                <div class="form-group">
-                                    <label for="pj-mot-cep">CEP: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pj-mot-cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000">
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -561,7 +364,7 @@
                         <span class="step-bar"></span>
                         <h3 class="step-title">02 - Documentos</h3>
                     </div>
-                    <p class="step-subtitle">Anexe cada documento (PDF, JPG ou PNG). Se não tiver o PDF nem a foto, marque a caixa abaixo dele e preencha os dados.</p>
+                    <p class="step-subtitle">Anexe o PDF de cada documento, baixado pelo app do documento (CNH Digital, CRLV Digital, ANTT). Foto não é aceita.</p>
                 </div>
 
                 <div class="step-body">
@@ -582,151 +385,12 @@
                                         <line x1="12" y1="3" x2="12" y2="15" />
                                     </svg>
                                     <span class="upload-text"><span class="upload-texto-mouse">Arraste aqui ou <label for="pf-anexo-cnh"
-                                            class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o arquivo ou tirar a foto</span></span>
-                                    <span class="upload-subtext">PDF, JPG ou PNG. Até 3 arquivos (10 MB cada).</span>
+                                            class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o PDF</span></span>
+                                    <span class="upload-subtext">Somente PDF. Baixe pelo app do documento.</span>
                                     <input type="file" id="pf-anexo-cnh" class="file-input-hidden" multiple
-                                        accept="application/pdf,image/png,image/jpeg">
+                                        accept="application/pdf,.pdf">
                                 </div>
                                 <div class="file-preview-list" id="preview-pf-anexo-cnh"></div>
-                            </div>
-                        </div>
-                        <label class="caixa-sem-pdf">
-                            <input type="checkbox" id="pf-sem-pdf-cnh" data-doc="cnh">
-                            <span class="caixa-sem-pdf-quadrado" aria-hidden="true"></span>
-                            <span class="caixa-sem-pdf-texto">Não tenho o PDF nem a foto da CNH</span>
-                        </label>
-                        <div class="cartao-doc-form" hidden>
-                            <div class="form-row col-3">
-                                <div class="form-group">
-                                    <label for="pf-nascimento">Data de Nascimento: <span class="required-asterisk">*</span></label>
-                                    <input type="date" id="pf-nascimento" >
-                                </div>
-                                <div class="form-group">
-                                    <label for="pf-uf-nasc">Estado de Nascimento: <span class="required-asterisk">*</span></label>
-                                    <select id="pf-uf-nasc" data-cidade="pf-cidade-nasc"></select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="pf-cidade-nasc">Cidade de Nascimento: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pf-cidade-nasc" >
-                                </div>
-                            </div>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pf-rg">RG: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pf-rg" >
-                                </div>
-                                <div class="form-group">
-                                    <label for="pf-rg-uf">Estado Emissor do RG: <span class="required-asterisk">*</span></label>
-                                    <select id="pf-rg-uf">
-                                        <option value="">--- Selecione a escolha ---</option>
-                                        <option value="Acre (AC)">Acre (AC)</option>
-                                        <option value="Alagoas (AL)">Alagoas (AL)</option>
-                                        <option value="Amapá (AP)">Amapá (AP)</option>
-                                        <option value="Amazonas (AM)">Amazonas (AM)</option>
-                                        <option value="Bahia (BA)">Bahia (BA)</option>
-                                        <option value="Ceará (CE)">Ceará (CE)</option>
-                                        <option value="Distrito Federal (DF)">Distrito Federal (DF)</option>
-                                        <option value="Espírito Santo (ES)">Espírito Santo (ES)</option>
-                                        <option value="Goiás (GO)">Goiás (GO)</option>
-                                        <option value="Maranhão (MA)">Maranhão (MA)</option>
-                                        <option value="Mato Grosso (MT)">Mato Grosso (MT)</option>
-                                        <option value="Mato Grosso do Sul (MS)">Mato Grosso do Sul (MS)</option>
-                                        <option value="Minas Gerais (MG)">Minas Gerais (MG)</option>
-                                        <option value="Pará (PA)">Pará (PA)</option>
-                                        <option value="Paraíba (PB)">Paraíba (PB)</option>
-                                        <option value="Paraná (PR)">Paraná (PR)</option>
-                                        <option value="Pernambuco (PE)">Pernambuco (PE)</option>
-                                        <option value="Piauí (PI)">Piauí (PI)</option>
-                                        <option value="Rio de Janeiro (RJ)">Rio de Janeiro (RJ)</option>
-                                        <option value="Rio Grande do Norte (RN)">Rio Grande do Norte (RN)</option>
-                                        <option value="Rio Grande do Sul (RS)">Rio Grande do Sul (RS)</option>
-                                        <option value="Rondônia (RO)">Rondônia (RO)</option>
-                                        <option value="Roraima (RR)">Roraima (RR)</option>
-                                        <option value="Santa Catarina (SC)">Santa Catarina (SC)</option>
-                                        <option value="São Paulo (SP)">São Paulo (SP)</option>
-                                        <option value="Sergipe (SE)">Sergipe (SE)</option>
-                                        <option value="Tocantins (TO)">Tocantins (TO)</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pf-mae">Nome da Mãe: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pf-mae" >
-                                </div>
-                                <div class="form-group">
-                                    <label for="pf-cnh-registro">Nº Registro da CNH: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pf-cnh-registro" inputmode="numeric" >
-                                </div>
-                            </div>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pf-cnh-emissao">Data de Emissão (CNH): <span class="required-asterisk">*</span></label>
-                                    <input type="date" id="pf-cnh-emissao" >
-                                </div>
-                                <div class="form-group">
-                                    <label for="pf-cnh-primeira">Data da 1ª CNH: <span class="required-asterisk">*</span></label>
-                                    <input type="date" id="pf-cnh-primeira" >
-                                </div>
-                            </div>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pf-cnh-uf">UF emissor (CNH): <span class="required-asterisk">*</span></label>
-                                    <select id="pf-cnh-uf">
-                                        <option value="">--- Selecione a escolha ---</option>
-                                        <option value="Acre (AC)">Acre (AC)</option>
-                                        <option value="Alagoas (AL)">Alagoas (AL)</option>
-                                        <option value="Amapá (AP)">Amapá (AP)</option>
-                                        <option value="Amazonas (AM)">Amazonas (AM)</option>
-                                        <option value="Bahia (BA)">Bahia (BA)</option>
-                                        <option value="Ceará (CE)">Ceará (CE)</option>
-                                        <option value="Distrito Federal (DF)">Distrito Federal (DF)</option>
-                                        <option value="Espírito Santo (ES)">Espírito Santo (ES)</option>
-                                        <option value="Goiás (GO)">Goiás (GO)</option>
-                                        <option value="Maranhão (MA)">Maranhão (MA)</option>
-                                        <option value="Mato Grosso (MT)">Mato Grosso (MT)</option>
-                                        <option value="Mato Grosso do Sul (MS)">Mato Grosso do Sul (MS)</option>
-                                        <option value="Minas Gerais (MG)">Minas Gerais (MG)</option>
-                                        <option value="Pará (PA)">Pará (PA)</option>
-                                        <option value="Paraíba (PB)">Paraíba (PB)</option>
-                                        <option value="Paraná (PR)">Paraná (PR)</option>
-                                        <option value="Pernambuco (PE)">Pernambuco (PE)</option>
-                                        <option value="Piauí (PI)">Piauí (PI)</option>
-                                        <option value="Rio de Janeiro (RJ)">Rio de Janeiro (RJ)</option>
-                                        <option value="Rio Grande do Norte (RN)">Rio Grande do Norte (RN)</option>
-                                        <option value="Rio Grande do Sul (RS)">Rio Grande do Sul (RS)</option>
-                                        <option value="Rondônia (RO)">Rondônia (RO)</option>
-                                        <option value="Roraima (RR)">Roraima (RR)</option>
-                                        <option value="Santa Catarina (SC)">Santa Catarina (SC)</option>
-                                        <option value="São Paulo (SP)">São Paulo (SP)</option>
-                                        <option value="Sergipe (SE)">Sergipe (SE)</option>
-                                        <option value="Tocantins (TO)">Tocantins (TO)</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="pf-cnh-validade">Validade (CNH): <span class="required-asterisk">*</span></label>
-                                    <input type="date" id="pf-cnh-validade" >
-                                </div>
-                            </div>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pf-cnh-categoria">Categoria (CNH): <span class="required-asterisk">*</span></label>
-                                    <select id="pf-cnh-categoria">
-                                        <option value="">--- Selecione a escolha ---</option>
-                                        <option value="A">A</option>
-                                        <option value="B">B</option>
-                                        <option value="C">C</option>
-                                        <option value="D">D</option>
-                                        <option value="E">E</option>
-                                        <option value="AC">AC</option>
-                                        <option value="AD">AD</option>
-                                        <option value="AE">AE</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="pf-cnh-seguranca">Código de Segurança (CNH): <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pf-cnh-seguranca" inputmode="numeric" >
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -748,45 +412,12 @@
                                         <line x1="12" y1="3" x2="12" y2="15" />
                                     </svg>
                                     <span class="upload-text"><span class="upload-texto-mouse">Arraste aqui ou <label for="pf-anexo-rntrc"
-                                            class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o arquivo ou tirar a foto</span></span>
-                                    <span class="upload-subtext">PDF, JPG ou PNG. Até 3 arquivos (10 MB cada).</span>
+                                            class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o PDF</span></span>
+                                    <span class="upload-subtext">Somente PDF. Baixe pelo app do documento.</span>
                                     <input type="file" id="pf-anexo-rntrc" class="file-input-hidden" multiple
-                                        accept="application/pdf,image/png,image/jpeg">
+                                        accept="application/pdf,.pdf">
                                 </div>
                                 <div class="file-preview-list" id="preview-pf-anexo-rntrc"></div>
-                            </div>
-                        </div>
-                        <label class="caixa-sem-pdf">
-                            <input type="checkbox" id="pf-sem-pdf-rntrc" data-doc="rntrc">
-                            <span class="caixa-sem-pdf-quadrado" aria-hidden="true"></span>
-                            <span class="caixa-sem-pdf-texto">Não tenho o PDF nem a foto do RNTRC</span>
-                        </label>
-                        <div class="cartao-doc-form" hidden>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pf-rntrc">Nº do RNTRC: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pf-rntrc" inputmode="numeric" pattern="[0-9]{8,12}"
-                                        title="Somente números, de 8 a 12 dígitos">
-                                </div>
-                                <div class="form-group">
-                                    <label for="pf-val-rntrc">Validade (RNTRC): <span class="required-asterisk">*</span></label>
-                                    <input type="date" id="pf-val-rntrc">
-                                </div>
-                            </div>
-                            <div class="form-row col-2">
-                                <div class="form-group">
-                                    <label for="pf-rntrc-doc">CPF/CNPJ do titular: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pf-rntrc-doc" inputmode="numeric" placeholder="CPF ou CNPJ, só números">
-                                </div>
-                                <div class="form-group">
-                                    <label for="pf-rntrc-categoria">Categoria: <span class="required-asterisk">*</span></label>
-                                    <select id="pf-rntrc-categoria">
-                                        <option value="">--- Selecione a escolha ---</option>
-                                        <option value="TAC">TAC – Transportador Autônomo de Cargas</option>
-                                        <option value="ETC">ETC – Empresa de Transporte Rodoviário de Cargas</option>
-                                        <option value="CTC">CTC – Cooperativa de Transporte Rodoviário de Cargas</option>
-                                    </select>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -794,7 +425,7 @@
                     <div class="cartao-doc" data-doc="residencia">
                         <div class="cartao-doc-topo">
                             <h4 class="cartao-doc-titulo">Comprovante de Residência</h4>
-                            <span class="etiqueta-doc etiqueta-obrigatorio">Obrigatório</span>
+                            <span class="etiqueta-doc etiqueta-opcional">Opcional</span>
                         </div>
                         <div class="cartao-doc-anexo">
                             <div class="upload-dropzone" data-target="pf-anexo-residencia">
@@ -806,37 +437,12 @@
                                         <line x1="12" y1="3" x2="12" y2="15" />
                                     </svg>
                                     <span class="upload-text"><span class="upload-texto-mouse">Arraste aqui ou <label for="pf-anexo-residencia"
-                                            class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o arquivo ou tirar a foto</span></span>
-                                    <span class="upload-subtext">PDF, JPG ou PNG. Até 3 arquivos (10 MB cada).</span>
+                                            class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o PDF</span></span>
+                                    <span class="upload-subtext">Somente PDF: a conta em PDF baixada do app ou do site da empresa.</span>
                                     <input type="file" id="pf-anexo-residencia" class="file-input-hidden" multiple
-                                        accept="application/pdf,image/png,image/jpeg">
+                                        accept="application/pdf,.pdf">
                                 </div>
                                 <div class="file-preview-list" id="preview-pf-anexo-residencia"></div>
-                            </div>
-                        </div>
-                        <label class="caixa-sem-pdf">
-                            <input type="checkbox" id="pf-sem-pdf-residencia" data-doc="residencia">
-                            <span class="caixa-sem-pdf-quadrado" aria-hidden="true"></span>
-                            <span class="caixa-sem-pdf-texto">Não tenho o PDF nem a foto do comprovante de residência</span>
-                        </label>
-                        <div class="cartao-doc-form" hidden>
-                            <div class="form-group mb-2">
-                                <label for="pf-mot-endereco">Endereço: <span class="required-asterisk">*</span></label>
-                                <input type="text" id="pf-mot-endereco" autocomplete="street-address">
-                            </div>
-                            <div class="form-row col-3">
-                                <div class="form-group">
-                                    <label for="pf-mot-estado">Estado: <span class="required-asterisk">*</span></label>
-                                    <select id="pf-mot-estado" data-cidade="pf-mot-cidade"></select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="pf-mot-cidade">Cidade: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pf-mot-cidade">
-                                </div>
-                                <div class="form-group">
-                                    <label for="pf-mot-cep">CEP: <span class="required-asterisk">*</span></label>
-                                    <input type="text" id="pf-mot-cep" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000">
-                                </div>
                             </div>
                         </div>
                     </div>

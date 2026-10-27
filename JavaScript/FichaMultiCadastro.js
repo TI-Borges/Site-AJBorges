@@ -82,64 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/(\d{5})(\d)/, '$1-$2');
     }
 
-    function maskCEP(value) {
-        return value
-            .replace(/\D/g, '')
-            .slice(0, 8)
-            .replace(/^(\d{5})(\d)/, '$1-$2');
-    }
-
-    function maskCpfCnpj(value) {
-        const clean = value.replace(/\D/g, '');
-        if (clean.length <= 11) {
-            return maskCPF(clean);
-        }
-        return maskCNPJ(clean);
-    }
-
-    // Mesmas regras da edge function (cpfValido / cnpjValido)
-    function cpfValido(cpf) {
-        if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
-        const digito = (base, peso) => {
-            let soma = 0;
-            for (let i = 0; i < base.length; i++) soma += Number(base[i]) * (peso - i);
-            const resto = (soma * 10) % 11;
-            return resto === 10 ? 0 : resto;
-        };
-        return digito(cpf.slice(0, 9), 10) === Number(cpf[9]) && digito(cpf.slice(0, 10), 11) === Number(cpf[10]);
-    }
-
-    function cnpjValido(cnpj) {
-        if (!/^\d{14}$/.test(cnpj) || /^(\d)\1{13}$/.test(cnpj)) return false;
-        const digito = (base) => {
-            const pesos = base.length === 12
-                ? [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
-                : [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-            let soma = 0;
-            for (let i = 0; i < base.length; i++) soma += Number(base[i]) * pesos[i];
-            const resto = soma % 11;
-            return resto < 2 ? 0 : 11 - resto;
-        };
-        return digito(cnpj.slice(0, 12)) === Number(cnpj[12]) && digito(cnpj.slice(0, 13)) === Number(cnpj[13]);
-    }
-
-
-    function maskPlaca(value) {
-        return value
-            .toUpperCase()
-            .replace(/[^A-Z0-9]/g, '')
-            .slice(0, 7)
-            .replace(/^([A-Z]{3})([0-9]{4})$/, '$1-$2');
-    }
-
-    function soDigitos(max) {
-        return (value) => value.replace(/\D/g, '').slice(0, max);
-    }
-
-    function maskChassi(value) {
-        return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 17);
-    }
-
     function bloquearNumeros(input) {
         if (!input) return;
         input.addEventListener('keydown', (e) => {
@@ -152,39 +94,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // (Os dados da CNH, do CRLV, do RNTRC e do endereço não são mais digitados: vêm no PDF anexado)
     ['pj', 'pf'].forEach((p) => {
         applyMask(document.getElementById(`${p}-cpf`), maskCPF);
         applyMask(document.getElementById(`${p}-celular`), maskPhone);
-        applyMask(document.getElementById(`${p}-mot-cep`), maskCEP);
-        applyMask(document.getElementById(`${p}-rntrc`), soDigitos(12));
-        applyMask(document.getElementById(`${p}-rntrc-doc`), maskCpfCnpj);
-        ['motorista-nome', 'motorista-sobrenome', 'mae'].forEach((s) => bloquearNumeros(document.getElementById(`${p}-${s}`)));
-        const docRntrc = document.getElementById(`${p}-rntrc-doc`);
-        if (docRntrc) {
-            const aviso = document.createElement('small');
-            aviso.className = 'aviso-campo';
-            aviso.hidden = true;
-            docRntrc.after(aviso);
-            docRntrc.addEventListener('input', () => {
-                docRntrc.setCustomValidity('');
-                aviso.hidden = true;
-            });
-            docRntrc.addEventListener('blur', () => conferirDocRntrc(docRntrc));
-        }
+        ['motorista-nome', 'motorista-sobrenome'].forEach((s) => bloquearNumeros(document.getElementById(`${p}-${s}`)));
     });
-
-    // CPF (11 dígitos) ou CNPJ (14) do titular do RNTRC, com os dígitos verificadores
-    function conferirDocRntrc(input) {
-        if (!input) return;
-        const digitos = input.value.replace(/\D/g, '');
-        const valido = input.disabled || !digitos || cpfValido(digitos) || cnpjValido(digitos);
-        input.setCustomValidity(valido ? '' : 'CPF/CNPJ do titular do RNTRC inválido. Confira os números.');
-        const aviso = input.parentElement.querySelector('.aviso-campo');
-        if (aviso) {
-            aviso.textContent = input.validationMessage;
-            aviso.hidden = valido;
-        }
-    }
     applyMask(document.getElementById('pj-cnpj'), maskCNPJ);
     applyMask(document.getElementById('pj-telefone-empresa'), maskPhone);
     bloquearNumeros(document.getElementById('pj-responsavel'));
@@ -194,11 +109,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const listasAnexo = new WeakMap();
     const itensDe = (input) => listasAnexo.get(input) || [];
 
+    // Os documentos (CNH, CRLVs, RNTRC e comprovante) aceitam só PDF; só a zona marcada com
+    // data-aceita="foto" aceita imagem
+    const aceitaFoto = (input) => input?.dataset.aceita === 'foto';
+    const docDaZona = (input) => input?.closest('.cartao-doc')?.dataset.doc || '';
+    const MSG_SO_PDF = 'Envie o PDF do documento (baixe pelo app CNH Digital / CRLV Digital / ANTT). Foto não é aceita.';
+    const MSG_SO_PDF_RESIDENCIA = 'Envie o comprovante em PDF (a conta em PDF baixada do app ou do site da empresa).';
+
     // Mesma checagem para "escolha os arquivos" e para arrastar e soltar (um arquivo por vez)
-    function conferirArquivo(f) {
-        if (!TIPOS_PDF.includes(f.type) && !TIPOS_FOTO.includes(f.type)) return `O arquivo "${f.name}" não é PDF, JPG ou PNG.`;
-        // O tamanho da foto é conferido depois da redução
-        if (TIPOS_PDF.includes(f.type) && f.size > TAMANHO_MAX) return `O arquivo "${f.name}" passa de 10 MB.`;
+    function conferirArquivo(f, input) {
+        if (aceitaFoto(input)) {
+            if (!TIPOS_FOTO.includes(f.type)) return `O arquivo "${f.name}" não é uma foto JPG ou PNG.`;
+            return null; // o tamanho da foto é conferido depois da redução
+        }
+        if (!TIPOS_PDF.includes(f.type)) return docDaZona(input) === 'residencia' ? MSG_SO_PDF_RESIDENCIA : MSG_SO_PDF;
+        if (f.size > TAMANHO_MAX) return `O arquivo "${f.name}" passa de 10 MB.`;
         return null;
     }
 
@@ -278,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const f of Array.from(novos || [])) {
             const chave = `${f.name}|${f.size}`;
             if (itens.some((item) => item.chave === chave)) continue;
-            const problema = conferirArquivo(f);
+            const problema = conferirArquivo(f, input);
             if (problema) {
                 avisos.push(problema);
                 continue;
@@ -296,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         input.value = '';
         marcarProcessando(input);
         renderFileList(input, input.closest('.upload-dropzone')?.querySelector('.file-preview-list'));
-        if (avisos.length) alert(avisos.join('\n'));
+        if (avisos.length) alert([...new Set(avisos)].join('\n')); // a mesma mensagem aparece uma vez só
         if (fotos.length) prepararFotos(input, fotos);
     }
 
@@ -402,10 +327,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // =========================================================================
     // CADASTRO NO SUPABASE (edge function "solicitar-cadastro")
     //
-    // Para cada documento (CNH, um CRLV por veículo da tipologia, RNTRC e
-    // comprovante de residência) o motorista ANEXA o arquivo ou marca "Não tenho o PDF" e
-    // PREENCHE o formulário daquele documento. A conta nasce PENDENTE: o login
-    // só funciona depois que a gestão aprovar.
+    // Cada documento (CNH, um CRLV por veículo da tipologia e RNTRC) vai em PDF, baixado
+    // pelo app do documento; o comprovante de residência é opcional (também em PDF). Os
+    // dados dos documentos não são digitados: o PDF já tem tudo. O cadastro nasce PENDENTE.
     // =========================================================================
 
     // Tipo de veículo -> veículos (um CRLV por veículo, na ordem; o mesmo da edge function)
@@ -426,18 +350,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const CAMPOS_ACESSO = ['motorista-nome', 'motorista-sobrenome', 'cpf', 'celular'];
     const CAMPOS_EMPRESA = ['nome-empresa', 'cnpj', 'telefone-empresa', 'responsavel'];
-    const CAMPOS_CNH = ['nascimento', 'rg', 'rg-uf', 'uf-nasc', 'cidade-nasc', 'mae', 'cnh-registro', 'cnh-emissao',
-        'cnh-primeira', 'cnh-uf', 'cnh-validade', 'cnh-categoria', 'cnh-seguranca'];
-    const CAMPOS_RNTRC = ['rntrc', 'val-rntrc', 'rntrc-doc', 'rntrc-categoria'];
-    const CAMPOS_RESIDENCIA = ['mot-endereco', 'mot-cidade', 'mot-estado', 'mot-cep'];
-    const UFS = ['Acre (AC)', 'Alagoas (AL)', 'Amapá (AP)', 'Amazonas (AM)', 'Bahia (BA)', 'Ceará (CE)',
-        'Distrito Federal (DF)', 'Espírito Santo (ES)', 'Goiás (GO)', 'Maranhão (MA)', 'Mato Grosso (MT)',
-        'Mato Grosso do Sul (MS)', 'Minas Gerais (MG)', 'Pará (PA)', 'Paraíba (PB)', 'Paraná (PR)',
-        'Pernambuco (PE)', 'Piauí (PI)', 'Rio de Janeiro (RJ)', 'Rio Grande do Norte (RN)',
-        'Rio Grande do Sul (RS)', 'Rondônia (RO)', 'Roraima (RR)', 'Santa Catarina (SC)', 'São Paulo (SP)',
-        'Sergipe (SE)', 'Tocantins (TO)'];
     const MAX_ARQUIVOS = 3;
-    // Anexo principal: PDF, JPG ou PNG (podendo misturar), até 3 por documento
+    // Documentos: só PDF, até 3 por documento. Foto (JPG/PNG) só onde a zona aceita foto.
     const TIPOS_PDF = ['application/pdf'];
     const TIPOS_FOTO = ['image/png', 'image/jpeg'];
     const TAMANHO_MAX = 10 * 1024 * 1024;
@@ -448,8 +362,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // "CRLV do Cavalo", "CRLV da 1ª carreta"
     const nomeCrlv = (papel) => `CRLV ${/carreta$/i.test(papel) ? 'da' : 'do'} ${papel}`;
-    const camposCrlv = (n) => ['placa', 'renavam', 'chassi', 'marca', 'modelo', 'ano', 'cor', 'cidade-emp', 'uf',
-        'prop-nome', 'prop-doc'].map((s) => `crlv${n}-${s}`);
 
     function esc(v) {
         return String(v ?? '').replace(/[&<>"'`]/g, (c) => ({
@@ -465,162 +377,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return TIPOLOGIAS[campo(prefixo, 'tipologia')?.value] || [];
     }
 
-    // Documentos do envio, na ordem da tela: [{ doc, titulo, obrigatorio, campos }]
+    // Documentos do envio, na ordem da tela: [{ doc, titulo, obrigatorio }]
     function documentosDe(prefixo) {
         return [
-            { doc: 'cnh', titulo: 'CNH', obrigatorio: true, campos: CAMPOS_CNH },
-            ...papeisDe(prefixo).map((papel, i) => ({
-                doc: `crlv_${i + 1}`, titulo: nomeCrlv(papel), obrigatorio: true, campos: camposCrlv(i + 1)
-            })),
-            { doc: 'rntrc', titulo: 'RNTRC', obrigatorio: true, campos: CAMPOS_RNTRC },
-            { doc: 'residencia', titulo: 'Comprovante de residência', obrigatorio: true, campos: CAMPOS_RESIDENCIA }
+            { doc: 'cnh', titulo: 'CNH', obrigatorio: true },
+            ...papeisDe(prefixo).map((papel, i) => ({ doc: `crlv_${i + 1}`, titulo: nomeCrlv(papel), obrigatorio: true })),
+            { doc: 'rntrc', titulo: 'RNTRC', obrigatorio: true },
+            { doc: 'residencia', titulo: 'Comprovante de residência', obrigatorio: false }
         ];
     }
 
     const cartaoDe = (prefixo, doc) => campo(prefixo, 'docs')?.querySelector(`.cartao-doc[data-doc="${doc}"]`);
-    const semPdf = (prefixo, doc) => !!campo(prefixo, `sem-pdf-${doc}`)?.checked;
     const anexoDe = (prefixo, doc) => campo(prefixo, `anexo-${doc.replace('_', '-')}`);
     // Lista da zona (não o input.files, que é zerado a cada escolha)
     const listaDe = (el) => (el ? itensDe(el).map((item) => item.arquivo) : []);
     const arquivosDe = (prefixo, doc) => listaDe(anexoDe(prefixo, doc));
 
-    // ---------- Estado -> Cidade (municípios da API do IBGE) ----------
-    // A cidade é um campo de texto com <datalist> dos municípios do estado.
-    // Se a API falhar, vira texto livre: o cadastro nunca trava por causa dela.
-    const URL_MUNICIPIOS = (sigla) =>
-        `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${sigla}/municipios?orderBy=nome`;
-    const municipiosPorUf = {}; // cache em memória: sigla -> nomes oficiais
-    const buscasMunicipios = {}; // sigla -> busca em andamento
-    const AVISO_SEM_LISTA = 'Não foi possível carregar a lista de cidades; digite o nome da cidade.';
-
-    const opcoesUf = () => '<option value="">--- Selecione a escolha ---</option>' +
-        UFS.map((uf) => `<option value="${esc(uf)}">${esc(uf)}</option>`).join('');
-    const siglaDe = (uf) => (/\(([A-Z]{2})\)$/.exec(uf || '') || [])[1] || '';
-    const semAcento = (v) => String(v || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
-        .replace(/’/g, "'").replace(/\s+/g, ' ').trim().toLowerCase();
-    // Funciona também nos cartões de CRLV que ainda não entraram na página
-    const cidadeDe = (select) => select.closest('.cartao-doc-form').querySelector(`#${select.dataset.cidade}`);
-
-    function buscarMunicipios(sigla) {
-        if (!buscasMunicipios[sigla]) {
-            const controle = new AbortController();
-            const prazo = setTimeout(() => controle.abort(), 10000);
-            buscasMunicipios[sigla] = fetch(URL_MUNICIPIOS(sigla), { signal: controle.signal })
-                .then((r) => {
-                    if (!r.ok) throw new Error(`IBGE respondeu ${r.status}`);
-                    return r.json();
-                })
-                .then((lista) => {
-                    const nomes = Array.isArray(lista) ? lista.map((m) => m && m.nome).filter(Boolean) : [];
-                    if (nomes.length === 0) throw new Error('IBGE devolveu lista vazia');
-                    return nomes;
-                })
-                .finally(() => {
-                    clearTimeout(prazo);
-                    delete buscasMunicipios[sigla];
-                });
-        }
-        return buscasMunicipios[sigla];
-    }
-
-    // Habilita a cidade só com estado escolhido (e lista já buscada)
-    function sincronizarCidade(select) {
-        const cidade = cidadeDe(select);
-        if (!cidade) return;
-        if (!select.value) {
-            cidade.value = '';
-            cidade.dataset.lista = '';
-            cidade.parentElement.querySelector('datalist').innerHTML = '';
-            cidade.parentElement.querySelector('.aviso-cidade').hidden = true;
-        }
-        const carregando = cidade.dataset.lista === 'carregando';
-        cidade.disabled = select.disabled || !select.value || carregando;
-        cidade.placeholder = !select.value ? 'Escolha o estado primeiro'
-            : carregando ? 'Carregando cidades…'
-            : cidade.dataset.lista === 'ok' ? 'Digite e escolha da lista' : 'Digite o nome da cidade';
-    }
-
-    async function carregarCidades(select) {
-        const cidade = cidadeDe(select);
-        const lista = cidade.parentElement.querySelector('datalist');
-        const aviso = cidade.parentElement.querySelector('.aviso-cidade');
-        const sigla = siglaDe(select.value);
-        cidade.value = '';
-        cidade.setCustomValidity('');
-        lista.innerHTML = '';
-        aviso.hidden = true;
-        cidade.dataset.lista = '';
-        if (sigla && !municipiosPorUf[sigla]) {
-            cidade.dataset.lista = 'carregando';
-            sincronizarCidade(select);
-            try {
-                municipiosPorUf[sigla] = await buscarMunicipios(sigla);
-            } catch (err) {
-                console.warn(`Municípios de ${sigla} indisponíveis:`, err);
-            }
-            if (siglaDe(select.value) !== sigla) return; // estado trocado durante a busca
-        }
-        const nomes = municipiosPorUf[sigla];
-        if (sigla && nomes) {
-            lista.innerHTML = nomes.map((n) => `<option value="${esc(n)}"></option>`).join('');
-            cidade.dataset.lista = 'ok';
-        } else if (sigla) {
-            cidade.dataset.lista = 'falhou';
-            aviso.textContent = AVISO_SEM_LISTA;
-            aviso.hidden = false;
-        }
-        sincronizarCidade(select);
-    }
-
-    function ligarEstadoCidade(select) {
-        if (!select || select.dataset.ligado === '1') return;
-        select.dataset.ligado = '1';
-        if (select.options.length === 0) select.innerHTML = opcoesUf();
-        const cidade = cidadeDe(select);
-        const lista = document.createElement('datalist');
-        lista.id = `${cidade.id}-lista`;
-        const aviso = document.createElement('small');
-        aviso.className = 'aviso-cidade';
-        aviso.hidden = true;
-        cidade.setAttribute('list', lista.id);
-        cidade.autocomplete = 'off';
-        cidade.after(lista, aviso);
-        cidade.addEventListener('input', () => cidade.setCustomValidity(''));
-        cidade.addEventListener('change', () => conferirCidade(select));
-        select.addEventListener('change', () => carregarCidades(select));
-        sincronizarCidade(select);
-    }
-
-    // Com a lista carregada, a cidade tem que ser um município do estado
-    // (sem diferenciar acentos/maiúsculas) e fica com o nome oficial do IBGE.
-    function conferirCidade(select) {
-        const cidade = cidadeDe(select);
-        if (!cidade) return;
-        cidade.setCustomValidity('');
-        if (cidade.disabled || cidade.dataset.lista !== 'ok' || !cidade.value.trim()) return;
-        const alvo = semAcento(cidade.value);
-        const oficial = (municipiosPorUf[siglaDe(select.value)] || []).find((n) => semAcento(n) === alvo);
-        if (oficial) cidade.value = oficial;
-        else cidade.setCustomValidity('Escolha uma cidade da lista.');
-    }
-
-    function validarCidades(form) {
-        const selects = Array.from(form.querySelectorAll('select[data-cidade]'));
-        selects.forEach(conferirCidade);
-        const carregando = selects.some((s) => !s.disabled && cidadeDe(s)?.dataset.lista === 'carregando');
-        return carregando ? 'Aguarde: a lista de cidades ainda está carregando.' : null;
-    }
-
     // ---------- Cartões de CRLV (um por veículo da tipologia) ----------
     function criarCartaoCrlv(prefixo, n, papel) {
-        const id = (s) => `${prefixo}-crlv${n}-${s}`;
         const anexo = `${prefixo}-anexo-crlv-${n}`;
-        const ast = '<span class="required-asterisk">*</span>';
-        const texto = (s, rotulo, extra = '') => `
-            <div class="form-group">
-                <label for="${id(s)}">${rotulo}: ${ast}</label>
-                <input type="text" id="${id(s)}" ${extra}>
-            </div>`;
         const cartao = document.createElement('div');
         cartao.className = 'cartao-doc';
         cartao.dataset.doc = `crlv_${n}`;
@@ -640,59 +415,19 @@ document.addEventListener('DOMContentLoaded', () => {
                             <line x1="12" y1="3" x2="12" y2="15" />
                         </svg>
                         <span class="upload-text"><span class="upload-texto-mouse">Arraste aqui ou <label for="${anexo}"
-                                class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o arquivo ou tirar a foto</span></span>
-                        <span class="upload-subtext">PDF, JPG ou PNG. Até 3 arquivos (10 MB cada).</span>
-                        <input type="file" id="${anexo}" class="file-input-hidden" multiple accept="application/pdf,image/png,image/jpeg">
+                                class="upload-action-link">escolha os arquivos</label></span><span class="upload-texto-toque">Toque para escolher o PDF</span></span>
+                        <span class="upload-subtext">Somente PDF. Baixe pelo app do documento.</span>
+                        <input type="file" id="${anexo}" class="file-input-hidden" multiple accept="application/pdf,.pdf">
                     </div>
                     <div class="file-preview-list" id="preview-${anexo}"></div>
                 </div>
-            </div>
-            <label class="caixa-sem-pdf">
-                <input type="checkbox" id="${prefixo}-sem-pdf-crlv_${n}" data-doc="crlv_${n}">
-                <span class="caixa-sem-pdf-quadrado" aria-hidden="true"></span>
-                <span class="caixa-sem-pdf-texto">Não tenho o PDF nem a foto do ${esc(nomeCrlv(papel))}</span>
-            </label>
-            <div class="cartao-doc-form" hidden>
-                <div class="form-row col-3">
-                    ${texto('placa', 'Placa', 'placeholder="ABC-1234 ou ABC1D23"')}
-                    ${texto('renavam', 'RENAVAM', 'inputmode="numeric"')}
-                    ${texto('chassi', 'Chassi')}
-                </div>
-                <div class="form-row col-4">
-                    ${texto('marca', 'Marca')}
-                    ${texto('modelo', 'Modelo')}
-                    ${texto('ano', 'Ano', 'placeholder="AAAA" inputmode="numeric"')}
-                    ${texto('cor', 'Cor')}
-                </div>
-                <div class="form-row col-2">
-                    <div class="form-group">
-                        <label for="${id('uf')}">Estado: ${ast}</label>
-                        <select id="${id('uf')}" data-cidade="${id('cidade-emp')}">${opcoesUf()}</select>
-                    </div>
-                    ${texto('cidade-emp', 'Cidade de Emplacamento')}
-                </div>
-                <div class="form-row col-2">
-                    ${texto('prop-nome', 'Nome do Proprietário (como no CRLV)')}
-                    ${texto('prop-doc', 'CPF/CNPJ do Proprietário', 'inputmode="numeric"')}
-                </div>
             </div>`;
-        const el = (s) => cartao.querySelector(`#${id(s)}`);
-        applyMask(el('placa'), maskPlaca);
-        applyMask(el('renavam'), soDigitos(11));
-        applyMask(el('ano'), soDigitos(4));
-        applyMask(el('chassi'), maskChassi);
-        applyMask(el('prop-doc'), maskCpfCnpj);
-        ligarEstadoCidade(el('uf'));
         ligarDropzone(cartao.querySelector('.upload-dropzone'));
         return cartao;
     }
 
     function cartaoPreenchido(cartao) {
-        if (!cartao) return false;
-        const arquivo = cartao.querySelector('input[type="file"]');
-        if (listaDe(arquivo).length > 0) return true;
-        return Array.from(cartao.querySelectorAll('.cartao-doc-form input, .cartao-doc-form select'))
-            .some((el) => el.value.trim() !== '');
+        return !!cartao && listaDe(cartao.querySelector('input[type="file"]')).length > 0;
     }
 
     // Recria os cartões de CRLV para a tipologia escolhida. Os cartões que
@@ -719,38 +454,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    // ---------- Caixinhas "Não tenho o PDF" ----------
-    function aplicarCaixas(prefixo) {
+    // ---------- Lista de documentos: aparece depois de escolher o tipo de veículo ----------
+    function atualizarDocs(prefixo) {
         const temTipologia = papeisDe(prefixo).length > 0;
         const aviso = campo(prefixo, 'aviso-tipologia');
         const listaDocs = campo(prefixo, 'docs');
         if (aviso) aviso.hidden = temTipologia;
         if (listaDocs) listaDocs.hidden = !temTipologia;
-
-        documentosDe(prefixo).forEach(({ doc, obrigatorio }) => {
-            const cartao = cartaoDe(prefixo, doc);
-            if (!cartao) return;
-            const marcado = semPdf(prefixo, doc);
-            const ativo = temTipologia;
-            cartao.classList.toggle('sem-pdf', marcado);
-
-            // Anexo: some e é limpo quando a caixa é marcada
-            const anexo = cartao.querySelector('.cartao-doc-anexo');
-            const arquivo = anexoDe(prefixo, doc);
-            anexo.hidden = marcado;
-            if (arquivo) arquivo.disabled = marcado;
-            if (marcado && listaDe(arquivo).length) limparArquivos(arquivo);
-
-            // Formulário do documento: só com a caixa marcada; escondido fica limpo e desativado
-            const form = cartao.querySelector('.cartao-doc-form');
-            form.hidden = !marcado;
-            form.querySelectorAll('input:not([type="file"]), select').forEach((el) => {
-                if (!marcado) el.value = '';
-                el.disabled = !marcado || !ativo;
-                el.required = marcado && ativo && obrigatorio;
-            });
-            form.querySelectorAll('select[data-cidade]').forEach(sincronizarCidade);
-        });
     }
 
     function montarModais() {
@@ -797,16 +507,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function problemaArquivosDoc(prefixo, { doc, titulo, obrigatorio }) {
         const artigo = doc === 'cnh' ? 'a' : 'o';
-        // Caixinha marcada: vale o formulário, sem arquivos
-        if (semPdf(prefixo, doc)) return null;
-        if (anexoDe(prefixo, doc)?.closest('.upload-dropzone')?.dataset.processando) {
+        const input = anexoDe(prefixo, doc);
+        if (input?.closest('.upload-dropzone')?.dataset.processando) {
             return 'Aguarde: as fotos ainda estão sendo preparadas.';
         }
         const arquivos = arquivosDe(prefixo, doc);
-        if (obrigatorio && arquivos.length === 0) return `Anexe ${artigo} ${titulo} ou marque que não tem o PDF nem a foto.`;
+        if (obrigatorio && arquivos.length === 0) {
+            return aceitaFoto(input) ? `Anexe ${artigo} ${titulo}.` : `Anexe o PDF ${artigo === 'a' ? 'da' : 'do'} ${titulo}.`;
+        }
         if (arquivos.length > MAX_ARQUIVOS) return `Envie no máximo ${MAX_ARQUIVOS} arquivos para ${artigo} ${titulo}.`;
         for (const f of arquivos) {
-            if (!TIPOS_PDF.includes(f.type) && !TIPOS_FOTO.includes(f.type)) return `O arquivo "${f.name}" não é PDF, JPG ou PNG.`;
+            const problema = conferirArquivo(f, input);
+            if (problema) return problema;
             if (f.size > TAMANHO_MAX) return `O arquivo "${f.name}" passa de 10 MB.`;
         }
         return null;
@@ -814,12 +526,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function montarEnvio(prefixo) {
         const docs = documentosDe(prefixo);
+        // Só os dados de acesso (e os da empresa): os dos documentos vêm no PDF
         const chaves = [...CAMPOS_ACESSO, ...(prefixo === 'pj' ? CAMPOS_EMPRESA : [])];
-        const sem_pdf = {};
-        docs.forEach(({ doc, campos }) => {
-            sem_pdf[doc] = semPdf(prefixo, doc);
-            if (sem_pdf[doc]) chaves.push(...campos);
-        });
         const dados = {};
         chaves.forEach((s) => {
             const el = campo(prefixo, s);
@@ -828,9 +536,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const documentos = {};
         const arquivos = [];
         docs.forEach(({ doc }) => {
-            // PDF e fotos vão juntos na chave do próprio documento; com a caixinha marcada, nenhum arquivo
-            const lista = sem_pdf[doc] ? [] : arquivosDe(prefixo, doc);
-            if (lista.length === 0) return;
+            const lista = arquivosDe(prefixo, doc);
+            if (lista.length === 0) return; // comprovante de residência é opcional
             documentos[doc] = lista.map((f) => ({ nome: f.name, tipo: f.type, tamanho: f.size }));
             arquivos.push(...lista); // mesma ordem que o servidor usa em "indice"
         });
@@ -839,7 +546,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 tipo: prefixo,
                 tipologia: campo(prefixo, 'tipologia')?.value || '',
                 email: (campo(prefixo, 'email')?.value || '').trim().toLowerCase() || null,
-                sem_pdf,
                 dados,
                 documentos,
                 aceite_lgpd: campo(prefixo, 'aceite-lgpd')?.checked === true,
@@ -895,15 +601,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             tipologiaAnterior = select.value;
-            aplicarCaixas(prefixo);
+            atualizarDocs(prefixo);
         });
-        // Caixinhas (inclusive as dos CRLVs criados depois)
-        campo(prefixo, 'docs')?.addEventListener('change', (e) => {
-            if (e.target.matches('.caixa-sem-pdf input')) aplicarCaixas(prefixo);
-        });
-        form.querySelectorAll('select[data-cidade]').forEach(ligarEstadoCidade);
         montarCrlvs(prefixo);
-        aplicarCaixas(prefixo);
+        atualizarDocs(prefixo);
 
         // Enter num campo não envia o cadastro
         form.addEventListener('keydown', (e) => {
@@ -914,11 +615,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            aplicarCaixas(prefixo);
-            conferirDocRntrc(campo(prefixo, 'rntrc-doc'));
-            const cidadesCarregando = validarCidades(form);
+            atualizarDocs(prefixo);
             if (!form.reportValidity()) return;
-            if (cidadesCarregando) return mostrarErro(cidadesCarregando);
 
             const problemaArquivo = validarArquivos(prefixo);
             if (problemaArquivo) return avisarNoBloco(cartaoDe(prefixo, problemaArquivo.doc), problemaArquivo.msg);
@@ -931,9 +629,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const { corpo } = montarEnvio(prefixo);
-            const situacao = ({ doc }) => {
+            const situacao = ({ doc, obrigatorio }) => {
                 const lista = corpo.documentos[doc] || [];
-                if (!lista.length) return 'Preenchido no formulário';
+                if (!lista.length) return obrigatorio ? 'Não anexado' : 'Não enviado (opcional)';
                 const fotos = lista.filter((f) => TIPOS_FOTO.includes(f.tipo)).length;
                 const pdfs = lista.length - fotos;
                 const partes = [];
@@ -988,7 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
             form.querySelectorAll('.upload-dropzone input[type="file"]').forEach(limparArquivos);
             form.querySelectorAll('.file-preview-list').forEach((c) => { c.innerHTML = ''; });
             campo(prefixo, 'crlvs').innerHTML = '';
-            aplicarCaixas(prefixo);
+            atualizarDocs(prefixo);
             document.getElementById('modal-sucesso-cadastro').classList.add('ativo');
         } catch (err) {
             console.error('Erro ao enviar cadastro:', err);

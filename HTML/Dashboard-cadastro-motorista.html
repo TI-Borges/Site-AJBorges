@@ -759,13 +759,17 @@
         // a carreta); sem eles (cadastros anteriores), a lista da tipologia de quando foi enviado
         const papeisDoCadastro = (d) => (Array.isArray(d._papeis) ? d._papeis.map(String) : (TIPOLOGIAS[d._tipologia] || []));
 
-        // [{ doc, titulo, campos }] na ordem do formulário (todos obrigatórios)
+        // [{ doc, titulo, campos }] na ordem do formulário. Cadastro com dados._so_pdf (documentos só em
+        // PDF, sem dados digitados): sem campos e com o comprovante opcional. Os anteriores continuam
+        // com os campos que o motorista digitou.
         function documentosNovos(d) {
+            const soPdf = d._so_pdf === true;
+            const campos = (lista) => (soPdf ? [] : lista);
             return [
-                { doc: 'cnh', titulo: 'CNH', campos: CAMPOS_CNH_NOVOS },
-                ...papeisDoCadastro(d).map((papel, i) => ({ doc: `crlv_${i + 1}`, titulo: nomeCrlv(papel), campos: camposCrlvNovos(i + 1) })),
-                { doc: 'rntrc', titulo: 'RNTRC', campos: CAMPOS_RNTRC_NOVOS },
-                { doc: 'residencia', titulo: 'Comprovante de residência', campos: CAMPOS_RESIDENCIA_NOVOS }
+                { doc: 'cnh', titulo: 'CNH', campos: campos(CAMPOS_CNH_NOVOS) },
+                ...papeisDoCadastro(d).map((papel, i) => ({ doc: `crlv_${i + 1}`, titulo: nomeCrlv(papel), campos: campos(camposCrlvNovos(i + 1)) })),
+                { doc: 'rntrc', titulo: 'RNTRC', campos: campos(CAMPOS_RNTRC_NOVOS) },
+                { doc: 'residencia', titulo: 'Comprovante de residência', campos: campos(CAMPOS_RESIDENCIA_NOVOS), opcional: soPdf }
             ];
         }
 
@@ -1167,13 +1171,13 @@
                 const semPdf = d._sem_pdf || {};
                 secoes = SECOES_FIXAS_NOVAS.filter(([titulo]) => c.tipo === 'pj' || titulo !== 'Empresa (PJ)')
                     .map(([titulo, campos]) => secao(titulo, tabelaCampos(campos))).join('') +
-                    documentosNovos(d).map(({ doc, titulo, campos }) => {
+                    documentosNovos(d).map(({ doc, titulo, campos, opcional }) => {
                         const anexos = docs.filter((x) => x.campo === doc);
                         const fotosDoc = docs.filter((x) => x.campo === `${doc}_foto`);
                         const preenchido = semPdf[doc] === true;
                         const situacao = anexos.length ? descreverAnexos(anexos)
                             : preenchido ? `Preenchido pelo motorista${fotosDoc.length ? ` + ${fotosDoc.length} foto(s)` : ''}`
-                            : 'Não enviado';
+                            : opcional ? 'Não enviado (opcional)' : 'Não enviado';
                         return secao(titulo, (preenchido ? tabelaCampos(campos) : '') + arquivos(anexos) + fotos(anexos) + arquivos(fotosDoc) + fotos(fotosDoc), situacao);
                     }).join('');
             } else {
@@ -1449,13 +1453,14 @@ ${secao('Documentos extras', listaExtras)}
             if (novo) {
                 const semPdf = d._sem_pdf || {};
                 secoes = SECOES_FIXAS_NOVAS.filter(([titulo]) => c.tipo === 'pj' || titulo !== 'Empresa (PJ)').map(secaoFixa).join('') +
-                    documentosNovos(d).map(({ doc, titulo, campos }) => {
+                    documentosNovos(d).map(({ doc, titulo, campos, opcional }) => {
                         const temAnexo = docs.some((x) => x.campo === doc);
                         const temFoto = docs.some((x) => x.campo === `${doc}_foto`);
                         const preenchido = semPdf[doc] === true;
-                        // Documento que não existia no formulário quando o cadastro foi feito (ex.: RNTRC)
+                        // Documento que não existia no formulário quando o cadastro foi feito (ex.: RNTRC),
+                        // ou opcional que o motorista não mandou (comprovante, nos cadastros só com PDF)
                         const naoEnviado = !temAnexo && !Object.hasOwn(semPdf, doc);
-                        const etiqueta = naoEnviado ? '<span class="cad-etiqueta cad-etiqueta-vazio">Não enviado</span>'
+                        const etiqueta = naoEnviado ? `<span class="cad-etiqueta cad-etiqueta-vazio">${opcional ? 'Não enviado (opcional)' : 'Não enviado'}</span>`
                             : preenchido ? '<span class="cad-etiqueta cad-etiqueta-preenchido">Preenchido pelo motorista</span>'
                             : '<span class="cad-etiqueta cad-etiqueta-anexo">Anexo</span>';
                         const conteudo = naoEnviado
