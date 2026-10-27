@@ -1,5 +1,6 @@
-// Roda supabase/sql/passo16_avisos_notificacoes.sql num Postgres em WASM (PGlite), com auth.uid() e
-// is_admin() simulados (perfil com role admin/diretoria) e as permissões padrão do Supabase para tabela
+// Roda supabase/sql/passo16_avisos_notificacoes.sql num Postgres em WASM (PGlite), com auth.uid(),
+// auth.jwt() e is_admin() simulados como no Supabase (is_admin lê auth.jwt() -> 'app_metadata' ->> 'role',
+// não a tabela perfis) e as permissões padrão do Supabase para tabela
 // nova; roda duas vezes (tem que poder ser reexecutado) e depois as conferências 5.x, bloco a bloco.
 const fs = require('fs');
 const path = require('path');
@@ -15,6 +16,8 @@ const ateCommit = sql.slice(0, sql.indexOf('\ncommit;\n') + '\ncommit;\n'.length
     create schema auth;
     create function auth.uid() returns uuid language sql stable as $$
       select (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid $$;
+    create function auth.jwt() returns jsonb language sql stable as $$
+      select coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb, '{}'::jsonb) $$;
     create role authenticated;
     create role anon;
     grant usage on schema public, auth to anon, authenticated;
@@ -23,7 +26,7 @@ const ateCommit = sql.slice(0, sql.indexOf('\ncommit;\n') + '\ncommit;\n'.length
     insert into public.perfis values ('11111111-1111-1111-1111-111111111111', 'Motorista Teste', 'motorista'),
                                      ('22222222-2222-2222-2222-222222222222', 'Gestão Teste', 'admin');
     create function public.is_admin() returns boolean language sql stable security definer as $$
-      select exists (select 1 from public.perfis where id = auth.uid() and role in ('admin', 'diretoria')) $$;
+      select coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') in ('admin', 'diretoria') $$;
     -- Tabelas que já existem no Supabase (só as colunas usadas aqui); fichas sem índice em data_envio,
     -- cadastros já com um índice em criado_em (não pode criar outro)
     create table public.fichas_viagem (id text primary key, motorista text, status text, data_envio timestamptz, motorista_id uuid);

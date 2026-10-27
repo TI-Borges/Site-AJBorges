@@ -155,7 +155,9 @@ commit;
 -- =============================================================================
 -- 5. Conferência (depois do commit; rode cada bloco separadamente)
 --    Os testes que gravam rodam como o primeiro perfil com role = 'admin' ou
---    'motorista' e desfazem tudo no final (rollback).
+--    'motorista' e desfazem tudo no final (rollback). O is_admin() lê o papel
+--    de auth.jwt() -> 'app_metadata' ->> 'role': nas claims da gestão vai
+--    app_metadata.role = 'admin'.
 -- =============================================================================
 
 -- 5.1 Tabela, permissões, policies e RPC (esperado: rls=t | anon_na_tabela=(nada) | ler=id,inicio,fim,descricao | criar=descricao,fim,inicio | alterar=cancelado | apagar=(nenhum) | policies=avisos_atualizacao_gestao_cancela:UPDATE, avisos_atualizacao_gestao_cria:INSERT, avisos_atualizacao_gestao_le_todos:SELECT, avisos_atualizacao_ler_ativos:SELECT | rpc_anon=t | rpc_authenticated=t)
@@ -218,9 +220,13 @@ end $$;
 rollback;
 
 -- 5.4 Gestão cria, cancela e tenta apagar (esperado: criado_por_e_o_admin=t | linhas_canceladas=1 | cancelado=t | apagar=bloqueado | outro_usuario_ve=0)
+--     O is_admin() lê o papel do JWT (app_metadata.role), por isso ele vai nas claims.
+--     O 1º bloco grava como a gestão e guarda os resultados (set_config, só nesta transação);
+--     depois do reset role, o 2º bloco lê como o usuário do SQL Editor as colunas que a API não mostra.
 begin;
 select set_config('request.jwt.claims',
-         (select json_build_object('sub', id, 'role', 'authenticated')::text
+         (select json_build_object('sub', id, 'role', 'authenticated',
+                                   'app_metadata', json_build_object('role', 'admin'))::text
             from public.perfis where role = 'admin' limit 1), true);
 set local role authenticated;
 do $$
@@ -238,13 +244,20 @@ begin
     delete from public.avisos_atualizacao where id = v_id;
   exception when insufficient_privilege then v_apagar := 'bloqueado';
   end;
-  -- Volta para o usuário do SQL Editor para conferir as colunas que a API não mostra
-  reset role;
+  perform set_config('p16.id', v_id::text, true);
+  perform set_config('p16.cancelou', v_cancelou::text, true);
+  perform set_config('p16.apagar', v_apagar, true);
+end $$;
+reset role;
+do $$
+declare
+  v_id bigint := current_setting('p16.id')::bigint;
+begin
   raise exception 'RESULTADO (nada foi salvo): criado_por_e_o_admin=% | linhas_canceladas=% | cancelado=% | apagar=% | outro_usuario_ve=%',
     (select criado_por = (current_setting('request.jwt.claims', true)::jsonb ->> 'sub')::uuid from public.avisos_atualizacao where id = v_id),
-    v_cancelou,
+    current_setting('p16.cancelou'),
     (select cancelado from public.avisos_atualizacao where id = v_id),
-    v_apagar,
+    current_setting('p16.apagar'),
     (select count(*) from public.avisos_atualizacao where id = v_id and not cancelado and fim > now());
 end $$;
 rollback;
@@ -268,7 +281,8 @@ end $$;
 -- 5.7 A gestão consegue contar fichas e cadastros pela RLS de hoje (esperado: fichas=<total> | cadastros=<total>, os mesmos números do dashboard; 0 com tabela cheia = a RLS não deixa)
 begin;
 select set_config('request.jwt.claims',
-         (select json_build_object('sub', id, 'role', 'authenticated')::text
+         (select json_build_object('sub', id, 'role', 'authenticated',
+                                   'app_metadata', json_build_object('role', 'admin'))::text
             from public.perfis where role = 'admin' limit 1), true);
 set local role authenticated;
 do $$
