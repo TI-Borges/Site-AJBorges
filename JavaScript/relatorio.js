@@ -3252,7 +3252,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     // Algum dado da viagem preenchido? (nome do motorista, placa do abastecimento e 0,00 não contam)
     function dadosTemConteudo(dados) {
         if (!dados) return false;
-        const preenchido = (v) => { const t = String(v ?? '').trim(); return t !== '' && t !== '0,00' && t !== '0'; };
+        // vazio, 0, 0,00 (dinheiro) e 0,000 (litros) não contam
+        const preenchido = (v) => !/^(0(,0+)?)?$/.test(String(v ?? '').trim());
         const cab = dados.cabecalho || {};
         if (['placas', 'dataSaida', 'dataChegada', 'kmSaida', 'kmChegada', 'placaSecundaria', 'kmSaida2', 'kmEntrada2',
             'destinoInicial', 'destinoFinal', 'valorAdiantamento'].some(k => preenchido(cab[k]))) return true;
@@ -4250,7 +4251,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
     function linhaPreenchida(tr) {
         return Array.from(tr.querySelectorAll('input:not([type="date"]), select:not(.input-placa-abast)'))
-            .some(el => { const v = (el.value || '').trim(); return v !== '' && v !== '0,00' && v !== '0'; });
+            .some(el => !/^(0(,0+)?)?$/.test((el.value || '').trim())); // vazio, 0, 0,00 e 0,000 (litros) não contam
     }
 
     const linhasDaLista = (tabela) => Array.from(tabela.tBodies[0].rows).filter(tr => !tr.classList.contains('linha-adicionar-celular'));
