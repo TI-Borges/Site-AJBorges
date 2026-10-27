@@ -1795,3 +1795,69 @@ footer {
         align-items: flex-start;
     }
 }
+
+
+/* Envio dos documentos: progresso grande e lista do que não chegou */
+.envio-progresso-icone {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 12px;
+    border: 5px solid #e2e8f0;
+    border-top-color: var(--azul-ajborges);
+    border-radius: 50%;
+    animation: girar-envio 0.9s linear infinite;
+}
+
+@keyframes girar-envio {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .envio-progresso-icone { animation: none; }
+}
+
+#modal-enviando-cadastro .modal-cadastro-caixa {
+    text-align: center;
+}
+
+.envio-progresso-contagem {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--azul-ajborges);
+}
+
+.envio-progresso-barra {
+    height: 10px;
+    margin: 12px 0;
+    border-radius: 999px;
+    background: #e2e8f0;
+    overflow: hidden;
+}
+
+.envio-progresso-preenchido {
+    width: 0;
+    height: 100%;
+    background: var(--azul-ajborges);
+    transition: width 0.3s ease;
+}
+
+.envio-progresso-aviso {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #b91c1c;
+}
+
+.lista-falhas-envio {
+    margin: 8px 0 12px;
+    padding-left: 20px;
+    color: #7f1d1d;
+    overflow-wrap: anywhere;
+}
+
+.lista-falhas-envio li + li {
+    margin-top: 4px;
+}
+
+.texto-whatsapp-rh {
+    font-weight: 600;
+}

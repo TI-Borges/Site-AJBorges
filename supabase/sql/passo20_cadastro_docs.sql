@@ -97,6 +97,21 @@ rollback;
 
 
 -- -----------------------------------------------------------------------------
+-- 5. Só leitura: cada arquivo registrado no cadastro e se ele está no bucket (no_bucket = false: não chegou)
+--    (para conferir a causa dos "não chegou a ser enviado": tipo e tamanho que o
+--     formulário informou e a hora do cadastro; não mostra CPF nem dados pessoais)
+-- -----------------------------------------------------------------------------
+select c.id, c.criado_em, d ->> 'campo' as documento, d ->> 'tipo' as tipo,
+       (d ->> 'tamanho')::bigint as tamanho, d ->> 'path' as caminho,
+       exists (select 1 from storage.objects o
+                where o.bucket_id = 'documentos-cadastro' and o.name = d ->> 'path') as no_bucket
+  from public.cadastros_agregados c
+  cross join lateral jsonb_array_elements(coalesce(c.documentos, '[]'::jsonb)) d
+ where d ->> 'campo' <> 'extra'
+ order by c.criado_em, d ->> 'path';
+
+
+-- -----------------------------------------------------------------------------
 -- 4. DEPOIS (só leitura): a mesma consulta do item 1, para comparar
 --    (esperado: as mesmas linhas, com o mesmo id, nome, status e número de documentos)
 -- -----------------------------------------------------------------------------

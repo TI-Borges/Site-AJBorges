@@ -136,8 +136,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const MSG_SO_PDF = 'Envie o PDF do documento (baixe pelo app CNH Digital / CRLV Digital / ANTT). Foto não é aceita.';
     const MSG_SO_PDF_RESIDENCIA = 'Envie o comprovante em PDF (a conta em PDF baixada do app ou do site da empresa).';
 
+    // Tipo do arquivo: o do navegador quando é PDF/JPG/PNG; vazio ou genérico (Android, arquivo do
+    // WhatsApp, do Drive ou de Downloads: "" ou application/octet-stream), pela extensão do nome
+    const TIPO_POR_EXTENSAO = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' };
+    function tipoDoArquivo(f) {
+        if (TIPOS_PDF.includes(f.type) || TIPOS_FOTO.includes(f.type)) return f.type;
+        const ext = (/\.([a-z0-9]+)$/i.exec(f.name || '') || [])[1];
+        return TIPO_POR_EXTENSAO[(ext || '').toLowerCase()] || f.type || '';
+    }
+    // O mesmo arquivo com o tipo certo: o upload manda o tipo do próprio arquivo (o bucket recusa o genérico)
+    function comTipoCerto(f) {
+        const tipo = tipoDoArquivo(f);
+        return tipo && tipo !== f.type ? new File([f], f.name, { type: tipo, lastModified: f.lastModified }) : f;
+    }
+
     // Mesma checagem para "escolha os arquivos" e para arrastar e soltar (um arquivo por vez)
     function conferirArquivo(f, input) {
+        if (!(f.size > 0)) return `O arquivo "${f.name}" está vazio. Baixe o documento de novo e anexe.`;
         if (aceitaFoto(input)) {
             if (!TIPOS_FOTO.includes(f.type)) return `O arquivo "${f.name}" não é uma foto JPG ou PNG.`;
             return null; // o tamanho da foto é conferido depois da redução
@@ -220,7 +235,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const avisos = [];
         const fotos = [];
         let passou = false;
-        for (const f of Array.from(novos || [])) {
+        for (const original of Array.from(novos || [])) {
+            const f = comTipoCerto(original);
             const chave = `${f.name}|${f.size}`;
             if (itens.some((item) => item.chave === chave)) continue;
             const problema = conferirArquivo(f, input);
@@ -529,6 +545,27 @@ document.addEventListener('DOMContentLoaded', () => {
                         <a class="btn-modal-pri" href="index.html">Página principal</a>
                     </div>
                 </div>
+            </div>
+            <div class="modal-cadastro" id="modal-enviando-cadastro" role="dialog" aria-modal="true" aria-labelledby="titulo-enviando" aria-live="polite">
+                <div class="modal-cadastro-caixa">
+                    <div class="envio-progresso-icone" aria-hidden="true"></div>
+                    <h3 id="titulo-enviando">Enviando documentos…</h3>
+                    <p class="envio-progresso-contagem" id="envio-progresso-contagem"></p>
+                    <div class="envio-progresso-barra"><div class="envio-progresso-preenchido" id="envio-progresso-preenchido"></div></div>
+                    <p class="envio-progresso-aviso">Não feche esta página.</p>
+                </div>
+            </div>
+            <div class="modal-cadastro" id="modal-falha-envio" role="dialog" aria-modal="true" aria-labelledby="titulo-falha-envio">
+                <div class="modal-cadastro-caixa">
+                    <h3 id="titulo-falha-envio">Alguns documentos não foram enviados</h3>
+                    <p>Seu cadastro foi registrado, mas estes arquivos não chegaram. Confira a internet e tente de novo; os outros já foram enviados.</p>
+                    <ul class="lista-falhas-envio" id="lista-falhas-envio"></ul>
+                    <p class="texto-whatsapp-rh" id="texto-whatsapp-rh" hidden>Se não der certo, mande estes documentos pelo WhatsApp do RH da AJBorges.</p>
+                    <div class="modal-cadastro-botoes">
+                        <a class="btn-modal-sec" id="btn-whatsapp-rh" target="_blank" rel="noopener" hidden>Enviar pelo WhatsApp do RH</a>
+                        <button type="button" class="btn-modal-pri" id="btn-tentar-de-novo">Tentar enviar de novo</button>
+                    </div>
+                </div>
             </div>`;
         document.body.appendChild(wrap);
         const revisar = document.getElementById('modal-revisar-cadastro');
@@ -578,11 +615,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const documentos = {};
         const arquivos = [];
-        docs.forEach(({ doc }) => {
-            const lista = arquivosDe(prefixo, doc);
+        const titulos = []; // nome do documento de cada arquivo (lista do que falhou)
+        docs.forEach(({ doc, titulo }) => {
+            const lista = arquivosDe(prefixo, doc).map(comTipoCerto);
             if (lista.length === 0) return; // comprovante de residência é opcional
-            documentos[doc] = lista.map((f) => ({ nome: f.name, tipo: f.type, tamanho: f.size }));
+            documentos[doc] = lista.map((f) => ({ nome: f.name, tipo: tipoDoArquivo(f), tamanho: f.size }));
             arquivos.push(...lista); // mesma ordem que o servidor usa em "indice"
+            titulos.push(...lista.map(() => titulo));
         });
         return {
             corpo: {
@@ -594,7 +633,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 aceite_lgpd: campo(prefixo, 'aceite-lgpd')?.checked === true,
                 versao_politica: VERSAO_POLITICA
             },
-            arquivos
+            arquivos,
+            titulos
         };
     }
 
@@ -620,15 +660,100 @@ document.addEventListener('DOMContentLoaded', () => {
         alert(msg + extra);
     }
 
+    // Sobe um arquivo pelo link assinado (até 3 tentativas). O tipo vai certo (pelo nome, se o
+    // navegador não souber). "Já existe" = uma tentativa anterior chegou e só a resposta se perdeu.
     async function enviarArquivo(caminho, token, arquivo) {
+        const certo = comTipoCerto(arquivo);
         for (let tentativa = 1; tentativa <= 3; tentativa++) {
-            const { error } = await window.supabaseClient.storage
-                .from('documentos-cadastro')
-                .uploadToSignedUrl(caminho, token, arquivo, { contentType: arquivo.type });
-            if (!error) return true;
-            console.warn(`Falha no envio de ${arquivo.name} (tentativa ${tentativa}):`, error);
+            try {
+                const { error } = await window.supabaseClient.storage
+                    .from('documentos-cadastro')
+                    .uploadToSignedUrl(caminho, token, certo, { contentType: tipoDoArquivo(certo) });
+                if (!error) return true;
+                const texto = `${error.statusCode || error.status || ''} ${error.message || ''} ${error.error || ''}`;
+                if (/409|already exists|duplicate/i.test(texto)) return true;
+                console.warn(`Falha no envio de ${arquivo.name} (tentativa ${tentativa}):`, error);
+            } catch (err) {
+                console.warn(`Falha no envio de ${arquivo.name} (tentativa ${tentativa}):`, err && err.message);
+            }
         }
         return false;
+    }
+
+    // Enquanto os documentos sobem, fechar ou recarregar a página pede confirmação
+    const avisoAoSair = (e) => { e.preventDefault(); e.returnValue = ''; return ''; };
+
+    function mostrarProgresso(feitos, total) {
+        document.getElementById('envio-progresso-contagem').textContent = `(${Math.min(feitos + 1, total)} de ${total})`;
+        document.getElementById('envio-progresso-preenchido').style.width = `${total ? Math.round((feitos / total) * 100) : 100}%`;
+    }
+
+    // Sobe os pendentes, um por vez, com a tela de progresso. Devolve os que falharam.
+    async function subirPendentes(pendentes) {
+        const modal = document.getElementById('modal-enviando-cadastro');
+        modal.classList.add('ativo');
+        window.addEventListener('beforeunload', avisoAoSair);
+        const falharam = [];
+        try {
+            for (let i = 0; i < pendentes.length; i++) {
+                mostrarProgresso(i, pendentes.length);
+                const p = pendentes[i];
+                if (!p.arquivo || !(await enviarArquivo(p.path, p.token, p.arquivo))) falharam.push(p);
+            }
+            mostrarProgresso(pendentes.length, pendentes.length);
+        } finally {
+            window.removeEventListener('beforeunload', avisoAoSair);
+            modal.classList.remove('ativo');
+        }
+        return falharam;
+    }
+
+    // Envio registrado cujos arquivos ainda não subiram todos (para "Tentar enviar de novo")
+    let envioComFalhas = null;
+
+    const WHATSAPP_RH = '5514998627375';
+
+    function mostrarFalhas(falharam, tentativas) {
+        const lista = document.getElementById('lista-falhas-envio');
+        lista.innerHTML = falharam.map((p) => `<li><b>${esc(p.titulo)}</b>: ${esc(p.arquivo ? p.arquivo.name : 'arquivo')}</li>`).join('');
+        // Depois de uma nova tentativa sem sucesso: a última opção é o WhatsApp do RH
+        const whatsapp = tentativas > 1;
+        const btnWhats = document.getElementById('btn-whatsapp-rh');
+        const { nome, cpf } = envioComFalhas;
+        const texto = `Olá! Fiz o cadastro de agregado no site (${nome}, CPF ${cpf}), mas estes documentos não foram enviados:\n` +
+            falharam.map((p) => `- ${p.titulo}: ${p.arquivo ? p.arquivo.name : 'arquivo'}`).join('\n') + '\nVou mandar por aqui.';
+        btnWhats.href = `https://wa.me/${WHATSAPP_RH}?text=${encodeURIComponent(texto)}`;
+        btnWhats.hidden = !whatsapp;
+        document.getElementById('texto-whatsapp-rh').hidden = !whatsapp;
+        document.getElementById('modal-falha-envio').classList.add('ativo');
+    }
+
+    // Tudo no bucket: limpa o formulário e mostra a tela de sucesso
+    function concluirEnvio(form, prefixo) {
+        envioComFalhas = null;
+        document.getElementById('modal-falha-envio').classList.remove('ativo');
+        form.reset();
+        form.querySelectorAll('.upload-dropzone input[type="file"]').forEach(limparArquivos);
+        form.querySelectorAll('.file-preview-list').forEach((c) => { c.innerHTML = ''; });
+        campo(prefixo, 'crlvs').innerHTML = '';
+        atualizarDocs(prefixo);
+        document.getElementById('modal-sucesso-cadastro').classList.add('ativo');
+    }
+
+    async function tentarDeNovo() {
+        if (!envioComFalhas) return;
+        const btn = document.getElementById('btn-tentar-de-novo');
+        btn.disabled = true;
+        document.getElementById('modal-falha-envio').classList.remove('ativo');
+        try {
+            const falharam = await subirPendentes(envioComFalhas.pendentes);
+            envioComFalhas.tentativas++;
+            if (!falharam.length) return concluirEnvio(envioComFalhas.form, envioComFalhas.prefixo);
+            envioComFalhas.pendentes = falharam;
+            mostrarFalhas(falharam, envioComFalhas.tentativas);
+        } finally {
+            btn.disabled = false;
+        }
     }
 
     let envioEmAndamento = null;
@@ -706,7 +831,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const restaurar = () => { btn.disabled = false; btn.textContent = textoOriginal; };
 
         try {
-            const { corpo, arquivos } = montarEnvio(prefixo);
+            const { corpo, arquivos, titulos } = montarEnvio(prefixo);
+            // Antes de registrar: cada arquivo com tamanho maior que 0 e até 10 MB
+            const ruim = arquivos.find((f) => !(f.size > 0) || f.size > TAMANHO_MAX);
+            if (ruim) {
+                document.getElementById('modal-revisar-cadastro').classList.remove('ativo');
+                return mostrarErro(ruim.size > 0 ? `O arquivo "${ruim.name}" passa de 10 MB.` : `O arquivo "${ruim.name}" está vazio. Anexe de novo.`);
+            }
             const r = await window.solicitarCadastroAgregado(corpo);
             if (!r.sucesso) {
                 restaurar();
@@ -714,25 +845,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 return mostrarErro(r.erro, r.faltando);
             }
 
-            btn.textContent = 'Enviando documentos...';
-            let falhas = 0;
-            for (const up of r.uploads || []) {
-                const arquivo = arquivos[up.indice];
-                if (!arquivo || !(await enviarArquivo(up.path, up.token, arquivo))) falhas++;
-            }
-
             document.getElementById('modal-revisar-cadastro').classList.remove('ativo');
-            if (falhas > 0) {
-                document.getElementById('texto-sucesso-cadastro').textContent =
-                    `Seu cadastro foi registrado, mas ${falhas} documento(s) não puderam ser enviados. ` +
-                    'Entre em contato com a gestão da AJBorges para completar o envio.';
-            }
-            form.reset();
-            form.querySelectorAll('.upload-dropzone input[type="file"]').forEach(limparArquivos);
-            form.querySelectorAll('.file-preview-list').forEach((c) => { c.innerHTML = ''; });
-            campo(prefixo, 'crlvs').innerHTML = '';
-            atualizarDocs(prefixo);
-            document.getElementById('modal-sucesso-cadastro').classList.add('ativo');
+            const pendentes = (r.uploads || []).map((up) => ({
+                path: up.path, token: up.token, arquivo: arquivos[up.indice], titulo: titulos[up.indice] || up.campo
+            }));
+            const falharam = await subirPendentes(pendentes);
+            if (!falharam.length) return concluirEnvio(form, prefixo);
+            // Não mostra sucesso: lista o que faltou e deixa tentar de novo só esses
+            envioComFalhas = {
+                form, prefixo, pendentes: falharam, tentativas: 1,
+                nome: `${corpo.dados['motorista-nome'] || ''} ${corpo.dados['motorista-sobrenome'] || ''}`.trim(),
+                cpf: corpo.dados.cpf || ''
+            };
+            mostrarFalhas(falharam, 1);
         } catch (err) {
             console.error('Erro ao enviar cadastro:', err);
             mostrarErro('Não foi possível conectar ao servidor. Verifique a internet e tente novamente.');
@@ -744,6 +869,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     montarModais();
     document.getElementById('btn-confirmar-envio').addEventListener('click', confirmarEnvio);
+    document.getElementById('btn-tentar-de-novo').addEventListener('click', tentarDeNovo);
     prepararFormulario(formPJ, 'pj');
     prepararFormulario(formPF, 'pf');
 });
