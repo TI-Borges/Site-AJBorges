@@ -1,5 +1,5 @@
-// Cadastro de terceiros: anexo principal com PDF, JPG ou PNG, somando as escolhas (até 3),
-// caixinha "Não tenho o PDF nem a foto", payload sem chaves "_foto" e celular sem rolagem lateral.
+// Cadastro de terceiros: documentos só em PDF, somando as escolhas (até 3); foto só na selfie (1, reduzida);
+// payload sem chaves "_foto" e sem sem_pdf; celular sem rolagem lateral.
 // Também confere a aba Motoristas do dashboard sem e-mail.
 // Só dados inventados (CPF de teste 523.169.159-30).
 const { abrir } = require('./harness');
@@ -69,15 +69,11 @@ const ARQUIVOS_NA_PAGINA = () => {
     };
   });
 
-  // 1 foto, depois mais 1, depois mais 1 -> 3
-  for (const [nome, lado] of [['frente.png', 300], ['verso.png', 320], ['outra.jpg', 340]]) {
-    await page.evaluate(async (sel, nome, lado) => {
-      const f = await __arq.foto(nome, lado, nome.endsWith('.jpg') ? 'image/jpeg' : 'image/png');
-      __arq.escolher(sel, [f]);
-    }, CNH, nome, lado);
-    await page.evaluate(sel => __arq.pronto(sel), CNH);
+  // 1 PDF, depois mais 1, depois mais 1 -> 3 (desde o passo 20 a CNH só aceita PDF)
+  for (const nome of ['frente.pdf', 'verso.pdf', 'outra.pdf']) {
+    await page.evaluate((sel, nome) => __arq.escolher(sel, [__arq.pdf(nome)]), CNH, nome);
   }
-  r.tresFotos = await page.evaluate(sel => __arq.previa(sel), CNH);
+  r.tresPdfs = await page.evaluate(sel => __arq.previa(sel), CNH);
   r.inputZerado = await page.evaluate(sel => document.querySelector(sel).value === '', CNH);
 
   // 4º -> aviso e continuam 3
@@ -87,13 +83,11 @@ const ARQUIVOS_NA_PAGINA = () => {
   // Remover 1 -> 2; escolher o mesmo arquivo de novo -> 3
   await page.evaluate(sel => document.querySelector(sel).closest('.upload-dropzone').querySelectorAll('.file-preview-remover')[1].click(), CNH);
   r.depoisRemover = (await page.evaluate(sel => __arq.previa(sel), CNH)).length;
-  await page.evaluate(async sel => __arq.escolher(sel, [await __arq.foto('verso.png', 320)]), CNH);
-  await page.evaluate(sel => __arq.pronto(sel), CNH);
+  await page.evaluate(sel => __arq.escolher(sel, [__arq.pdf('verso.pdf')]), CNH);
   r.mesmoDeNovo = (await page.evaluate(sel => __arq.previa(sel), CNH)).length;
   // Repetido (mesmo nome e tamanho) é ignorado, sem aviso
   dialogos();
-  await page.evaluate(async sel => __arq.escolher(sel, [await __arq.foto('verso.png', 320)]), CNH);
-  await page.evaluate(sel => __arq.pronto(sel), CNH);
+  await page.evaluate(sel => __arq.escolher(sel, [__arq.pdf('verso.pdf')]), CNH);
   r.repetido = { qtd: (await page.evaluate(sel => __arq.previa(sel), CNH)).length, aviso: dialogos() };
   // Botão remover com área de toque de 44 px
   r.botaoRemover = await page.evaluate(sel => {
@@ -101,7 +95,7 @@ const ARQUIVOS_NA_PAGINA = () => {
     return `${Math.round(b.width)}x${Math.round(b.height)}`;
   }, CNH);
 
-  // CRLV: 1 PDF + 2 fotos de uma vez (arrastando) -> aceita
+  // CRLV: 1 PDF + 2 fotos de uma vez (arrastando) -> só o PDF entra, com um aviso
   const CRLV = '#pf-anexo-crlv-1';
   await page.evaluate(async sel => __arq.soltar(sel, [__arq.pdf('crlv.pdf'), await __arq.foto('crlv1.png', 200), await __arq.foto('crlv2.jpg', 210, 'image/jpeg')]), CRLV);
   r.pdfMaisFotosPreparando = await page.evaluate(sel => __arq.previa(sel), CRLV);
@@ -120,42 +114,30 @@ const ARQUIVOS_NA_PAGINA = () => {
   await page.evaluate(sel => __arq.escolher(sel, [__arq.pdf('grande.pdf', 10 * 1024 + 1)]), RNTRC);
   r.pdfGrande = { qtd: (await page.evaluate(sel => __arq.previa(sel), RNTRC)).length, aviso: dialogos() };
 
-  // Comprovante: marcar "Não tenho o PDF nem a foto" limpa, desabilita a zona e abre o formulário
-  const RES = '#pf-anexo-residencia';
-  await page.evaluate(sel => __arq.escolher(sel, [__arq.pdf('conta-luz.pdf')]), RES);
-  await page.evaluate(() => document.getElementById('pf-sem-pdf-residencia').click()); // o input fica escondido atrás do quadrado
-  r.caixinha = await page.evaluate(sel => {
-    const input = document.querySelector(sel);
-    const cartao = input.closest('.cartao-doc');
-    return {
-      previa: __arq.previa(sel).length, inputDesabilitado: input.disabled,
-      zonaEscondida: cartao.querySelector('.cartao-doc-anexo').hidden,
-      formAberto: !cartao.querySelector('.cartao-doc-form').hidden
-    };
-  }, RES);
-  // Soltar arquivo com a caixinha marcada não entra
-  await page.evaluate(sel => __arq.soltar(sel, [__arq.pdf('nao-entra.pdf')]), RES);
-  r.caixinha.depoisDeSoltar = await page.evaluate(sel => __arq.previa(sel).length, RES);
+  // Selfie: foto grande é reduzida (lado maior até 2000 px, JPEG); a segunda troca a primeira
+  const SELFIE = '#pf-anexo-selfie';
+  await page.evaluate(async sel => __arq.escolher(sel, [await __arq.foto('selfie-grande.png', 3000)]), SELFIE);
+  await page.evaluate(sel => __arq.pronto(sel), SELFIE);
+  await page.evaluate(async sel => __arq.escolher(sel, [await __arq.foto('selfie-2.jpg', 800, 'image/jpeg')]), SELFIE);
+  await page.evaluate(sel => __arq.pronto(sel), SELFIE);
+  r.selfie = { previa: await page.evaluate(sel => __arq.previa(sel), SELFIE), aviso: dialogos() };
+  // Comprovante (opcional): sem caixinha "não tenho"; fica sem anexo
+  r.semCaixinha = await page.evaluate(() => document.querySelectorAll('[id^="pf-sem-pdf-"], #form-pf .cartao-doc .caixa-sem-pdf').length);
 
   // Envio: preenche o resto e captura o corpo enviado à edge function
   await page.evaluate(() => {
     const v = (id, val) => { const el = document.getElementById(id); el.value = val; el.dispatchEvent(new Event('input', { bubbles: true })); };
     v('pf-motorista-nome', 'Fulano'); v('pf-motorista-sobrenome', 'de Teste');
     v('pf-cpf', '523.169.159-30'); v('pf-celular', '(11) 90000-0000');
-    v('pf-mot-endereco', 'Rua Inventada, 100'); v('pf-mot-cep', '00000-000');
-    const uf = document.getElementById('pf-mot-estado');
-    uf.value = uf.options[1].value;
-    v('pf-mot-cidade', 'Cidade Teste');
+    v('pf-rastreador-marca', 'Sascar'); v('pf-rastreador-id', 'TESTE-000123');
     document.getElementById('pf-aceite-lgpd').checked = true;
     window.solicitarCadastroAgregado = async (corpo) => { window.__corpo = corpo; return { sucesso: true, uploads: [] }; };
   });
-  // A lista de cidades do IBGE não carrega no teste: a cidade fica como texto livre
-  await page.evaluate(() => { const c = document.getElementById('pf-mot-cidade'); c.disabled = false; c.value = 'Cidade Teste'; });
   await page.evaluate(() => document.querySelector('#form-pf button[type="submit"]').click());
   await new Promise(res => setTimeout(res, 300));
   r.revisao = await page.evaluate(() => ({
     aberta: document.getElementById('modal-revisar-cadastro').classList.contains('ativo'),
-    linhas: Array.from(document.querySelectorAll('#resumo-cadastro div')).map(d => d.textContent.trim()).filter(t => /CNH|CRLV|RNTRC|Comprovante/.test(t))
+    linhas: Array.from(document.querySelectorAll('#resumo-cadastro div')).map(d => d.textContent.trim()).filter(t => /CNH|CRLV|RNTRC|Comprovante|Selfie/.test(t))
   }));
   r.revisao.avisos = [...dialogos(), ...await page.evaluate(() => Array.from(document.querySelectorAll('.aviso-bloco')).map(a => a.textContent))];
   if (r.revisao.aberta) {
@@ -181,9 +163,10 @@ const ARQUIVOS_NA_PAGINA = () => {
     await page.evaluate(ARQUIVOS_NA_PAGINA);
     await page.click('#card-pf');
     await page.select('#pf-tipologia', 'Bitrem');
-    await page.evaluate(async sel => __arq.escolher(sel, [__arq.pdf('um-nome-de-arquivo-bem-comprido-para-testar-a-quebra.pdf'),
-      await __arq.foto('foto-da-cnh-frente.png', 300), await __arq.foto('foto-da-cnh-verso.jpg', 300, 'image/jpeg')]), CNH);
-    await page.evaluate(sel => __arq.pronto(sel), CNH);
+    await page.evaluate(sel => __arq.escolher(sel, [__arq.pdf('um-nome-de-arquivo-bem-comprido-para-testar-a-quebra.pdf'),
+      __arq.pdf('cnh-verso-com-nome-comprido-tambem.pdf')]), CNH);
+    await page.evaluate(async () => __arq.escolher('#pf-anexo-selfie', [await __arq.foto('selfie-com-um-nome-de-arquivo-comprido.png', 300)]));
+    await page.evaluate(() => __arq.pronto('#pf-anexo-selfie'));
     r.celular[w] = await page.evaluate(() => {
       const fora = Array.from(document.querySelectorAll('#form-pf *')).filter(el => el.offsetParent !== null)
         .filter(el => { const b = el.getBoundingClientRect(); return b.width && (b.right > window.innerWidth + 1 || b.left < -1); }).length;
