@@ -2092,9 +2092,10 @@ select.input-tabela option {
 /* ==========================================
    Toast Notificação
    ========================================== */
+/* No topo da tela (o rodapé tem os botões de envio e o indicador do salvamento) */
 .toast {
     position: fixed;
-    bottom: 24px;
+    top: 24px;
     right: 24px;
     padding: 14px 22px;
     border-radius: 12px;
@@ -2108,7 +2109,7 @@ select.input-tabela option {
     gap: 10px;
     opacity: 0;
     pointer-events: none;
-    transform: translateY(20px);
+    transform: translateY(-20px);
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     z-index: 2000;
 }
@@ -4261,7 +4262,7 @@ input.campo-bloqueado-gestao {
     .toast {
         left: 12px;
         right: 12px;
-        bottom: calc(16px + env(safe-area-inset-bottom));
+        top: calc(12px + env(safe-area-inset-top));
         justify-content: center;
         text-align: center;
     }
@@ -4589,4 +4590,23 @@ tr.linha-frete-sem-valor > td {
 tr.linha-frete-sem-valor .input-valor-frete-ml {
     border-color: #f59e0b;
     box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+}
+
+/* Erro da validação junto do campo: mensagem em vermelho embaixo e borda vermelha */
+.erro-campo-celular {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: #b91c1c;
+    white-space: normal;
+    text-align: left;
+}
+
+.input-wrapper:has([aria-invalid="true"]),
+.input-tabela[aria-invalid="true"],
+select[aria-invalid="true"] {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15) !important;
 }

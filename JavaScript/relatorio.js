@@ -4728,8 +4728,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                     if (inputPlacas && !inputPlacas.disabled && !inputPlacas.readOnly) {
                         const limpo = (inputPlacas.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
                         if (limpo.length !== 7) {
-                            exibirToast('A placa do veículo deve conter exatamente 7 caracteres (Ex: GAB-1234 ou GAB-1C34).', 'erro');
-                            inputPlacas.focus();
+                            falharValidacao(inputPlacas, 'A placa do veículo deve conter exatamente 7 caracteres (Ex: GAB-1234 ou GAB-1C34).');
                             return;
                         }
                     }
@@ -4762,8 +4761,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                     if (inputPlacas && !inputPlacas.disabled && !inputPlacas.readOnly) {
                         const limpo = (inputPlacas.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
                         if (limpo.length !== 7) {
-                            exibirToast('A placa do veículo deve conter exatamente 7 caracteres (Ex: GAB-1234).', 'erro');
-                            inputPlacas.focus();
+                            falharValidacao(inputPlacas, 'A placa do veículo deve conter exatamente 7 caracteres (Ex: GAB-1234).');
                             return;
                         }
                     }
@@ -5031,9 +5029,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         if (!inputPlacaSecundaria || inputPlacaSecundaria.readOnly || inputPlacaSecundaria.disabled) return true;
         const limpo = limparPlaca(inputPlacaSecundaria.value);
         if (limpo.length === 0 || placaValida(limpo)) return true;
-        exibirToast('A placa secundária deve ter 7 caracteres, no formato ABC-1234 ou ABC-1D23, ou ficar em branco.', 'erro');
-        inputPlacaSecundaria.focus();
-        return false;
+        return falharValidacao(inputPlacaSecundaria, 'A placa secundária deve ter 7 caracteres, no formato ABC-1234 ou ABC-1D23, ou ficar em branco.');
     }
 
     // Modal de revisão: destinos, adiantamento, KMs, placa secundária, fretes (veículo e
@@ -5126,11 +5122,12 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         caixa.innerHTML = html;
     }
 
-    // Aviso logo abaixo do campo (some quando o campo é corrigido). Nos litros do abastecimento
-    // o aviso fica embaixo do campo com o "L" (tabela-litros-wrap)
+    // Aviso logo abaixo do campo (some quando o campo é corrigido). Nas tabelas o aviso fica
+    // embaixo do campo com o "R$", o "L", o calendário ou a seta das cidades
+    const ANCORAS_ERRO_CAMPO = '.input-wrapper, .tabela-litros-wrap, .tabela-moeda-wrap, .tabela-data-wrap, .combobox-cidade-wrap';
     function marcarErroCampo(el, mensagem) {
         if (!el) return;
-        const ancora = el.closest('.input-wrapper, .tabela-litros-wrap') || el;
+        const ancora = el.closest(ANCORAS_ERRO_CAMPO) || el;
         let aviso = ancora.nextElementSibling;
         if (!aviso || !aviso.classList.contains('erro-campo-celular')) {
             aviso = document.createElement('small');
@@ -5144,7 +5141,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
     function limparErroCampo(el) {
         if (!el) return;
-        const ancora = el.closest('.input-wrapper, .tabela-litros-wrap') || el;
+        const ancora = el.closest(ANCORAS_ERRO_CAMPO) || el;
         const aviso = ancora.nextElementSibling;
         if (aviso && aviso.classList.contains('erro-campo-celular')) aviso.remove();
         el.removeAttribute('aria-invalid');
@@ -5166,7 +5163,14 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         return `${m[3]}-${m[2]}-${m[1]}`;
     }
 
+    // Erro de validação: aviso em vermelho embaixo do campo (borda vermelha), a tela rola até ele
+    // e o foco vai para ele; o toast (no topo) repete a mensagem. Campo dos lançamentos com o
+    // formulário fechado: abre antes de rolar.
     function falharValidacao(el, mensagem) {
+        if (el && secaoFormularioUnificado && secaoFormularioUnificado.contains(el) &&
+            secaoFormularioUnificado.classList.contains('oculto')) {
+            toggleFormularioUnificado(true, false);
+        }
         marcarErroCampo(el, mensagem);
         exibirToast(mensagem, 'erro');
         if (el) {
@@ -5212,6 +5216,12 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             if (chegada < saida) return falharValidacao(inputDataChegada, 'A data de chegada não pode ser antes da data de saída.');
             if (!(inputDestinoInicial?.value || '').trim()) return falharValidacao(inputDestinoInicial, 'Informe o destino inicial.');
             if (!(inputAdiantamento?.value || '').trim()) return falharValidacao(inputAdiantamento, 'Informe o valor do adiantamento (0,00 se não houve).');
+
+            // Pelo menos um frete ou um abastecimento
+            if (coletarFretesAtuais().length === 0 && coletarAbastecimentosAtuais().length === 0) {
+                return falharValidacao(document.querySelector('input[name="data_frete_ml_1"]'),
+                    'Adicione pelo menos um frete (data, origem e destino) ou um abastecimento.');
+            }
 
             // Cada frete preenchido precisa de data, origem e destino (o valor é opcional: a gestão
             // completa); no Alimentício, o rodotrem escolhe o veículo
@@ -5565,8 +5575,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                     if (inputPlacas && !inputPlacas.disabled && !inputPlacas.readOnly) {
                         const limpo = (inputPlacas.value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
                         if (limpo.length !== 7) {
-                            exibirToast('A placa do veículo deve conter exatamente 7 caracteres (Ex: GAB-1234 ou GAB-1C34).', 'erro');
-                            inputPlacas.focus();
+                            falharValidacao(inputPlacas, 'A placa do veículo deve conter exatamente 7 caracteres (Ex: GAB-1234 ou GAB-1C34).');
                             return;
                         }
                     }
@@ -5601,8 +5610,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
                 // Valida identificação do motorista
                 if (!motoristaIdentificado) {
-                    exibirToast('Por favor, informe o nome do Motorista.', 'erro');
-                    if (inputMotorista && !inputMotorista.disabled && !inputMotorista.readOnly) inputMotorista.focus();
+                    falharValidacao(inputMotorista, 'Por favor, informe o nome do Motorista.');
                     return;
                 }
 
@@ -5611,20 +5619,12 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                     if (usuarioAtivo && usuarioAtivo.role === 'motorista') {
                         if (inputMlImpFederal) inputMlImpFederal.value = '0,00';
                     } else {
-                        exibirToast('O valor do Imposto Federal é obrigatório no relatório.', 'erro');
-                        if (inputMlImpFederal) inputMlImpFederal.focus();
+                        falharValidacao(inputMlImpFederal, 'O valor do Imposto Federal é obrigatório no relatório.');
                         return;
                     }
                 }
 
-                // Verifica se há pelo menos um frete ou abastecimento preenchido
-                const fretesAtuais = coletarFretesAtuais();
-                const abastsAtuais = coletarAbastecimentosAtuais();
-
-                if (fretesAtuais.length === 0 && abastsAtuais.length === 0) {
-                    exibirToast('Lance pelo menos um frete ou abastecimento na operação.', 'erro');
-                    return;
-                }
+                // Pelo menos um frete ou abastecimento: conferido em validarKmCombustivelDespesas
                 if (!validarKmCombustivelDespesas(false)) return;
 
                 const textoOriginalEnvio = btnFinalizarRelatorioMl.innerHTML;
