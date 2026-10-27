@@ -95,9 +95,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // (Os dados da CNH, do CRLV, do RNTRC e do endereço não são mais digitados: vêm no PDF anexado)
+    // Celular do motorista: obrigatório, com DDD (10 ou 11 dígitos), a mesma regra da edge function
+    function conferirCelular(input) {
+        if (!input) return;
+        const digitos = input.value.replace(/\D/g, '');
+        input.setCustomValidity(digitos.length === 0 || (digitos.length >= 10 && digitos.length <= 11)
+            ? '' : 'Informe o celular com DDD: 10 ou 11 números, ex.: (11) 96123-4567.');
+    }
+
     ['pj', 'pf'].forEach((p) => {
         applyMask(document.getElementById(`${p}-cpf`), maskCPF);
         applyMask(document.getElementById(`${p}-celular`), maskPhone);
+        document.getElementById(`${p}-celular`)?.addEventListener('input', (e) => conferirCelular(e.target));
         ['motorista-nome', 'motorista-sobrenome'].forEach((s) => bloquearNumeros(document.getElementById(`${p}-${s}`)));
     });
     // Rastreador: escolher "Outra" na lista limpa o campo para digitar o nome da marca
@@ -650,6 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
         form.addEventListener('submit', (e) => {
             e.preventDefault();
             atualizarDocs(prefixo);
+            conferirCelular(campo(prefixo, 'celular'));
             if (!form.reportValidity()) return;
 
             const problemaArquivo = validarArquivos(prefixo);
