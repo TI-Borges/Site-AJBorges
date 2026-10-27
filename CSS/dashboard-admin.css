@@ -3311,3 +3311,55 @@ body.admin-body {
         font-size: 1rem;
     }
 }
+
+
+/* Frete sem valor (passo 19): a gestão preenche antes de aprovar; acerto e totais ficam pendentes */
+.selo-frete-sem-valor {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.valor-pendente {
+    color: #b45309;
+    font-style: italic;
+    font-weight: 700;
+}
+
+.kpi-pendente {
+    display: block;
+    flex-basis: 100%;
+    margin-top: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #b45309;
+}
+
+.kpi-pendente[hidden] {
+    display: none;
+}
+
+.despesa-info-top {
+    flex-wrap: wrap;
+}
+
+.aviso-frete-sem-valor {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fffbeb;
+    border: 1px solid #fcd34d;
+    color: #92400e;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.modal-tabela-resumo tr.linha-frete-sem-valor td {
+    background: #fffbeb;
+}

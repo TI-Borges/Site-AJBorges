@@ -27,6 +27,9 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     if (!ehGestao) {
         document.querySelectorAll('[data-so-gestao]').forEach(el => el.remove());
         document.querySelectorAll('[data-titulo-motorista]').forEach(el => { el.title = el.dataset.tituloMotorista; });
+    } else {
+        // Dicas só do motorista (ex.: "Não sabe o valor?") não aparecem para a gestão
+        document.querySelectorAll('[data-so-motorista]').forEach(el => el.remove());
     }
 
     // Elementos do Formulário
@@ -1573,14 +1576,14 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         return ROTULOS_VEICULO[v] ? v : '';
     }
 
-    // REGRA DA COMISSÃO (a mesma de public._limpar_fretes, passo 15). null = sem comissão.
-    // Mercado Livre R$ 400; Shopee 11%; Alimentício pelo veículo da linha: rodotrem usa a
-    // especial de rodotrem do motorista, senão 8% (destino Viana-ES) ou 9%; carreta usa a
-    // especial de carreta, senão 11%.
+    // REGRA DA COMISSÃO (a mesma de public._limpar_fretes, passo 19). null = sem comissão ("a calcular").
+    // Mercado Livre R$ 400 (mesmo sem valor do frete); Shopee 11%; Alimentício pelo veículo da linha:
+    // rodotrem usa a especial de rodotrem do motorista, senão 8% (destino Viana-ES) ou 9%; carreta
+    // usa a especial de carreta, senão 11%. Sem valor (fora o Mercado Livre) = null.
     function calcularComissaoFrete(cliente, valor, destino, veiculo) {
+        if (cliente === 'mercado_livre') return 400;
         const centavos = Math.round((Number(valor) || 0) * 100);
         if (!(centavos > 0)) return null;
-        if (cliente === 'mercado_livre') return 400;
         let pct = null;
         if (cliente === 'shopee') pct = 11;
         else if (cliente === 'alimenticio' && veiculo === 'rodotrem') pct = veiculoMotorista.comRodotrem ?? (ehVianaES(destino) ? 8 : 9);
@@ -1752,6 +1755,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             const btnPickerData = inputDataFrete.parentElement ? inputDataFrete.parentElement.querySelector('.btn-picker-data') : null;
             const pickerNativo = inputDataFrete.parentElement ? inputDataFrete.parentElement.querySelector('.input-picker-data-nativo') : null;
             aplicarMascaraDataComPicker(inputDataFrete, pickerNativo, btnPickerData, () => {
+                calcularTotaisFreteMl(); // data, origem e destino: frete sem valor ("a calcular")
                 salvarProgressoMl();
                 if (typeof atualizarListaLinhasPreenchidasPopover === 'function') {
                     atualizarListaLinhasPreenchidasPopover();
@@ -1760,6 +1764,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         }
         if (inputOrigemFrete) {
             inputOrigemFrete.addEventListener('input', () => {
+                calcularTotaisFreteMl();
                 salvarProgressoMl();
                 if (typeof atualizarListaLinhasPreenchidasPopover === 'function') {
                     atualizarListaLinhasPreenchidasPopover();
@@ -1819,8 +1824,50 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             inputTotalRelacaoDescarga.value = formatarMoedaSemPrefixo(somaDescarga);
         }
 
+        // Frete sem valor: comissão "a calcular" (o Mercado Livre já tem os R$ 400), destaque na
+        // conferência da gestão e "parcial: faltam valores" ao lado dos totais enquanto faltar
+        let semValor = 0;
+        let comissaoACalcular = 0;
+        const conferenciaGestao = modoGestaoNaFicha();
+        for (let i = 1; i <= 8; i++) {
+            const valorEl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
+            const comissaoEl = document.querySelector(`input[name="comissao_frete_ml_${i}"]`);
+            if (!valorEl || !comissaoEl) continue;
+            const sem = freteSemValorMl(i);
+            const aCalcular = sem && !comissaoEl.value.trim();
+            if (sem) semValor++;
+            if (aCalcular) comissaoACalcular++;
+            comissaoEl.placeholder = aCalcular ? 'a calcular' : '0,00';
+            comissaoEl.classList.toggle('comissao-a-calcular', aCalcular);
+            valorEl.closest('tr')?.classList.toggle('linha-frete-sem-valor', sem && conferenciaGestao);
+        }
+        document.querySelectorAll('[data-parcial]').forEach(el => {
+            el.hidden = !(el.dataset.parcial === 'comissao' ? comissaoACalcular : semValor);
+        });
+
         // Estes totais são o "Total frete" e o "Vr comissão" da ficha (indicadores e envio)
-        return { frete: somaFrete, comissao: somaComissao, descarga: somaDescarga };
+        return { frete: somaFrete, comissao: somaComissao, descarga: somaDescarga, semValor, comissaoACalcular };
+    }
+
+    // Frete que conta na ficha (passo 19): data, origem e destino. O valor é opcional para o
+    // motorista (0,00 = a gestão preenche); os totais somam só os fretes com valor.
+    function freteCompletoMl(i) {
+        const campo = (c) => document.querySelector(`[name="${c}_frete_ml_${i}"]`);
+        const dt = campo('data');
+        if (!dt || dt.closest('tr')?.classList.contains('linha-oculta-celular')) return false;
+        return ['data', 'origem', 'destino'].every(c => (campo(c)?.value || '').trim() !== '');
+    }
+
+    function freteSemValorMl(i) {
+        return freteCompletoMl(i) && !(parseMoeda(document.querySelector(`input[name="valor_frete_ml_${i}"]`)?.value) > 0);
+    }
+
+    // Mesmo critério de modo admin de atualizarLinhaFreteMl
+    function modoGestaoNaFicha() {
+        let u = null;
+        try { u = JSON.parse(localStorage.getItem(STORAGE_USER_ACTIVE) || 'null'); } catch (e) { }
+        const mode = new URLSearchParams(window.location.search).get('mode');
+        return mode === 'admin' || !!(u && (u.role === 'admin' || u.role === 'diretoria') && mode !== 'motorista');
     }
 
     // 15.2. Abastecimento ML (10 Linhas - Sem Média)
@@ -4721,8 +4768,15 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                         }
                     }
                     if (!validarKmCombustivelDespesas(true)) return;
+                    // Frete sem valor (o motorista deixou para a gestão): preencher antes de aprovar
+                    for (let i = 1; i <= 8; i++) {
+                        if (freteSemValorMl(i)) {
+                            falharValidacao(document.querySelector(`input[name="valor_frete_ml_${i}"]`), 'Preencha o valor dos fretes antes de aprovar');
+                            return;
+                        }
+                    }
 
-                    const idAprovar = fichaCarregada ? fichaCarregada.id : fichaNumeroAtual;
+                    const idAprovar =fichaCarregada ? fichaCarregada.id : fichaNumeroAtual;
                     if (!confirm(`Confirmar a homologação e aprovação definitiva do Relatório de Viagem ${idAprovar}?`)) {
                         return;
                     }
@@ -5038,15 +5092,17 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             const comissao = document.querySelector(`input[name="comissao_frete_ml_${i}"]`)?.value || '';
             const partes = [rotulosCliente[cliente] || 'Sem operação'];
             if (motoristaEscolheVeiculo()) partes.push(ROTULOS_VEICULO[veiculoDaLinhaFrete(i)] || 'Veículo não escolhido');
-            partes.push(valorEl.value ? `Frete R$ ${valorEl.value}` : 'Sem valor');
-            partes.push(`Comissão ${comissao ? `R$ ${comissao}` : '—'}`);
+            const semValor = !(parseMoeda(valorEl.value) > 0);
+            partes.push(semValor ? 'Sem valor (a gestão completa)' : `Frete R$ ${valorEl.value}`);
+            partes.push(`Comissão ${comissao ? `R$ ${comissao}` : (semValor ? 'a calcular' : '—')}`);
             fretes.push(linha(`#${fretes.length + 1}`, partes.join(' · ')));
         }
         if (fretes.length) {
             const totaisFrete = calcularTotaisFreteMl();
+            const parcial = (n) => (n ? ' (parcial: faltam valores)' : '');
             html += '<h3>Fretes</h3>' + fretes.join('');
-            html += linha('Total frete', formatarMoeda(totaisFrete.frete));
-            html += linha('Total comissão', formatarMoeda(totaisFrete.comissao));
+            html += linha('Total frete', formatarMoeda(totaisFrete.frete) + parcial(totaisFrete.semValor));
+            html += linha('Total comissão', formatarMoeda(totaisFrete.comissao) + parcial(totaisFrete.comissaoACalcular));
         }
 
         const abasts = [];
@@ -5157,11 +5213,16 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             if (!(inputDestinoInicial?.value || '').trim()) return falharValidacao(inputDestinoInicial, 'Informe o destino inicial.');
             if (!(inputAdiantamento?.value || '').trim()) return falharValidacao(inputAdiantamento, 'Informe o valor do adiantamento (0,00 se não houve).');
 
-            // Cada frete preenchido precisa do valor; no Alimentício, o rodotrem escolhe o veículo
+            // Cada frete preenchido precisa de data, origem e destino (o valor é opcional: a gestão
+            // completa); no Alimentício, o rodotrem escolhe o veículo
             for (let i = 1; i <= 8; i++) {
                 const valor = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
                 if (!valor || !linhaEmUso(valor) || !verificarLinhaFretePreenchida(i)) continue;
-                if (!(parseMoeda(valor.value) > 0)) return falharValidacao(valor, 'Informe o valor do frete');
+                const faltando = [['data', 'a data'], ['origem', 'a origem'], ['destino', 'o destino']]
+                    .find(([c]) => !(document.querySelector(`[name="${c}_frete_ml_${i}"]`)?.value || '').trim());
+                if (faltando) {
+                    return falharValidacao(document.querySelector(`[name="${faltando[0]}_frete_ml_${i}"]`), `Informe ${faltando[1]} do frete ${i}.`);
+                }
                 const cliente = document.querySelector(`select[name="cliente_frete_ml_${i}"]`)?.value || '';
                 const veiculo = document.querySelector(`select[name="veiculo_frete_ml_${i}"]`);
                 if (cliente === 'alimenticio' && motoristaEscolheVeiculo() && !veiculoDaLinhaFrete(i)) {
@@ -5690,7 +5751,11 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                     if (el) el.textContent = String(valor);
                 };
                 definirTexto('revisar-qtd-abastecimentos', coletarAbastecimentosAtuais().length);
-                definirTexto('revisar-qtd-fretes', coletarFretesAtuais().length);
+                // Fretes sem valor contam (a gestão completa o valor depois)
+                const fretesRevisao = coletarFretesAtuais();
+                const semValorRevisao = fretesRevisao.filter(f => !(parseMoeda(f.valor) > 0)).length;
+                definirTexto('revisar-qtd-fretes', semValorRevisao
+                    ? `${fretesRevisao.length} (${semValorRevisao} sem valor, a gestão completa)` : fretesRevisao.length);
                 definirTexto('revisar-qtd-outras-despesas', qtdOutrasDespesas);
                 definirTexto('revisar-qtd-comprovantes', (arquivosComprovantesMl || []).length);
                 preencherDetalhesRevisao();

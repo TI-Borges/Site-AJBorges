@@ -4548,3 +4548,45 @@ input.campo-bloqueado-gestao {
         text-align: center;
     }
 }
+
+
+/* Frete sem valor (passo 19): o motorista pode deixar 0,00 e a gestão preenche depois */
+.dica-valor-frete {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    line-height: 1.3;
+    color: #64748b;
+    white-space: normal;
+}
+
+/* Comissão de frete sem valor: "a calcular" no lugar de 0,00 */
+input.comissao-a-calcular::placeholder {
+    color: #b45309;
+    font-style: italic;
+    opacity: 1;
+}
+
+/* Totais e saldo somam só os fretes com valor */
+.aviso-parcial {
+    display: block;
+    margin-top: 4px;
+    font-size: 11.5px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #b45309;
+}
+
+.aviso-parcial[hidden] {
+    display: none;
+}
+
+/* Conferência da gestão: frete sem valor em destaque */
+tr.linha-frete-sem-valor > td {
+    background: #fffbeb;
+}
+
+tr.linha-frete-sem-valor .input-valor-frete-ml {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+}

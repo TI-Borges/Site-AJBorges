@@ -658,6 +658,10 @@ function calcularMetricasDashboard() {
     if (elSaidaImpostos) elSaidaImpostos.textContent = formatarMoeda(saidaImpostos);
 
     if (elResultadoLiquido) elResultadoLiquido.textContent = formatarMoeda(resultadoLiquido);
+
+    // Ficha com frete sem valor: faturamento, comissão e resultado só fecham com os valores preenchidos
+    const fichasSemValor = appState.fichas.filter(fichaTemFreteSemValor).length;
+    [elTotalEntrada, elSaidaComissao, elResultadoLiquido].forEach(el => marcarKpiPendente(el, fichasSemValor));
     if (elMargemLucro) elMargemLucro.textContent = totalEntrada > 0 ? `${margemLiquida.toFixed(1)}%` : '0.0%';
     if (elLucroMedioViagem) elLucroMedioViagem.textContent = `Média: ${formatarMoeda(lucroMedioPorViagem)} / viagem`;
 
@@ -905,6 +909,7 @@ function renderizarTabelaFichas() {
             </td>
             <td>
                 <span class="frete-val-destaque">R$ ${ficha.totalFrete || '0,00'}</span>
+                ${fichaTemFreteSemValor(ficha) ? seloFreteSemValor() : ''}
             </td>
             <td>
                 <span class="diesel-badge ${mediaClass}">
@@ -980,6 +985,12 @@ function renderizarTabelaFichas() {
 function aprovarFichaDiretamente(fichaId) {
     const index = appState.fichas.findIndex(f => f.id === fichaId);
     if (index === -1) return;
+
+    // Frete sem valor: a gestão preenche na conferência (Conferir / Editar) antes de aprovar
+    if (fichaTemFreteSemValor(appState.fichas[index])) {
+        exibirToast('Preencha o valor dos fretes antes de aprovar', 'erro');
+        return false;
+    }
 
     if (!confirm(`Deseja aprovar e homologar o Relatório de Viagem ${fichaId}?`)) {
         return;
@@ -1077,7 +1088,7 @@ function abrirModalResumoFicha(fichaId) {
     if (btnAprovarDireto) {
         btnAprovarDireto.style.display = ficha.status !== 'aprovado' ? 'inline-flex' : 'none';
         btnAprovarDireto.onclick = () => {
-            aprovarFichaDiretamente(ficha.id);
+            if (aprovarFichaDiretamente(ficha.id) === false) return; // frete sem valor: o resumo fica aberto
             fecharModalResumo();
         };
     }
@@ -1097,16 +1108,19 @@ function abrirModalResumoFicha(fichaId) {
         const temVeiculo = fretesModal.some(fr => veiculoDoFrete(fr) !== 'carreta');
         let fretesHtml = '';
         if (fretesModal.length > 0) {
-            fretesHtml = fretesModal.map(fr => `
-                <tr>
+            fretesHtml = fretesModal.map(fr => {
+                const semValor = freteSemValor(fr);
+                return `
+                <tr${semValor ? ' class="linha-frete-sem-valor"' : ''}>
                     <td>${escaparHtml(fr.data || '-')}</td>
                     <td><strong>${escaparHtml(formatarNomeCliente(fr.cliente))}</strong></td>
                     ${temVeiculo ? `<td>${escaparHtml(rotuloVeiculo[veiculoDoFrete(fr)] || '—')}</td>` : ''}
                     <td>${escaparHtml(fr.origem || '-')} ➔ ${escaparHtml(fr.destino || '-')}</td>
-                    <td><strong>R$ ${escaparHtml(fr.valor || '0,00')}</strong></td>
-                    <td>R$ ${escaparHtml(fr.comissao || '0,00')}</td>
+                    <td>${semValor ? seloFreteSemValor() : `<strong>R$ ${escaparHtml(fr.valor || '0,00')}</strong>`}</td>
+                    <td>${fr.comissao ? `R$ ${escaparHtml(fr.comissao)}` : (semValor ? 'a calcular' : 'R$ 0,00')}</td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
         } else {
             fretesHtml = `<tr><td colspan="${temVeiculo ? 6 : 5}" style="text-align: center; color: #94a3b8;">Nenhum frete lançado</td></tr>`;
         }
@@ -1200,7 +1214,10 @@ function abrirModalResumoFicha(fichaId) {
             anexosHtml = `<span style="font-size: 0.82rem; color: #94a3b8;">Nenhum comprovante anexado.</span>`;
         }
 
-        elConteudo.innerHTML = `
+        const semValorModal = fichaTemFreteSemValor(ficha);
+        const pendenteModal = '<em class="valor-pendente">pendente</em>';
+        elConteudo.innerHTML = `${semValorModal ? `
+            <p class="aviso-frete-sem-valor">${seloFreteSemValor()} Preencha o valor dos fretes em Conferir / Editar antes de aprovar. Total e saldo ficam pendentes até lá.</p>` : ''}
             <div class="modal-grid-2">
                 <div class="modal-info-box">
                     <div class="modal-info-box-title">Dados Operacionais da Viagem</div>
@@ -1214,12 +1231,12 @@ function abrirModalResumoFicha(fichaId) {
                 </div>
                 <div class="modal-info-box">
                     <div class="modal-info-box-title">Fechamento Financeiro</div>
-                    <div class="modal-info-linha"><span>Total Frete Bruto:</span> <strong style="color: #047857;">R$ ${ficha.totalFrete || '0,00'}</strong></div>
+                    <div class="modal-info-linha"><span>Total Frete Bruto:</span> <strong style="color: #047857;">R$ ${ficha.totalFrete || '0,00'}${semValorModal ? ` ${pendenteModal}` : ''}</strong></div>
                     <div class="modal-info-linha"><span>Total Diesel:</span> <strong>${totalCombustivelTxt(totaisCombustivel.diesel)}</strong></div>
                     <div class="modal-info-linha"><span>Total ARLA:</span> <strong>${totalCombustivelTxt(totaisCombustivel.arla)}</strong></div>
                     <div class="modal-info-linha"><span>Pedágios + Imposto:</span> <strong>R$ ${formatarMoedaSemPrefixo(parseValorMoeda(ficha.totalPedagio) + parseValorMoeda(ficha.impFederal))}</strong></div>
                     <div class="modal-info-linha"><span>Adiantamento Concedido:</span> <strong>R$ ${escaparHtml(ficha.valorAdiantamento || '0,00')}</strong></div>
-                    <div class="modal-info-linha"><span>Saldo Comissão:</span> <strong style="color: #8b5cf6;">R$ ${ficha.saldoComissao || '0,00'}</strong></div>
+                    <div class="modal-info-linha"><span>Saldo Comissão:</span> <strong style="color: #8b5cf6;">${semValorModal ? pendenteModal : `R$ ${ficha.saldoComissao || '0,00'}`}</strong></div>
                 </div>
             </div>
 
@@ -2009,8 +2026,16 @@ function renderizarTabelaAcertos() {
         const saldoLiquidar = comissao - adiantamento;
         const id = escaparHtml(f.id);
         const dataViagem = data.iso === '0000-00-00' ? '—' : escaparHtml(data.br);
+        // Frete sem valor: o acerto só fecha com todos os valores preenchidos
+        const pendente = fichaTemFreteSemValor(f);
+        const pendenteHtml = '<em class="valor-pendente">pendente</em>';
 
-        const acoesHtml = obterStatusAcertoFicha(f) === 'confirmado'
+        const acoesHtml = pendente && obterStatusAcertoFicha(f) !== 'confirmado'
+            ? `<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                   ${seloFreteSemValor()}
+                   <button type="button" class="btn-acao-aprovar-rapido" disabled title="Preencha o valor dos fretes antes de confirmar o acerto">Confirmar</button>
+               </div>`
+            : obterStatusAcertoFicha(f) === 'confirmado'
             ? `<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                    <span class="status-pill status-concluido">🟢 Confirmado</span>
                    <button type="button" class="btn-desfazer-acerto" data-ficha-id="${id}" title="Reverter status para Não Confirmado">Desfazer</button>
@@ -2025,10 +2050,10 @@ function renderizarTabelaAcertos() {
                 <td><span class="td-ficha-id">${id}</span></td>
                 <td>${dataViagem}</td>
                 <td><strong>${escaparHtml(f.motorista || 'Motorista')}</strong></td>
-                <td>R$ ${formatarMoedaSemPrefixo(frete)}</td>
-                <td><strong style="color: #4f46e5;">R$ ${formatarMoedaSemPrefixo(comissao)}</strong></td>
+                <td>${pendente ? pendenteHtml : `R$ ${formatarMoedaSemPrefixo(frete)}`}</td>
+                <td>${pendente ? pendenteHtml : `<strong style="color: #4f46e5;">R$ ${formatarMoedaSemPrefixo(comissao)}</strong>`}</td>
                 <td>R$ ${formatarMoedaSemPrefixo(adiantamento)}</td>
-                <td><strong style="color: ${saldoLiquidar >= 0 ? '#10b981' : '#ef4444'};">R$ ${formatarMoedaSemPrefixo(saldoLiquidar)}</strong></td>
+                <td>${pendente ? pendenteHtml : `<strong style="color: ${saldoLiquidar >= 0 ? '#10b981' : '#ef4444'};">R$ ${formatarMoedaSemPrefixo(saldoLiquidar)}</strong>`}</td>
                 <td>${acoesHtml}</td>
             </tr>
         `;
@@ -3027,6 +3052,35 @@ function formatarMoeda(num) {
 function formatarMoedaSemPrefixo(num) {
     if (typeof num !== 'number' || isNaN(num)) return '0,00';
     return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Frete sem valor (passo 19): o motorista lançou o frete (data, origem ou destino) e deixou o
+// valor para a gestão. Enquanto houver um, a ficha não é aprovada e o acerto fica pendente.
+function freteSemValor(fr) {
+    return !!fr && ['data', 'origem', 'destino'].some(c => String(fr[c] || '').trim() !== '') &&
+        !(parseValorMoeda(fr.valor) > 0);
+}
+
+function fichaTemFreteSemValor(f) {
+    return !!f && Array.isArray(f.fretes) && f.fretes.some(freteSemValor);
+}
+
+// "pendente: N ficha(s) com frete sem valor" logo depois do valor do KPI (some quando não há)
+function marcarKpiPendente(el, qtd) {
+    if (!el) return;
+    let aviso = el.nextElementSibling;
+    if (!aviso || !aviso.classList.contains('kpi-pendente')) {
+        if (!qtd) return;
+        aviso = document.createElement('small');
+        aviso.className = 'kpi-pendente';
+        el.after(aviso);
+    }
+    aviso.hidden = !qtd;
+    aviso.textContent = qtd ? `pendente: ${qtd} ficha(s) com frete sem valor` : '';
+}
+
+function seloFreteSemValor() {
+    return '<span class="selo-frete-sem-valor" title="O motorista não informou o valor de um frete: preencha antes de aprovar">⚠ frete sem valor</span>';
 }
 
 function formatarNomeCliente(slug) {
