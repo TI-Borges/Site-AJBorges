@@ -1439,6 +1439,7 @@ body.admin-body {
 .dot-amarelo { background-color: var(--amarelo-alerta); box-shadow: 0 0 6px var(--amarelo-alerta-glow); }
 .dot-laranja { background-color: #f97316; box-shadow: 0 0 6px rgba(249, 115, 22, 0.4); }
 .dot-verde { background-color: var(--verde-sucesso); box-shadow: 0 0 6px var(--verde-sucesso-glow); }
+.dot-azul { background-color: #3b82f6; box-shadow: 0 0 6px rgba(59, 130, 246, 0.4); }
 
 .tab-counter-badge {
     font-size: 0.72rem;

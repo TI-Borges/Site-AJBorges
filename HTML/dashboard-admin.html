@@ -24,7 +24,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <!-- Folha de Estilos do Dashboard -->
-    <link rel="stylesheet" href="../CSS/dashboard-admin.css?v=2.5">
+    <link rel="stylesheet" href="../CSS/dashboard-admin.css?v=2.6">
 
     <!-- Verificação de Sessão Administrativa (Route Guard) -->
     <script>
@@ -733,6 +733,12 @@
                                     <span>Todas as Fichas</span>
                                     <span class="tab-counter-badge" id="contador-tab-todas">0</span>
                                 </button>
+                                <!-- Rascunhos dos motoristas: só consulta (não entram nas outras abas nem nos totais) -->
+                                <button type="button" class="tab-ficha-btn" data-status="em_andamento" id="tab-fichas-andamento">
+                                    <span class="tab-indicator-dot dot-azul"></span>
+                                    <span>Em andamento</span>
+                                    <span class="tab-counter-badge" id="contador-tab-andamento">0</span>
+                                </button>
                             </div>
                         </div>
 
@@ -776,6 +782,25 @@
                                 <div class="empty-icon">🔍</div>
                                 <h4>Nenhuma ficha encontrada</h4>
                                 <p>Aguardando envio de relatórios de viagem pelos motoristas.</p>
+                            </div>
+                        </div>
+
+                        <!-- Aba "Em andamento": viagens que o motorista ainda está preenchendo (só consulta) -->
+                        <div class="tabela-fichas-responsive" id="tabela-andamento-wrap" style="display: none;">
+                            <table class="tabela-fichas" id="tabela-andamento-gestao">
+                                <thead>
+                                    <tr>
+                                        <th>Motorista</th>
+                                        <th>Data de saída</th>
+                                        <th>Última atualização</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabela-andamento-body"></tbody>
+                            </table>
+                            <div class="tabela-empty-state" id="tabela-andamento-vazia" style="display: block;">
+                                <div class="empty-icon">🚛</div>
+                                <h4>Nenhuma viagem em andamento</h4>
+                                <p>Aparecem aqui as fichas que os motoristas ainda estão preenchendo, antes do envio.</p>
                             </div>
                         </div>
                     </div>
@@ -1610,7 +1635,7 @@
     <script src="../JavaScript/senha.js"></script>
     <script src="../JavaScript/aviso-atualizacao-gestao.js?v=1"></script>
     <script src="../JavaScript/notificacoes-gestao.js?v=1"></script>
-    <script src="../JavaScript/dashboard-admin.js?v=2.6"></script>
+    <script src="../JavaScript/dashboard-admin.js?v=2.7"></script>
 </body>
 
 </html>

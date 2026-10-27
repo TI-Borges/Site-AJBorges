@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../CSS/relatorio.css?v=3.2">
+    <link rel="stylesheet" href="../CSS/relatorio.css?v=3.3">
     <link rel="icon" type="image/png" href="../Imagens/logo-header-1x.png">
     <link rel="shortcut icon" type="image/png" href="../Imagens/logo-header-1x.png">
     <link rel="apple-touch-icon" href="../Imagens/logo-header-1x.png">
@@ -113,6 +113,15 @@
                 </a>
             </div>
 
+            <!-- Viagem em andamento: rascunho do motorista com algum dado (relatorio.js) -->
+            <div class="card-viagem-andamento" id="card-viagem-andamento" hidden>
+                <div class="viagem-andamento-texto">
+                    <span class="viagem-andamento-icone" aria-hidden="true">🚛</span>
+                    <p><strong>Viagem em andamento</strong> <span id="viagem-andamento-detalhe"></span></p>
+                </div>
+                <button type="button" class="btn-continuar-viagem" id="btn-continuar-viagem">Continuar preenchendo</button>
+            </div>
+
             <div class="card-relatorio">
                 <!-- Cabeçalho do Relatório -->
                 <div class="card-cabecalho">
@@ -133,6 +142,19 @@
                             financeiro dos fretes.</p>
                     </div>
                     <div class="cabecalho-direita-status">
+                        <!-- Só para o motorista, na ficha em rascunho -->
+                        <button type="button" class="btn-apagar-tudo-rascunho" id="btn-apagar-tudo-rascunho" hidden
+                            title="Apagar tudo o que foi preenchido nesta viagem">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                aria-hidden="true">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                <line x1="10" y1="11" x2="10" y2="17"></line>
+                                <line x1="14" y1="11" x2="14" y2="17"></line>
+                            </svg>
+                            <span>Apagar tudo</span>
+                        </button>
                         <div class="legenda-obrigatorio">
                             <span class="asterisco-tag">*</span> Campos obrigatórios
                         </div>
@@ -2520,6 +2542,13 @@
                                                 arquivo(s)</span>
                                         </div>
 
+                                        <p class="aviso-fotos-rascunho" id="aviso-fotos-rascunho" hidden>
+                                            <span class="aviso-fotos-icone" aria-hidden="true">⚠️</span>
+                                            <span><strong>Atenção:</strong> espere aparecer o ✓ verde em cada foto antes
+                                                de sair da página. Sem o ✓ verde, a foto não foi salva e precisa ser
+                                                anexada de novo.</span>
+                                        </p>
+
                                         <div class="dropzone-box" id="dropzone-comprovantes-ml">
                                             <input type="file" id="input-arquivos-despesas-ml" multiple
                                                 accept=".pdf,image/png,image/jpeg,image/jpg" class="input-file-oculto">
@@ -2661,6 +2690,17 @@
 
                                 <!-- 6. BLOCO: AÇÕES DO FORMULÁRIO -->
                                 <div class="bloco-acoes-relatorio">
+                                    <!-- Motorista: grava a viagem em andamento e volta para o início -->
+                                    <button type="button" id="btn-salvar-rascunho-ml" class="btn-acao-secundario" hidden>
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                            <polyline points="7 3 7 8 15 8"></polyline>
+                                        </svg>
+                                        Salvar e continuar depois
+                                    </button>
                                     <button type="button" id="btn-finalizar-relatorio-ml" class="btn-acao-primario">
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                                             stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -2683,7 +2723,24 @@
             <span class="toast-icone"></span>
             <span class="toast-mensagem"></span>
         </div>
+
+        <!-- Salvamento automático da viagem em andamento (motorista) -->
+        <div class="estado-salvamento" id="estado-salvamento-rascunho" role="status" aria-live="polite" hidden></div>
     </main>
+
+    <!-- Lixeira do rascunho: apagar tudo o que foi preenchido -->
+    <div class="modal-overlay-custom" id="modal-apagar-tudo" aria-hidden="true" role="dialog" aria-modal="true"
+        aria-labelledby="modal-apagar-tudo-titulo">
+        <div class="modal-card-custom modal-apagar-tudo-card">
+            <div class="modal-apagar-tudo-icone" aria-hidden="true">🗑️</div>
+            <h2 id="modal-apagar-tudo-titulo">Apagar tudo o que foi preenchido?</h2>
+            <p>Todos os dados desta viagem serão apagados e não dá para desfazer.</p>
+            <div class="modal-acoes-row">
+                <button type="button" class="modal-btn-acao-secundario" id="btn-apagar-tudo-cancelar">Cancelar</button>
+                <button type="button" class="modal-btn-acao-primario modal-btn-perigo" id="btn-apagar-tudo-confirmar">Sim, apagar tudo</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ====================================================================
          MODAL 0: REVISÃO ANTES DO ENVIO - MOTORISTA
@@ -2943,7 +3000,7 @@
     <script src="../JavaScript/aviso-atualizacao.js?v=1"></script>
     <script src="../JavaScript/auth.js"></script>
     <script src="../JavaScript/celular.js"></script>
-    <script src="../JavaScript/relatorio.js?v=3.1"></script>
+    <script src="../JavaScript/relatorio.js?v=3.2"></script>
     <script>
         // Mede a altura real do header fixo e grava em --altura-header,
         // usada pela .barra-admin-operacional para grudar logo abaixo dele.

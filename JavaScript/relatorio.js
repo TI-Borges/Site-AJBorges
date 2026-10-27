@@ -2283,6 +2283,29 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         }
     }
 
+    // Viagem em andamento (passo 17): o motorista vai preenchendo durante a viagem e a ficha fica
+    // no banco como 'rascunho' (1 por motorista), com cópia no celular (chave por motorista)
+    // enquanto o banco não confirma. Só no Portal do motorista (gestão e ficha aberta por link, não)
+    // e com o cliente do Supabase (sem ele a página nem abre: o auth.js exige a sessão no servidor).
+    const paramsRascunho = new URLSearchParams(window.location.search);
+    const rascunho = {
+        ativo: usuarioSessao.role === 'motorista' && !paramsRascunho.get('ficha') && paramsRascunho.get('mode') !== 'view' && !!window.supabaseClient,
+        id: null,             // id da linha no banco (RASC-...; o número AJB-... vem no envio)
+        atualizadoEm: null,   // atualizado_em do banco (ou hora da cópia do celular)
+        pronto: false,        // só grava depois de carregar o que já existe (senão apagaria o rascunho)
+        carregando: false,    // preenchendo a tela pelo código: não conta como alteração
+        encerrado: false,     // ficha enviada: esta página não grava mais rascunho
+        sujo: false,
+        timer: null,
+        salvando: null,
+        deNovo: false,
+        ultimoSalvo: null,    // retrato da tela que o banco já tem (não regrava igual)
+        baseIncerta: false,   // o banco não respondeu na abertura (ver resolverBaseDoRascunho)
+        copiaEm: null         // hora da cópia do celular usada na abertura
+    };
+    const CHAVE_COPIA_RASCUNHO = `ajborges_rascunho_viagem_${usuarioSessao.id || 'sem-id'}`;
+    const SALVAR_RASCUNHO_APOS_MS = 3000;
+
     // 15.6. Upload de Comprovantes ML
     const dropzoneMl = document.getElementById('dropzone-comprovantes-ml');
     const inputFileMl = document.getElementById('input-arquivos-despesas-ml');
@@ -2290,30 +2313,91 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     const contadorAnexosMl = document.getElementById('contador-anexos-ml');
     let arquivosComprovantesMl = [];
 
+    // Estado de cada comprovante no rascunho ('enviando' | 'salvo' | 'falhou' | 'aguardando'),
+    // fora do item para não ir para o banco
+    const estadoAnexoMl = new WeakMap();
+    const miniaturaLocalMl = new WeakMap();   // item -> URL do arquivo do aparelho
+    const linksAssinadosMl = new Map();       // path -> URL assinada (bucket privado)
+    const TEXTO_ESTADO_ANEXO = {
+        enviando: '⏳ Enviando…',
+        salvo: '✓ Salva',
+        falhou: '⚠️ Não enviada — toque para tentar de novo',
+        aguardando: '⏳ Aguardando sinal para enviar'
+    };
+    const ICONE_PDF = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+    const ICONE_IMAGEM = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+
+    function estadoDoAnexo(item) {
+        if (estadoAnexoMl.has(item)) return estadoAnexoMl.get(item);
+        return item && item.path ? 'salvo' : 'aguardando';
+    }
+
+    // Miniatura: arquivo do aparelho (ainda não enviado) ou link assinado do Storage
+    function urlMiniatura(item) {
+        const file = arquivosBinariosMl.get(item);
+        if (file) {
+            if (!miniaturaLocalMl.has(item)) {
+                try { miniaturaLocalMl.set(item, URL.createObjectURL(file)); } catch (e) { return null; }
+            }
+            return miniaturaLocalMl.get(item);
+        }
+        const link = item && item.path ? linksAssinadosMl.get(item.path) : null;
+        return link && link.url ? link.url : null;
+    }
+
+    // O link assinado vale 10 min (obterLinkComprovante): pede de novo depois de 9
+    function pedirLinksAssinados() {
+        if (typeof window.obterLinkComprovante !== 'function') return;
+        arquivosComprovantesMl.forEach(item => {
+            if (!item || !item.path || !/^image\//.test(item.type || '')) return;
+            const link = linksAssinadosMl.get(item.path);
+            if (link && (!link.url || link.ate > Date.now())) return;
+            linksAssinadosMl.set(item.path, { url: null });
+            window.obterLinkComprovante(item.path).then(url => {
+                if (!url) { linksAssinadosMl.delete(item.path); return; }
+                linksAssinadosMl.set(item.path, { url, ate: Date.now() + 9 * 60 * 1000 });
+                renderizarListaAnexosMl();
+            }).catch(() => linksAssinadosMl.delete(item.path));
+        });
+    }
+
     function renderizarListaAnexosMl() {
         if (!listaPreviewMl) return;
         listaPreviewMl.innerHTML = '';
+        const comEstado = rascunho.ativo && !rascunho.encerrado;
 
         arquivosComprovantesMl.forEach((arq, index) => {
             const item = document.createElement('div');
-            item.className = 'item-anexo-card';
-            const ehPdf = arq.name.toLowerCase().endsWith('.pdf');
-            const iconeSvg = ehPdf ?
-                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>` :
-                `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></circle><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>`;
+            const estado = comEstado ? estadoDoAnexo(arq) : null;
+            item.className = `item-anexo-card${estado ? ` anexo-${estado}` : ''}`;
+            item.dataset.index = String(index);
+            const ehPdf = String(arq.name || '').toLowerCase().endsWith('.pdf') || arq.type === 'application/pdf';
+            const miniatura = !ehPdf ? urlMiniatura(arq) : null;
+            const visual = miniatura
+                ? `<img class="item-anexo-miniatura" src="${escapeHTMLAutocomplete(miniatura)}" alt="">`
+                : (ehPdf ? ICONE_PDF : ICONE_IMAGEM);
 
             item.innerHTML = `
                 <div class="item-anexo-info">
-                    ${iconeSvg}
+                    ${visual}
                     <div class="item-anexo-detalhes">
-                        <div class="item-anexo-nome" title="${arq.name}">${arq.name}</div>
-                        <div class="item-anexo-tamanho">${formatarTamanhoArquivo(arq.size)}</div>
+                        <div class="item-anexo-nome" title="${escapeHTMLAutocomplete(String(arq.name || ''))}">${escapeHTMLAutocomplete(String(arq.name || ''))}</div>
+                        <div class="item-anexo-tamanho">${formatarTamanhoArquivo(arq.size || 0)}</div>
+                        ${estado ? `<div class="item-anexo-estado">${TEXTO_ESTADO_ANEXO[estado]}</div>` : ''}
                     </div>
                 </div>
                 <button type="button" class="btn-remover-anexo" data-index="${index}" title="Remover anexo">
                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             `;
+            // Não enviada: tocar no cartão tenta de novo
+            if (estado === 'falhou') {
+                item.setAttribute('role', 'button');
+                item.tabIndex = 0;
+                const tentar = () => enviarComprovanteDoRascunho(arq);
+                item.addEventListener('click', tentar);
+                item.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tentar(); } });
+            }
             listaPreviewMl.appendChild(item);
         });
 
@@ -2325,11 +2409,43 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const idx = parseInt(btn.getAttribute('data-index'), 10);
-                arquivosComprovantesMl.splice(idx, 1);
-                renderizarListaAnexosMl();
-                salvarProgressoMl();
+                removerComprovanteMl(idx);
             });
         });
+        pedirLinksAssinados();
+    }
+
+    // Remover: no rascunho do motorista o arquivo já salvo sai do Storage (policy do passo 17)
+    async function removerComprovanteMl(idx) {
+        const item = arquivosComprovantesMl[idx];
+        if (!item) return;
+        if (rascunho.ativo && !rascunho.encerrado && item.path) {
+            const ok = await apagarArquivosDoStorage([item.path]);
+            if (!ok) {
+                exibirToast('Sem conexão: não foi possível apagar a foto agora. Tente de novo quando o sinal voltar.', 'erro');
+                return;
+            }
+            linksAssinadosMl.delete(item.path);
+        }
+        const pos = arquivosComprovantesMl.indexOf(item);
+        if (pos >= 0) arquivosComprovantesMl.splice(pos, 1);
+        if (miniaturaLocalMl.has(item)) { try { URL.revokeObjectURL(miniaturaLocalMl.get(item)); } catch (e) { /* ignora */ } }
+        renderizarListaAnexosMl();
+        salvarProgressoMl();
+    }
+
+    async function apagarArquivosDoStorage(caminhos) {
+        const c = window.supabaseClient;
+        if (!caminhos.length) return true;
+        if (!c || !navigator.onLine) return false;
+        try {
+            const { error } = await c.storage.from('comprovantes').remove(caminhos);
+            if (error) { console.error('Erro ao apagar comprovante:', error); return false; }
+            return true;
+        } catch (e) {
+            console.error('Exceção ao apagar comprovante:', e);
+            return false;
+        }
     }
 
     if (dropzoneMl && inputFileMl) {
@@ -2369,16 +2485,72 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     const arquivosBinariosMl = new WeakMap();
     const TIPOS_COMPROVANTE = ['application/pdf', 'image/png', 'image/jpeg'];
 
-    function adicionarArquivosMl(novosArquivos) {
-        let adicionados = 0;
-        for (let i = 0; i < novosArquivos.length; i++) {
-            const file = novosArquivos[i];
-            if (!TIPOS_COMPROVANTE.includes(file.type)) {
-                exibirToast(`Arquivo "${file.name}" não é PDF, PNG ou JPG.`, 'erro');
+    // Foto: lado maior até 1600 px, JPEG ~0,7 (uns 300 KB); PDF sobe como está. Vale para toda ficha.
+    const LADO_MAXIMO_FOTO = 1600;
+    const QUALIDADE_FOTO = 0.7;
+
+    function abrirImagem(file) {
+        if (typeof createImageBitmap === 'function') {
+            return createImageBitmap(file).then(img => ({ img, largura: img.width, altura: img.height, fechar: () => img.close && img.close() }));
+        }
+        return new Promise((resolve, reject) => {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => resolve({ img, largura: img.naturalWidth, altura: img.naturalHeight, fechar: () => URL.revokeObjectURL(url) });
+            img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('imagem ilegível')); };
+            img.src = url;
+        });
+    }
+
+    async function reduzirImagem(file) {
+        const { img, largura, altura, fechar } = await abrirImagem(file);
+        try {
+            if (!largura || !altura) throw new Error('imagem vazia');
+            const escala = Math.min(1, LADO_MAXIMO_FOTO / Math.max(largura, altura));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(largura * escala));
+            canvas.height = Math.max(1, Math.round(altura * escala));
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff'; // PNG transparente não fica preto no JPEG
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', QUALIDADE_FOTO));
+            if (!blob) throw new Error('falha ao converter');
+            // Já pequena e de um tipo aceito: fica a original (não piora a foto à toa)
+            if (escala === 1 && blob.size >= file.size && TIPOS_COMPROVANTE.includes(file.type)) return file;
+            const nome = `${String(file.name || 'foto').replace(/\.[^.]+$/, '')}.jpg`;
+            return new File([blob], nome, { type: 'image/jpeg', lastModified: Date.now() });
+        } finally {
+            fechar();
+        }
+    }
+
+    // Devolve o arquivo pronto para subir ou lança erro com a mensagem para o motorista
+    async function prepararComprovante(file) {
+        if (file.type === 'application/pdf') return file;
+        const ehImagem = /^image\//.test(file.type || '') || /\.(jpe?g|png|heic|heif|webp|gif|bmp)$/i.test(file.name || '');
+        if (!ehImagem) throw new Error(`Arquivo "${file.name}" não é PDF, PNG ou JPG.`);
+        try {
+            return await reduzirImagem(file);
+        } catch (e) {
+            if (TIPOS_COMPROVANTE.includes(file.type)) return file;
+            throw new Error(`Não foi possível abrir a foto "${file.name}" neste aparelho. Envie em JPG, PNG ou PDF (ou tire um print da foto e anexe o print).`);
+        }
+    }
+
+    async function adicionarArquivosMl(novosArquivos) {
+        const lista = Array.from(novosArquivos || []);
+        const novos = [];
+        for (const original of lista) {
+            let file;
+            try {
+                file = await prepararComprovante(original);
+            } catch (e) {
+                exibirToast(e.message, 'erro');
                 continue;
             }
             if (file.size > 10 * 1024 * 1024) {
-                exibirToast(`Arquivo "${file.name}" excede 10MB.`, 'erro');
+                exibirToast(`Arquivo "${original.name}" excede 10MB.`, 'erro');
                 continue;
             }
             const item = {
@@ -2388,39 +2560,89 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             };
             arquivosBinariosMl.set(item, file);
             arquivosComprovantesMl.push(item);
-            adicionados++;
+            novos.push(item);
         }
 
-        if (adicionados > 0) {
+        if (novos.length > 0) {
             renderizarListaAnexosMl();
             salvarProgressoMl();
-            exibirToast(`${adicionados} arquivo(s) anexado(s) com sucesso!`, 'sucesso');
+            exibirToast(`${novos.length} arquivo(s) anexado(s) com sucesso!`, 'sucesso');
+            // Rascunho do motorista: cada foto sobe logo (pasta do motorista / id da ficha)
+            if (rascunho.ativo && !rascunho.encerrado) novos.forEach(item => enviarComprovanteDoRascunho(item));
         }
+    }
+
+    // Sobe uma foto do rascunho e guarda o caminho na lista (que vai para o rascunho no banco)
+    async function enviarComprovanteDoRascunho(item) {
+        const file = arquivosBinariosMl.get(item);
+        if (!file || item.path || estadoAnexoMl.get(item) === 'enviando') return;
+        if (!navigator.onLine || !window.supabaseClient) {
+            estadoAnexoMl.set(item, 'aguardando');
+            renderizarListaAnexosMl();
+            return;
+        }
+        estadoAnexoMl.set(item, 'enviando');
+        renderizarListaAnexosMl();
+        // A pasta leva o id da ficha: sem rascunho no banco ainda, cria agora
+        if (!rascunho.id) await salvarRascunhoAgora({ mesmoVazio: true });
+        let enviado = null;
+        if (rascunho.id && typeof window.uploadComprovanteSupabase === 'function') {
+            enviado = await window.uploadComprovanteSupabase(file, rascunho.id);
+        }
+        // Removida enquanto subia: o arquivo não fica perdido no Storage
+        if (!arquivosComprovantesMl.includes(item)) {
+            if (enviado) apagarArquivosDoStorage([enviado.path]);
+            return;
+        }
+        if (enviado) {
+            item.path = enviado.path;
+            item.name = enviado.name;
+            item.size = enviado.size;
+            item.type = enviado.type;
+            estadoAnexoMl.set(item, 'salvo');
+            salvarProgressoMl();
+            salvarRascunhoAgora();
+        } else {
+            estadoAnexoMl.set(item, navigator.onLine ? 'falhou' : 'aguardando');
+        }
+        renderizarListaAnexosMl();
+    }
+
+    function enviarComprovantesAguardando() {
+        arquivosComprovantesMl
+            .filter(item => !item.path && arquivosBinariosMl.has(item) && ['aguardando', 'falhou'].includes(estadoAnexoMl.get(item)))
+            .forEach(item => enviarComprovanteDoRascunho(item));
     }
 
     /**
      * Envia ao Storage os comprovantes ainda não enviados e devolve a lista
-     * final ({ name, size, type, path }). Lança erro se algum envio falhar.
+     * final ({ name, size, type, path }). Lança erro se algum envio falhar
+     * (com o nome de cada arquivo que falhou).
      */
     async function enviarComprovantesPendentesMl(fichaId) {
         const resultado = [];
-        let falhas = 0;
+        const falharam = [];
         let semArquivo = 0;
         for (const item of arquivosComprovantesMl) {
             if (item && item.path) { resultado.push(item); continue; }
             const file = arquivosBinariosMl.get(item);
             if (!file) { semArquivo++; continue; }
+            estadoAnexoMl.set(item, 'enviando');
             const enviado = (typeof window.uploadComprovanteSupabase === 'function')
                 ? await window.uploadComprovanteSupabase(file, fichaId)
                 : null;
             if (enviado) {
-                resultado.push(enviado);
+                Object.assign(item, enviado);
+                estadoAnexoMl.set(item, 'salvo');
+                resultado.push(item);
             } else {
-                falhas++;
+                estadoAnexoMl.set(item, 'falhou');
+                falharam.push(item.name);
             }
         }
-        if (falhas > 0) {
-            throw new Error(`${falhas} comprovante(s) não puderam ser enviados. Verifique a conexão e tente novamente.`);
+        if (falharam.length > 0) {
+            renderizarListaAnexosMl();
+            throw new Error(`${falharam.length === 1 ? 'Esta foto não foi enviada' : 'Estas fotos não foram enviadas'}: ${falharam.join(', ')}. Verifique a conexão e tente novamente.`);
         }
         if (semArquivo > 0) {
             exibirToast(`${semArquivo} comprovante(s) ficaram de fora porque a página foi recarregada. Anexe novamente se precisar.`, 'erro');
@@ -2876,25 +3098,12 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         });
     }
 
-    // 15.8. Persistência de Dados (Salvar e Restaurar Rascunho)
-    function salvarProgressoMl() {
+    // 15.8. Persistência de Dados (rascunho da viagem: tela <-> cópia do celular <-> banco)
+    // Tudo o que está na tela, no formato da cópia do celular (o mesmo do rascunho de antes do passo 17)
+    function coletarDadosTela() {
         try {
-            const urlParams = new URLSearchParams(window.location.search);
-            const fichaUrl = urlParams.get('ficha');
-            const modeUrl = urlParams.get('mode');
-            const usuarioAtualStr = localStorage.getItem(STORAGE_USER_ACTIVE);
-            let usuarioAtual = usuarioAtivo;
-            if (usuarioAtualStr) {
-                try { usuarioAtual = JSON.parse(usuarioAtualStr); } catch (e) { }
-            }
-            const isModoAdmin = (modeUrl === 'admin') || (usuarioAtual && (usuarioAtual.role === 'admin' || usuarioAtual.role === 'diretoria') && modeUrl !== 'motorista');
-
-            // Se estiver em modo admin ou editando uma ficha específica, retornar imediatamente sem salvar rascunho
-            if (fichaUrl || isModoAdmin || modeUrl === 'admin') {
-                return;
-            }
-
-            const isMotorista = (urlParams.get('mode') === 'motorista') || (usuarioAtual && usuarioAtual.role === 'motorista');
+            const usuarioAtual = usuarioAtivo;
+            const isMotorista = !!(usuarioAtual && usuarioAtual.role === 'motorista');
 
             const cabecalho = {
                 motorista: (isMotorista && usuarioAtual?.nome && usuarioAtual.nome !== 'Carlos Eduardo Ferreira') ? usuarioAtual.nome : (inputMotorista?.value || ''),
@@ -2956,14 +3165,442 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                 ],
                 impFederal: inputMlImpFederal?.value || '',
                 outrasDespesas: outrasDespesasMl,
-                anexos: arquivosComprovantesMl
+                // Só os comprovantes já salvos no Storage (foto não vai para o localStorage)
+                anexos: anexosSalvosMl()
             };
-
-            localStorage.setItem(STORAGE_ML_KEY, JSON.stringify(dadosMl));
+            return dadosMl;
         } catch (e) {
-            console.error('Erro ao salvar progresso:', e);
+            console.error('Erro ao ler a ficha da tela:', e);
+            return null;
         }
     }
+
+    function anexosSalvosMl() {
+        return arquivosComprovantesMl.filter(a => a && a.path).map(({ name, size, type, path }) => ({ name, size, type, path }));
+    }
+
+    // Algum dado da viagem preenchido? (nome do motorista, placa do abastecimento e 0,00 não contam)
+    function dadosTemConteudo(dados) {
+        if (!dados) return false;
+        const preenchido = (v) => { const t = String(v ?? '').trim(); return t !== '' && t !== '0,00' && t !== '0'; };
+        const cab = dados.cabecalho || {};
+        if (['placas', 'dataSaida', 'dataChegada', 'kmSaida', 'kmChegada', 'placaSecundaria', 'kmSaida2', 'kmEntrada2',
+            'destinoInicial', 'destinoFinal', 'valorAdiantamento'].some(k => preenchido(cab[k]))) return true;
+        if ((dados.fretes || []).some(f => ['data', 'cliente', 'origem', 'destino', 'valor', 'descarga'].some(k => preenchido(f[k])))) return true;
+        if ((dados.abastecimentos || []).some(a => ['posto', 'nf', 'km', 'valor', 'litros', 'combustivel'].some(k => preenchido(a[k])))) return true;
+        if ((dados.outrasDespesas || []).slice(1).some(d => d && (preenchido(d.desc) || preenchido(d.valor)))) return true;
+        return (dados.anexos || []).length > 0;
+    }
+
+    // Mesma pergunta para a linha do banco (antes de pôr na tela)
+    function linhaTemConteudo(linha) {
+        if (!linha) return false;
+        const dc = linha.dados_completos || {};
+        const lista = (v) => (Array.isArray(v) ? v : []);
+        return !!(linha.placas || linha.data_saida || linha.data_chegada || linha.km_saida || linha.km_chegada ||
+            linha.destino_inicial || linha.destino_final || Number(linha.valor_adiantamento) > 0 || dc.placaSecundaria ||
+            lista(linha.abastecimentos).length || lista(linha.comprovantes).length || lista(dc.fretes).length ||
+            lista(linha.despesas_extras).slice(1).some(d => d && (d.desc || d.valor)));
+    }
+
+    // ---- Cópia do celular: uma chave por motorista (outro motorista no mesmo aparelho não vê) ----
+    function lerCopiaRascunho() {
+        try {
+            const copia = JSON.parse(localStorage.getItem(CHAVE_COPIA_RASCUNHO) || 'null');
+            return copia && copia.usuarioId === usuarioSessao.id && copia.dados ? copia : null;
+        } catch (e) { return null; }
+    }
+
+    function gravarCopiaRascunho(dados) {
+        try {
+            localStorage.setItem(CHAVE_COPIA_RASCUNHO, JSON.stringify({ usuarioId: usuarioSessao.id, rascunhoId: rascunho.id, salvoEm: new Date().toISOString(), dados }));
+        } catch (e) { /* sem espaço ou bloqueado: fica só o banco */ }
+    }
+
+    function apagarCopiaRascunho() {
+        try { localStorage.removeItem(CHAVE_COPIA_RASCUNHO); } catch (e) { /* ignora */ }
+    }
+
+    // Chave de antes do passo 17 (a mesma para todos do aparelho): lida uma vez e apagada
+    function tirarRascunhoAntigo() {
+        try {
+            const salvo = localStorage.getItem(STORAGE_ML_KEY);
+            if (salvo === null) return null;
+            localStorage.removeItem(STORAGE_ML_KEY);
+            const dados = JSON.parse(salvo);
+            if (dados && Array.isArray(dados.anexos)) dados.anexos = dados.anexos.filter(a => a && a.path);
+            return dados && typeof dados === 'object' ? dados : null;
+        } catch (e) { return null; }
+    }
+
+    // ---- Banco (status 'rascunho'; RLS e trigger do passo 17) ----
+    async function buscarRascunhoNoBanco() {
+        const c = window.supabaseClient;
+        if (!c) throw new Error('sem conexão');
+        const { data, error } = await c.from('fichas_viagem').select('*')
+            .eq('motorista_id', usuarioSessao.id).eq('status', 'rascunho')
+            .order('atualizado_em', { ascending: false }).limit(1);
+        if (error) throw error;
+        return (data && data[0]) || null;
+    }
+
+    // Ficha no formato do envio, com as datas só quando completas (no rascunho a data pode estar
+    // pela metade e o banco recusaria a gravação inteira) e só os comprovantes já salvos
+    function montarFichaRascunho() {
+        const isComLogin = !!(usuarioAtivo && usuarioAtivo.role === 'motorista');
+        const ficha = montarFichaDoMotorista({
+            id: rascunho.id || 'RASC-novo',
+            status: 'rascunho',
+            usuario: usuarioAtivo,
+            isComLogin,
+            nome: inputMotorista?.value.trim() || (isComLogin ? usuarioAtivo?.nome : '') || 'Motorista'
+        });
+        const saida = dataDoCampo(inputDataSaida) || '';
+        const chegada = dataDoCampo(inputDataChegada) || '';
+        const anexos = anexosSalvosMl();
+        Object.assign(ficha, {
+            data_saida: saida, dataSaida: saida ? inputDataSaida.value.trim() : '',
+            data_chegada: chegada, dataChegada: chegada ? inputDataChegada.value.trim() : '',
+            anexos, comprovantes: anexos
+        });
+        ficha.dados_completos = { ...ficha, dados_completos: null };
+        return ficha;
+    }
+
+    // Base incerta: na abertura o banco não respondeu. Antes de gravar, confere o que está lá para
+    // não cobrir uma viagem salva com a tela que abriu vazia. Devolve a linha se a tela ficou com a do banco.
+    async function resolverBaseDoRascunho() {
+        if (!rascunho.baseIncerta) return null;
+        const linha = await buscarRascunhoNoBanco();
+        rascunho.baseIncerta = false;
+        if (!linha) return null;
+        rascunho.id = linha.id;
+        const copiaMaisNova = rascunho.copiaEm && (!linha.atualizado_em || new Date(rascunho.copiaEm) > new Date(linha.atualizado_em));
+        if (!linhaTemConteudo(linha) || copiaMaisNova) return null;
+        const telaTemDados = dadosTemConteudo(coletarDadosTela());
+        const quando = linha.atualizado_em ? `${dataCurta(linha.atualizado_em)} às ${horaCurta(linha.atualizado_em)}` : '';
+        const ficarComTela = telaTemDados && window.confirm(
+            `Esta viagem já tinha dados salvos${quando ? ` (atualizada ${quando})` : ''}.\n\n` +
+            'OK = ficar com o que está na tela agora (substitui o que estava salvo).\n' +
+            'Cancelar = abrir o que estava salvo (o que foi digitado agora é descartado).');
+        if (ficarComTela) return null;
+        aplicarLinhaNaTela(linha);
+        rascunho.atualizadoEm = linha.atualizado_em || null;
+        return linha;
+    }
+
+    async function gravarRascunhoNoBanco(ficha) {
+        const c = window.supabaseClient;
+        if (!c || typeof window.mapearFichaParaSupabase !== 'function') throw new Error('sem conexão');
+        const daBase = await resolverBaseDoRascunho();
+        if (daBase) return daBase;
+        const payload = window.mapearFichaParaSupabase(ficha);
+        delete payload.id;
+        const atualizar = async (id) => {
+            const { data, error } = await c.from('fichas_viagem').update(payload)
+                .eq('id', id).eq('status', 'rascunho').select('id, atualizado_em');
+            if (error) throw error;
+            return (data && data[0]) || null;
+        };
+        if (rascunho.id) {
+            const linha = await atualizar(rascunho.id);
+            if (linha) return linha;
+        }
+        // Sem rascunho conhecido (ou ele foi enviado em outro aparelho): usa o que houver, senão cria
+        const existente = await buscarRascunhoNoBanco();
+        if (existente) {
+            const linha = await atualizar(existente.id);
+            if (linha) return linha;
+        }
+        // O id de verdade (RASC-...) é o banco que dá
+        const { data, error } = await c.from('fichas_viagem').insert({ ...payload, id: `RASC-${Date.now()}` }).select('id, atualizado_em');
+        if (error && error.code === '23505') {
+            // Outro aparelho criou o rascunho agora (1 por motorista): grava nele
+            const outro = await buscarRascunhoNoBanco();
+            const linha = outro && await atualizar(outro.id);
+            if (linha) return linha;
+        }
+        if (error) throw error;
+        return data[0];
+    }
+
+    // ---- Salvamento automático ----
+    // Chamado a cada alteração da ficha: grava 3 s depois da última (debounce)
+    function salvarProgressoMl() {
+        if (!rascunho.ativo || !rascunho.pronto || rascunho.carregando || rascunho.encerrado) return;
+        rascunho.sujo = true;
+        clearTimeout(rascunho.timer);
+        rascunho.timer = setTimeout(() => salvarRascunhoAgora(), SALVAR_RASCUNHO_APOS_MS);
+    }
+
+    // Grava agora: cópia no celular primeiro, depois o banco (a cópia sai quando o banco confirma).
+    // Devolve true quando o banco confirmou (ou não havia nada para gravar).
+    async function salvarRascunhoAgora(opcoes = {}) {
+        if (!rascunho.ativo || !rascunho.pronto || rascunho.encerrado) return false;
+        clearTimeout(rascunho.timer);
+        rascunho.timer = null;
+        if (rascunho.salvando) {
+            rascunho.deNovo = true;
+            return rascunho.salvando;
+        }
+        const dados = coletarDadosTela();
+        if (!dados) return false;
+        const retrato = JSON.stringify(dados);
+        rascunho.sujo = false;
+        // Nada preenchido e nenhum rascunho no banco: não cria linha vazia
+        if (!rascunho.id && !opcoes.mesmoVazio && !dadosTemConteudo(dados) && !arquivosComprovantesMl.length) {
+            apagarCopiaRascunho();
+            return true;
+        }
+        // Igual ao que o banco já tem: nada a fazer
+        if (!opcoes.forcar && !opcoes.mesmoVazio && rascunho.id && !rascunho.baseIncerta && retrato === rascunho.ultimoSalvo && !lerCopiaRascunho()) return true;
+
+        gravarCopiaRascunho(dados);
+        mostrarEstadoRascunho('salvando');
+        rascunho.salvando = (async () => {
+            // Sem isto, sem sinal o finally rodaria antes da atribuição acima e a gravação ficaria "presa"
+            await null;
+            try {
+                if (!navigator.onLine) throw new Error('sem conexão');
+                const linha = await gravarRascunhoNoBanco(montarFichaRascunho());
+                rascunho.id = linha.id;
+                rascunho.atualizadoEm = linha.atualizado_em || new Date().toISOString();
+                // (linha completa = a tela ficou com a do banco; ver resolverBaseDoRascunho)
+                rascunho.ultimoSalvo = linha.dados_completos ? JSON.stringify(coletarDadosTela()) : retrato;
+                // Mudou de novo durante a gravação: a cópia fica até a próxima confirmação
+                if (!rascunho.sujo && !rascunho.deNovo) apagarCopiaRascunho();
+                mostrarEstadoRascunho('salvo');
+                return true;
+            } catch (e) {
+                console.warn('Rascunho salvo só neste aparelho:', e && (e.message || e));
+                mostrarEstadoRascunho('offline');
+                return false;
+            } finally {
+                rascunho.salvando = null;
+                if (rascunho.deNovo) {
+                    rascunho.deNovo = false;
+                    salvarRascunhoAgora();
+                }
+            }
+        })();
+        return rascunho.salvando;
+    }
+
+    // Espera a gravação em andamento e grava o que está na tela
+    async function salvarRascunhoEsperando(opcoes) {
+        clearTimeout(rascunho.timer);
+        rascunho.timer = null;
+        if (rascunho.salvando) {
+            rascunho.deNovo = false;
+            await rascunho.salvando;
+        }
+        return salvarRascunhoAgora(opcoes);
+    }
+
+    // ---- Indicador fixo, card "Viagem em andamento" e lixeira ----
+    const estadoSalvamentoEl = document.getElementById('estado-salvamento-rascunho');
+    const cardViagemAndamento = document.getElementById('card-viagem-andamento');
+    const detalheViagemAndamento = document.getElementById('viagem-andamento-detalhe');
+    const btnContinuarViagem = document.getElementById('btn-continuar-viagem');
+    const btnApagarTudoRascunho = document.getElementById('btn-apagar-tudo-rascunho');
+    const modalApagarTudo = document.getElementById('modal-apagar-tudo');
+    const avisoFotosRascunho = document.getElementById('aviso-fotos-rascunho');
+
+    const horaCurta = (iso) => new Date(iso || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const dataCurta = (iso) => new Date(iso || Date.now()).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+    function mostrarEstadoRascunho(estado) {
+        if (!estadoSalvamentoEl) return;
+        const textos = {
+            salvando: 'Salvando…',
+            salvo: `Salvo às ${horaCurta(rascunho.atualizadoEm)}`,
+            offline: 'Sem internet — salvo só neste celular. Envia quando o sinal voltar.'
+        };
+        estadoSalvamentoEl.textContent = textos[estado] || '';
+        estadoSalvamentoEl.className = `estado-salvamento estado-${estado || 'nenhum'}`;
+        estadoSalvamentoEl.hidden = !textos[estado];
+    }
+
+    function atualizarCardViagem(mostrar) {
+        if (!cardViagemAndamento) return;
+        const exibir = !!mostrar && rascunho.ativo && !rascunho.encerrado && dadosTemConteudo(coletarDadosTela());
+        cardViagemAndamento.hidden = !exibir;
+        if (!exibir || !detalheViagemAndamento) return;
+        const partes = [];
+        if (dataDoCampo(inputDataSaida)) partes.push(`saída em ${inputDataSaida.value.trim()}`);
+        if (rascunho.atualizadoEm) partes.push(`atualizada ${dataCurta(rascunho.atualizadoEm)} às ${horaCurta(rascunho.atualizadoEm)}`);
+        detalheViagemAndamento.textContent = partes.length ? `— ${partes.join(' · ')}` : '';
+    }
+
+    // Linha do banco na tela (mesmo caminho da ficha aberta pela gestão)
+    function aplicarLinhaNaTela(linha) {
+        const ficha = typeof window.mapearFichaDoSupabase === 'function' ? window.mapearFichaDoSupabase(linha) : null;
+        if (!ficha) return;
+        // Adiantamento 0 pode ser "ainda não preenchido": no rascunho fica em branco (no envio é obrigatório)
+        if (!(parseMoeda(ficha.valorAdiantamento) > 0)) ficha.valorAdiantamento = '';
+        rascunho.carregando = true;
+        try {
+            limparFormularioCompleto();
+            carregarFichaEmCampos(ficha);
+            atualizarListaLinhasPreenchidasPopover();
+            atualizarListaLinhasAbastPreenchidasPopover();
+        } finally {
+            rascunho.carregando = false;
+        }
+    }
+
+    // Abertura do Portal: rascunho do banco ou a cópia do celular, a mais nova
+    async function iniciarRascunhoDoMotorista() {
+        if (!rascunho.ativo) return;
+        [btnSalvarRascunhoMl, btnApagarTudoRascunho, avisoFotosRascunho].forEach(el => { if (el) el.hidden = false; });
+
+        let linha = null;
+        let bancoRespondeu = true;
+        try { linha = await buscarRascunhoNoBanco(); } catch (e) { bancoRespondeu = false; }
+        let copia = lerCopiaRascunho();
+        const antigo = tirarRascunhoAntigo();
+        if (antigo && !copia && !linhaTemConteudo(linha) && dadosTemConteudo(antigo)) {
+            copia = { dados: antigo, salvoEm: new Date().toISOString() };
+        }
+        if (linha) {
+            rascunho.id = linha.id;
+            rascunho.atualizadoEm = linha.atualizado_em || null;
+        }
+        const usarCopia = !!copia && (!linha || !rascunho.atualizadoEm || new Date(copia.salvoEm) > new Date(rascunho.atualizadoEm));
+        rascunho.carregando = true;
+        try {
+            if (usarCopia) {
+                limparFormularioCompleto();
+                aplicarDadosNaTela(copia.dados);
+                rascunho.atualizadoEm = copia.salvoEm;
+                rascunho.copiaEm = copia.salvoEm;
+            } else {
+                if (copia) apagarCopiaRascunho(); // o banco tem uma mais nova (outro aparelho)
+                if (linha) aplicarLinhaNaTela(linha);
+            }
+        } finally {
+            rascunho.carregando = false;
+        }
+        rascunho.baseIncerta = !bancoRespondeu;
+        rascunho.ultimoSalvo = linha && !usarCopia ? JSON.stringify(coletarDadosTela()) : null;
+        rascunho.pronto = true;
+        renderizarListaAnexosMl();
+        atualizarCardViagem(true);
+
+        if (usarCopia) salvarRascunhoAgora({ forcar: true });
+        else if (!bancoRespondeu) { mostrarEstadoRascunho('offline'); tentarBaseDeNovo(); }
+        else if (linha) mostrarEstadoRascunho('salvo');
+    }
+
+    // Banco sem resposta na abertura: tenta de novo de tempos em tempos (e quando o sinal volta)
+    function tentarBaseDeNovo() {
+        setTimeout(async () => {
+            if (!rascunho.baseIncerta || rascunho.encerrado) return;
+            try {
+                await resolverBaseDoRascunho();
+                atualizarCardViagem(true);
+                if (lerCopiaRascunho()) salvarRascunhoAgora({ forcar: true });
+                else mostrarEstadoRascunho(rascunho.id ? 'salvo' : null);
+            } catch (e) { tentarBaseDeNovo(); }
+        }, 5000);
+    }
+
+    // Lixeira: apaga tudo o que foi preenchido (campos, cópia do celular e fotos do Storage);
+    // o rascunho continua no banco, vazio (update; sem permissão de delete)
+    async function apagarTudoDoRascunho() {
+        if (!navigator.onLine || !window.supabaseClient) {
+            exibirToast('Sem internet: para apagar tudo, espere o sinal voltar.', 'erro');
+            return false;
+        }
+        clearTimeout(rascunho.timer);
+        rascunho.timer = null;
+        if (rascunho.salvando) {
+            rascunho.deNovo = false;
+            await rascunho.salvando;
+        }
+        const caminhos = new Set(anexosSalvosMl().map(a => a.path));
+        if (rascunho.id) {
+            // Fotos que tenham ficado na pasta do rascunho sem estar na lista
+            try {
+                const pasta = `${usuarioSessao.id}/${rascunho.id}`;
+                const { data } = await window.supabaseClient.storage.from('comprovantes').list(pasta, { limit: 100 });
+                (data || []).forEach(o => { if (o && o.name) caminhos.add(`${pasta}/${o.name}`); });
+            } catch (e) { /* segue com as da lista */ }
+        }
+        if (!(await apagarArquivosDoStorage([...caminhos]))) {
+            exibirToast('Não foi possível apagar as fotos agora. Nada foi apagado; tente de novo.', 'erro');
+            return false;
+        }
+        rascunho.carregando = true;
+        try { limparFormularioCompleto(); } finally { rascunho.carregando = false; }
+        // Avisos que ficaram nos campos (ex.: litros acima do limite) saem junto
+        document.querySelectorAll('#form-relatorio [aria-invalid="true"]').forEach(limparErroCampo);
+        linksAssinadosMl.clear();
+        apagarCopiaRascunho();
+        if (rascunho.id) await salvarRascunhoAgora({ mesmoVazio: true });
+        atualizarCardViagem(false);
+        return true;
+    }
+
+    function abrirModalApagarTudo() {
+        if (!modalApagarTudo) return;
+        modalApagarTudo.classList.add('ativo');
+        modalApagarTudo.setAttribute('aria-hidden', 'false');
+        document.getElementById('btn-apagar-tudo-cancelar')?.focus();
+    }
+
+    function fecharModalApagarTudo() {
+        if (!modalApagarTudo) return;
+        modalApagarTudo.classList.remove('ativo');
+        modalApagarTudo.setAttribute('aria-hidden', 'true');
+    }
+
+    if (btnApagarTudoRascunho) btnApagarTudoRascunho.addEventListener('click', abrirModalApagarTudo);
+    if (modalApagarTudo) {
+        document.getElementById('btn-apagar-tudo-cancelar')?.addEventListener('click', fecharModalApagarTudo);
+        modalApagarTudo.addEventListener('click', (e) => { if (e.target === modalApagarTudo) fecharModalApagarTudo(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalApagarTudo.classList.contains('ativo')) fecharModalApagarTudo();
+        });
+        const btnConfirmarApagar = document.getElementById('btn-apagar-tudo-confirmar');
+        btnConfirmarApagar?.addEventListener('click', async () => {
+            btnConfirmarApagar.disabled = true;
+            const apagou = await apagarTudoDoRascunho();
+            btnConfirmarApagar.disabled = false;
+            if (!apagou) return;
+            fecharModalApagarTudo();
+            exibirToast('Tudo o que foi preenchido nesta viagem foi apagado.', 'sucesso');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+    if (btnContinuarViagem) {
+        btnContinuarViagem.addEventListener('click', () => {
+            if (cardViagemAndamento) cardViagemAndamento.hidden = true;
+            toggleFormularioUnificado(true, false);
+            document.querySelector('.card-relatorio')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    // Sair da tela (trocar para o WhatsApp, bloquear o celular, fechar o navegador): grava na hora
+    function salvarAoSair() {
+        if (rascunho.ativo && rascunho.pronto && !rascunho.encerrado && (rascunho.sujo || rascunho.timer)) salvarRascunhoAgora();
+    }
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') salvarAoSair(); });
+    window.addEventListener('pagehide', salvarAoSair);
+
+    // Sinal de volta: o que ficou só no celular vai para o banco e as fotos aguardando sobem
+    window.addEventListener('online', async () => {
+        if (!rascunho.ativo || !rascunho.pronto || rascunho.encerrado) return;
+        if (rascunho.baseIncerta) {
+            try { await resolverBaseDoRascunho(); } catch (e) { return; }
+        }
+        if (lerCopiaRascunho() || rascunho.sujo) await salvarRascunhoEsperando({ forcar: true });
+        enviarComprovantesAguardando();
+    });
+    window.addEventListener('offline', () => {
+        if (rascunho.ativo && rascunho.pronto && !rascunho.encerrado && lerCopiaRascunho()) mostrarEstadoRascunho('offline');
+    });
 
     function limparFormularioCompleto() {
         if (form) form.reset();
@@ -3066,30 +3703,18 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         }
     }
 
+    // A tela começa vazia. O rascunho do motorista vem do banco ou da cópia do celular dele
+    // (iniciarRascunhoDoMotorista); a chave antiga, igual para todos do aparelho, não é mais lida aqui
     function carregarProgressoMl() {
+        limparFormularioCompleto();
+    }
+
+    // Preenche a tela com uma cópia do celular (formato de coletarDadosTela)
+    function aplicarDadosNaTela(dados) {
         try {
-            const urlParams = new URLSearchParams(window.location.search);
-            const fichaUrl = urlParams.get('ficha');
-            const novoUrl = urlParams.get('novo');
-            const usuarioAtualStr = localStorage.getItem(STORAGE_USER_ACTIVE);
-            let usuarioAtual = usuarioAtivo;
-            if (usuarioAtualStr) {
-                try { usuarioAtual = JSON.parse(usuarioAtualStr); } catch (e) { }
-            }
-            const isMotorista = (urlParams.get('mode') === 'motorista') || (usuarioAtual && usuarioAtual.role === 'motorista');
-
-            // Se a URL contiver ficha ou novo=true, não restaurar rascunho e limpar a chave STORAGE_ML_KEY
-            if (fichaUrl || novoUrl === 'true' || urlParams.has('novo')) {
-                localStorage.removeItem(STORAGE_ML_KEY);
-                limparFormularioCompleto();
-                return;
-            }
-
-            const salvo = localStorage.getItem(STORAGE_ML_KEY);
-            if (!salvo) {
-                limparFormularioCompleto();
-                return;
-            }
+            const usuarioAtual = usuarioAtivo;
+            const isMotorista = !!(usuarioAtual && usuarioAtual.role === 'motorista');
+            const salvo = dados ? JSON.stringify(dados) : null;
 
             // Inicialização padrão para motorista
             if (isMotorista) {
@@ -3263,11 +3888,24 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     }
 
     // Botões de ação do Formulário
+    // "Salvar e continuar depois": grava na hora e volta para o início do Portal (card da viagem)
     const btnSalvarRascunhoMl = document.getElementById('btn-salvar-rascunho-ml');
     if (btnSalvarRascunhoMl) {
-        btnSalvarRascunhoMl.addEventListener('click', () => {
-            salvarProgressoMl();
-            exibirToast('Rascunho do Relatório de Viagem salvo com sucesso!', 'sucesso');
+        btnSalvarRascunhoMl.addEventListener('click', async () => {
+            if (!rascunho.ativo || !rascunho.pronto || rascunho.encerrado || btnSalvarRascunhoMl.disabled) return;
+            btnSalvarRascunhoMl.disabled = true;
+            const temDados = dadosTemConteudo(coletarDadosTela()) || arquivosComprovantesMl.length > 0;
+            const salvou = await salvarRascunhoEsperando({ forcar: true });
+            btnSalvarRascunhoMl.disabled = false;
+            if (!temDados && !rascunho.id) {
+                exibirToast('Nada foi preenchido ainda.', 'info');
+                return;
+            }
+            exibirToast(salvou
+                ? 'Viagem salva. Continue de onde parou quando quiser.'
+                : 'Sem internet — salvo só neste celular. Envia quando o sinal voltar.', salvou ? 'sucesso' : 'info');
+            atualizarCardViagem(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     }
 
@@ -3662,6 +4300,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             tabela.querySelector('.btn-adicionar-linha-celular')?.addEventListener('click', () => {
                 tabela.dataset.mostrar = String(Number(tabela.dataset.mostrar || 1) + 1);
                 atualizarListasCelular();
+                salvarProgressoMl();
                 const nova = linhasDaLista(tabela).filter(tr => !tr.classList.contains('linha-oculta-celular')).pop();
                 const campo = nova?.querySelector('input:not([readonly]):not([type="date"]), select:not([disabled])');
                 if (campo) campo.focus();
@@ -4570,6 +5209,133 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         return true;
     }
 
+    // Ficha do motorista para gravar (envio e rascunho), com todas as colunas requeridas
+    function montarFichaDoMotorista({ id, status, agoraDataHora, usuario, isComLogin, nome }) {
+        const quando = agoraDataHora || new Date().toLocaleString('pt-BR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+        const kmPlaca = coletarKmEPlacaSecundaria();
+        // Totais da tela; o banco recalcula total frete, comissão e saldo do motorista
+        const totais = totaisParaGravar();
+
+        const ficha = {
+            id,
+            protocolo: id,
+            dataEnvio: quando,
+            motorista: nome,
+            motorista_cpf: usuario?.cpf || '',
+            motoristaCpf: usuario?.cpf || '',
+            motoristaId: isComLogin ? usuario.id : 'anonimo',
+            origemEnvio: isComLogin ? 'motorista_com_login' : 'motorista_sem_login',
+            placas: (inputPlacas?.value?.trim() && inputPlacas.value.trim() !== 'A definir pela Gestão') ? inputPlacas.value.trim() : '',
+            data_saida: inputDataSaida?.value || '',
+            dataSaida: inputDataSaida?.value || '',
+            data_chegada: inputDataChegada?.value || '',
+            dataChegada: inputDataChegada?.value || '',
+            // KMs dos dois trechos e placa secundária (o banco recalcula os totais do motorista)
+            ...kmPlaca,
+            km_saida: kmPlaca.kmSaida,
+            km_chegada: kmPlaca.kmEntrada,
+            kmChegada: kmPlaca.kmEntrada,
+            km_total: kmPlaca.kmTotal,
+            destino_inicial: inputDestinoInicial?.value?.trim() || '',
+            destinoInicial: inputDestinoInicial?.value?.trim() || '',
+            destino_final: inputDestinoFinal?.value?.trim() || '',
+            destinoFinal: inputDestinoFinal?.value?.trim() || '',
+            total_frete: totais.totalFrete,
+            totalFrete: totais.totalFrete,
+            vr_comissao: totais.vrComissao,
+            vrComissao: totais.vrComissao,
+            valor_adiantamento: inputAdiantamento?.value || '',
+            valorAdiantamento: inputAdiantamento?.value || '',
+            fretes: coletarFretesAtuais(),
+            abastecimentos: coletarAbastecimentosAtuais(),
+            totalAbastecimento: totais.totalAbastecimento,
+            totalLitros: totais.totalLitros,
+            totalDiesel: totais.totalDiesel,
+            totalArla: totais.totalArla,
+            media_km_l: extrairMediaCombustivelMlParaSalvar(),
+            mediaKmL: extrairMediaCombustivelMlParaSalvar(),
+            ...mediasPorPlacaParaSalvar(),
+            pedagios: [
+                inputsPedagioMl[0]?.value || '',
+                inputsPedagioMl[1]?.value || '',
+                inputsPedagioMl[2]?.value || ''
+            ],
+            totalPedagio: (parseMoeda(inputsPedagioMl[0]?.value) + parseMoeda(inputsPedagioMl[1]?.value) + parseMoeda(inputsPedagioMl[2]?.value)).toFixed(2).replace('.', ','),
+            impFederal: inputMlImpFederal?.value || '',
+            outrasDespesas: coletarOutrasDespesasAtuais(),
+            despesas_extras: coletarOutrasDespesasAtuais(),
+            total_despesas: document.getElementById('ml-indicador-despesa-total')?.textContent?.replace('R$', '')?.trim() || '0,00',
+            totalDespesas: document.getElementById('ml-indicador-despesa-total')?.textContent?.replace('R$', '')?.trim() || '0,00',
+            resultadoViagem: document.getElementById('ml-indicador-resultado-viagem')?.textContent?.replace('R$', '')?.trim() || '0,00',
+            saldo_comissao: document.getElementById('ml-indicador-saldo-comissao')?.textContent?.replace('R$', '')?.trim() || '0,00',
+            saldoComissao: document.getElementById('ml-indicador-saldo-comissao')?.textContent?.replace('R$', '')?.trim() || '0,00',
+            anexos: arquivosComprovantesMl || [],
+            comprovantes: arquivosComprovantesMl || [],
+            dados_completos: null,
+            status_acerto: 'nao_confirmado',
+            statusAcerto: 'nao_confirmado',
+            status
+        };
+        ficha.dados_completos = { ...ficha };
+        return ficha;
+    }
+
+    // Envio da viagem em andamento: as fotos que faltam sobem antes (se uma falhar, a ficha não
+    // vai) e a mesma linha passa de 'rascunho' para 'pendente' (update). O banco confere as regras
+    // do envio, dá o número da ficha e grava data_envio = agora (passo 17).
+    // (quem chama já gravou a tela no rascunho: rascunho.id existe)
+    async function enviarRascunhoDaViagem(dadosDoEnvio) {
+        const falhaConexao = 'A ficha NÃO foi enviada. Verifique a conexão e tente novamente; seus dados continuam na tela.';
+        try {
+            await enviarComprovantesPendentesMl(rascunho.id);
+        } catch (errUpload) {
+            return { ok: false, mensagem: `A ficha NÃO foi enviada. ${errUpload.message}` };
+        }
+
+        const ficha = montarFichaDoMotorista({ ...dadosDoEnvio, id: rascunho.id, status: 'pendente' });
+        let resposta;
+        try {
+            const payload = window.mapearFichaParaSupabase(ficha);
+            delete payload.id;
+            resposta = await window.supabaseClient.from('fichas_viagem').update(payload)
+                .eq('id', rascunho.id).eq('status', 'rascunho').select('id, data_envio');
+        } catch (e) {
+            return { ok: false, mensagem: falhaConexao };
+        }
+        const { data, error } = resposta || {};
+        if (error) {
+            console.error('Envio recusado pelo banco:', error);
+            // Regra do envio no banco (raise exception): a mensagem dela já diz o que falta
+            return { ok: false, mensagem: error.code === 'P0001' && error.message ? `A ficha NÃO foi enviada: ${error.message}` : falhaConexao };
+        }
+        if (!Array.isArray(data) || !data.length) {
+            return { ok: false, mensagem: 'A ficha NÃO foi enviada: esta viagem não está mais em andamento (foi enviada em outro aparelho?). Recarregue a página.' };
+        }
+
+        const id = data[0].id;
+        encerrarRascunhoNaTela();
+        ficha.id = id;
+        ficha.protocolo = id;
+        ficha.dados_completos = { ...ficha, dados_completos: null };
+        return { ok: true, id, ficha };
+    }
+
+    // Ficha enviada: esta página não grava mais rascunho e a cópia do celular não volta
+    function encerrarRascunhoNaTela() {
+        if (!rascunho.ativo) return;
+        rascunho.encerrado = true;
+        rascunho.id = null;
+        clearTimeout(rascunho.timer);
+        apagarCopiaRascunho();
+        mostrarEstadoRascunho(null);
+        atualizarCardViagem(false);
+        [btnSalvarRascunhoMl, btnApagarTudoRascunho, avisoFotosRascunho].forEach(el => { if (el) el.hidden = true; });
+        renderizarListaAnexosMl();
+    }
+
     async function atualizarFichaNaBase(idFicha, marcarComoAprovado = false) {
         await enviarComprovantesPendentesMl(idFicha);
         let todas = obterListaFichasCentral();
@@ -4808,108 +5574,64 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                 btnFinalizarRelatorioMl.innerHTML = `<span>⏳ Enviando ficha...</span>`;
                 btnFinalizarRelatorioMl.disabled = true;
 
-                // Número único da ficha gerado pelo banco (ex: AJB-2026-004)
-                let novoIdFicha;
-                try {
-                    novoIdFicha = await window.reservarNumeroFichaSupabase();
-                    atualizarDisplayNumeroFicha(novoIdFicha);
-                } catch (errNumero) {
-                    console.error('Erro ao reservar número da ficha:', errNumero);
-                    exibirToast('Não foi possível gerar o número da ficha. Verifique a conexão e tente novamente.', 'erro');
-                    restaurarBotaoEnvio();
-                    return;
-                }
-
-                // Envia os comprovantes para a pasta do motorista no Storage
-                try {
-                    await enviarComprovantesPendentesMl(novoIdFicha);
-                } catch (errUpload) {
-                    exibirToast(errUpload.message, 'erro');
-                    restaurarBotaoEnvio();
-                    return;
-                }
-
-                // Monta objeto completo da nova ficha com todas as colunas requeridas
                 const agoraDataHora = new Date().toLocaleString('pt-BR', {
                     day: '2-digit', month: '2-digit', year: 'numeric',
                     hour: '2-digit', minute: '2-digit'
                 });
-
                 const nomeFinalMotorista = inputMotorista?.value.trim() || (isComLogin ? usuarioAtivo?.nome : '') || 'Motorista';
-                const kmPlaca = coletarKmEPlacaSecundaria();
-                // Totais da tela; o banco recalcula total frete, comissão e saldo do motorista
-                const totais = totaisParaGravar();
+                const dadosDoEnvio = { agoraDataHora, usuario: usuarioAtivo, isComLogin, nome: nomeFinalMotorista };
 
-                const novaFicha = {
-                    id: novoIdFicha,
-                    protocolo: novoIdFicha,
-                    dataEnvio: agoraDataHora,
-                    motorista: nomeFinalMotorista,
-                    motorista_cpf: usuarioAtivo?.cpf || '',
-                    motoristaCpf: usuarioAtivo?.cpf || '',
-                    motoristaId: isComLogin ? usuarioAtivo.id : 'anonimo',
-                    origemEnvio: isComLogin ? 'motorista_com_login' : 'motorista_sem_login',
-                    placas: (inputPlacas?.value?.trim() && inputPlacas.value.trim() !== 'A definir pela Gestão') ? inputPlacas.value.trim() : '',
-                    data_saida: inputDataSaida?.value || '',
-                    dataSaida: inputDataSaida?.value || '',
-                    data_chegada: inputDataChegada?.value || '',
-                    dataChegada: inputDataChegada?.value || '',
-                    // KMs dos dois trechos e placa secundária (o banco recalcula os totais do motorista)
-                    ...kmPlaca,
-                    km_saida: kmPlaca.kmSaida,
-                    km_chegada: kmPlaca.kmEntrada,
-                    kmChegada: kmPlaca.kmEntrada,
-                    km_total: kmPlaca.kmTotal,
-                    destino_inicial: inputDestinoInicial?.value?.trim() || '',
-                    destinoInicial: inputDestinoInicial?.value?.trim() || '',
-                    destino_final: inputDestinoFinal?.value?.trim() || '',
-                    destinoFinal: inputDestinoFinal?.value?.trim() || '',
-                    total_frete: totais.totalFrete,
-                    totalFrete: totais.totalFrete,
-                    vr_comissao: totais.vrComissao,
-                    vrComissao: totais.vrComissao,
-                    valor_adiantamento: inputAdiantamento?.value || '',
-                    valorAdiantamento: inputAdiantamento?.value || '',
-                    fretes: fretesAtuais,
-                    abastecimentos: abastsAtuais,
-                    totalAbastecimento: totais.totalAbastecimento,
-                    totalLitros: totais.totalLitros,
-                    totalDiesel: totais.totalDiesel,
-                    totalArla: totais.totalArla,
-                    media_km_l: extrairMediaCombustivelMlParaSalvar(),
-                    mediaKmL: extrairMediaCombustivelMlParaSalvar(),
-                    ...mediasPorPlacaParaSalvar(),
-                    pedagios: [
-                        inputsPedagioMl[0]?.value || '',
-                        inputsPedagioMl[1]?.value || '',
-                        inputsPedagioMl[2]?.value || ''
-                    ],
-                    totalPedagio: (parseMoeda(inputsPedagioMl[0]?.value) + parseMoeda(inputsPedagioMl[1]?.value) + parseMoeda(inputsPedagioMl[2]?.value)).toFixed(2).replace('.', ','),
-                    impFederal: inputMlImpFederal?.value || '',
-                    outrasDespesas: coletarOutrasDespesasAtuais(),
-                    despesas_extras: coletarOutrasDespesasAtuais(),
-                    total_despesas: document.getElementById('ml-indicador-despesa-total')?.textContent?.replace('R$', '')?.trim() || '0,00',
-                    totalDespesas: document.getElementById('ml-indicador-despesa-total')?.textContent?.replace('R$', '')?.trim() || '0,00',
-                    resultadoViagem: document.getElementById('ml-indicador-resultado-viagem')?.textContent?.replace('R$', '')?.trim() || '0,00',
-                    saldo_comissao: document.getElementById('ml-indicador-saldo-comissao')?.textContent?.replace('R$', '')?.trim() || '0,00',
-                    saldoComissao: document.getElementById('ml-indicador-saldo-comissao')?.textContent?.replace('R$', '')?.trim() || '0,00',
-                    anexos: arquivosComprovantesMl || [],
-                    comprovantes: arquivosComprovantesMl || [],
-                    dados_completos: null,
-                    status_acerto: 'nao_confirmado',
-                    statusAcerto: 'nao_confirmado',
-                    status: 'pendente'
-                };
-                novaFicha.dados_completos = { ...novaFicha };
+                let novoIdFicha;
+                let novaFicha;
+                // Viagem em andamento no banco? (grava o que está na tela; sem rascunho no banco, por
+                // exemplo antes do passo 17 rodar, o envio segue como antes: número + ficha nova)
+                const temRascunhoNoBanco = rascunho.ativo && !rascunho.encerrado &&
+                    (await salvarRascunhoEsperando({ mesmoVazio: true })) && !!rascunho.id;
+                if (temRascunhoNoBanco) {
+                    // A mesma ficha (rascunho) passa a 'pendente'; o número vem do banco
+                    const envio = await enviarRascunhoDaViagem(dadosDoEnvio);
+                    if (!envio.ok) {
+                        exibirToast(envio.mensagem, 'erro');
+                        restaurarBotaoEnvio();
+                        return;
+                    }
+                    novoIdFicha = envio.id;
+                    novaFicha = envio.ficha;
+                    atualizarDisplayNumeroFicha(novoIdFicha);
+                } else {
+                    // Número único da ficha gerado pelo banco (ex: AJB-2026-004)
+                    try {
+                        novoIdFicha = await window.reservarNumeroFichaSupabase();
+                        atualizarDisplayNumeroFicha(novoIdFicha);
+                    } catch (errNumero) {
+                        console.error('Erro ao reservar número da ficha:', errNumero);
+                        exibirToast('Não foi possível gerar o número da ficha. Verifique a conexão e tente novamente.', 'erro');
+                        restaurarBotaoEnvio();
+                        return;
+                    }
 
-                // Envia para o Supabase e só confirma ao motorista se gravou de verdade
-                const resultadoEnvio = (typeof window.salvarFichaSupabase === 'function')
-                    ? await window.salvarFichaSupabase(novaFicha)
-                    : null;
-                if (!resultadoEnvio || !resultadoEnvio.success) {
-                    exibirToast('A ficha NÃO foi enviada. Verifique a conexão e tente novamente; seus dados continuam na tela.', 'erro');
-                    restaurarBotaoEnvio();
-                    return;
+                    // Envia os comprovantes para a pasta do motorista no Storage
+                    try {
+                        await enviarComprovantesPendentesMl(novoIdFicha);
+                    } catch (errUpload) {
+                        exibirToast(errUpload.message, 'erro');
+                        restaurarBotaoEnvio();
+                        return;
+                    }
+
+                    // Monta objeto completo da nova ficha com todas as colunas requeridas
+                    novaFicha = montarFichaDoMotorista({ ...dadosDoEnvio, id: novoIdFicha, status: 'pendente' });
+
+                    // Envia para o Supabase e só confirma ao motorista se gravou de verdade
+                    const resultadoEnvio = (typeof window.salvarFichaSupabase === 'function')
+                        ? await window.salvarFichaSupabase(novaFicha)
+                        : null;
+                    if (!resultadoEnvio || !resultadoEnvio.success) {
+                        exibirToast('A ficha NÃO foi enviada. Verifique a conexão e tente novamente; seus dados continuam na tela.', 'erro');
+                        restaurarBotaoEnvio();
+                        return;
+                    }
+                    encerrarRascunhoNaTela();
                 }
 
                 // Cópia local apenas para exibição
@@ -5040,6 +5762,10 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             form.addEventListener('input', () => {
                 salvarProgressoMl();
             });
+            // Selects e calendário (alguns navegadores só disparam change)
+            form.addEventListener('change', () => {
+                salvarProgressoMl();
+            });
         }
 
         window.carregarProgressoMl = carregarProgressoMl;
@@ -5048,5 +5774,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
         // Dispara a configuração completa do ciclo de vida
         configurarCicloDeVidaViagem();
+
+        // Motorista: abre a viagem em andamento (banco ou cópia do celular)
+        iniciarRascunhoDoMotorista();
     });
 

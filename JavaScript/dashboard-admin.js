@@ -216,8 +216,9 @@ let chartConsumoInstance = null;
 
 // Estado da Aplicação
 let appState = {
-    fichas: [],
-    filtroStatus: 'pendente', // 'pendente' | 'aprovado' | 'todos'
+    fichas: [], // sem rascunho (viagem em andamento): não entra em lista, totais, comissão, gráficos nem sino
+    emAndamento: [], // rascunhos dos motoristas com algum dado (aba "Em andamento", só consulta)
+    filtroStatus: 'pendente', // 'pendente' | 'aguardando_confirmacao' | 'aprovado' | 'todos' | 'em_andamento'
     filtroMotorista: 'todos',
     filtroPeriodo: 'mes', // 'mes' | '30d' | 'semana'
     termoBusca: '',
@@ -259,6 +260,7 @@ function inicializarBancoDados() {
                 // Filtra e expurga apenas dados de exemplo marcados explicitamente
                 appState.fichas = parsed.filter(f => {
                     if (!f || !f.id) return false;
+                    if (f.status === 'rascunho') return false;
                     // Se for qualquer motorista das planilhas antigas de demonstração
                     if (NOMES_DEMO_EXEMPLOS.includes(f.motorista)) return false;
                     if (f.origemEnvio === 'seed_sistema' || f.isExemplo || f.isDemonstrativo) {
@@ -789,6 +791,17 @@ function renderizarTabelaFichas() {
     const emptyState = document.getElementById('tabela-empty-state');
     const elInfoRegistros = document.getElementById('tabela-info-registros');
     if (!tbody) return;
+
+    // Aba "Em andamento": tabela própria, só consulta
+    const tabelaPrincipalWrap = document.getElementById('tabela-fichas-gestao')?.closest('.tabela-fichas-responsive');
+    const tabelaAndamentoWrap = document.getElementById('tabela-andamento-wrap');
+    const abaEmAndamento = appState.filtroStatus === 'em_andamento';
+    if (tabelaPrincipalWrap) tabelaPrincipalWrap.style.display = abaEmAndamento ? 'none' : '';
+    if (tabelaAndamentoWrap) tabelaAndamentoWrap.style.display = abaEmAndamento ? '' : 'none';
+    if (abaEmAndamento) {
+        renderizarTabelaEmAndamento();
+        return;
+    }
 
     // Filtra fichas pelo status atual
     let listaFiltrada = appState.fichas.filter(f => {
@@ -3085,7 +3098,8 @@ async function carregarFichasDoSupabase() {
         const fichasNuvem = await window.buscarFichasSupabase();
         if (Array.isArray(fichasNuvem)) {
             console.log(`📥 ${fichasNuvem.length} ficha(s) sincronizada(s) do Supabase.`);
-            appState.fichas = fichasNuvem;
+            // Rascunho (viagem em andamento) fica de fora; ele aparece só na aba "Em andamento"
+            appState.fichas = fichasNuvem.filter(f => f && f.status !== 'rascunho');
             salvarFichasNoStorage();
             calcularMetricasDashboard();
             renderizarTabelaFichas();
@@ -3098,9 +3112,10 @@ async function carregarFichasDoSupabase() {
     }
 }
 
-// Sino de fichas novas: só as enviadas por motorista. No envio o trigger grava motorista_id e
-// data_envio (passo 11); rascunho fica só no aparelho do motorista; ficha criada pela gestão não
-// tem motorista_id. Consulta leve: count + as 10 últimas, só nº, motorista e data.
+// Sino de fichas novas: só as enviadas por motorista. O trigger grava motorista_id e data_envio;
+// a viagem em andamento fica no banco como rascunho e não conta; quando o motorista envia, a
+// data_envio passa a ser a hora do envio (passo 17); ficha criada pela gestão não tem motorista_id.
+// Consulta leve: count + as 10 últimas, só nº, motorista e data.
 function iniciarNotificacoesFichas(usuarioId) {
     window.ajbNotificacoesGestao?.iniciar({
         painel: 'frota',
@@ -3139,14 +3154,86 @@ function iniciarNotificacoesFichas(usuarioId) {
     });
 }
 
+// Viagens em andamento (rascunho do motorista com algum dado): só consulta, sem editar nem aprovar
+function rascunhoTemConteudo(r) {
+    const dc = (r && r.dados_completos) || {};
+    const lista = (v) => (Array.isArray(v) ? v : []);
+    return !!(r && (r.placas || r.data_saida || r.data_chegada || r.km_saida || r.km_chegada ||
+        r.destino_inicial || r.destino_final || Number(r.valor_adiantamento) > 0 || dc.placaSecundaria ||
+        lista(r.abastecimentos).length || lista(r.comprovantes).length || lista(dc.fretes).length ||
+        lista(r.despesas_extras).slice(1).some(d => d && (d.desc || d.valor))));
+}
+
+async function carregarEmAndamento() {
+    const c = window.supabaseClient;
+    if (!c) return;
+    try {
+        const { data, error } = await c.from('fichas_viagem')
+            .select('id, motorista, motorista_id, data_saida, data_chegada, atualizado_em, placas, km_saida, km_chegada, destino_inicial, destino_final, valor_adiantamento, abastecimentos, comprovantes, despesas_extras, dados_completos')
+            .eq('status', 'rascunho')
+            .order('atualizado_em', { ascending: false });
+        if (error) {
+            console.warn('Não foi possível ler as viagens em andamento:', error.message);
+            return;
+        }
+        appState.emAndamento = (data || []).filter(rascunhoTemConteudo);
+    } catch (e) {
+        console.warn('Não foi possível ler as viagens em andamento:', e);
+        return;
+    }
+    renderizarTabelaEmAndamento();
+}
+
+// O motorista grava o rascunho a cada poucos segundos: junta os avisos do Realtime
+let timerEmAndamento = null;
+function agendarEmAndamento() {
+    clearTimeout(timerEmAndamento);
+    timerEmAndamento = setTimeout(carregarEmAndamento, 2000);
+}
+
+function renderizarTabelaEmAndamento() {
+    const contador = document.getElementById('contador-tab-andamento');
+    const tbody = document.getElementById('tabela-andamento-body');
+    const vazio = document.getElementById('tabela-andamento-vazia');
+    let lista = appState.emAndamento || [];
+    if (appState.filtroMotorista && appState.filtroMotorista !== 'todos') {
+        const alvo = appState.filtroMotorista.trim().toLowerCase();
+        lista = lista.filter(r => (r.motorista || '').trim().toLowerCase() === alvo);
+    }
+    if (contador) contador.textContent = (appState.emAndamento || []).length;
+    if (appState.filtroStatus !== 'em_andamento' || !tbody) return;
+
+    const elInfoRegistros = document.getElementById('tabela-info-registros');
+    if (elInfoRegistros) {
+        elInfoRegistros.textContent = lista.length
+            ? `Exibindo ${lista.length} viagem(ns) em andamento (só consulta)`
+            : 'Nenhuma viagem em andamento';
+    }
+    const formatoAtualizacao = (iso) => {
+        if (!iso) return '-';
+        const d = new Date(iso);
+        return `${d.toLocaleDateString('pt-BR')} às ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    };
+    tbody.innerHTML = lista.map(r => `
+        <tr>
+            <td><span class="driver-name">${escaparHtml(r.motorista || 'Motorista')}</span></td>
+            <td><span class="td-data-envio">${escaparHtml(r.data_saida ? dataDaFichaBR(r.data_saida) : 'Não informada')}</span></td>
+            <td><span class="td-data-envio">${escaparHtml(formatoAtualizacao(r.atualizado_em))}</span></td>
+        </tr>`).join('');
+    if (vazio) vazio.style.display = lista.length ? 'none' : 'block';
+}
+
 // Sincronização em Nuvem e Tempo Real com o Supabase
 async function sincronizarFichasComSupabase() {
     await carregarFichasDoSupabase();
+    carregarEmAndamento();
 
     // Ativa escuta em tempo real (Realtime do Supabase)
     if (typeof window.escutarAlteracoesFichasSupabase === 'function') {
         window.escutarAlteracoesFichasSupabase(
             (novaFicha) => {
+                // Viagem em andamento: só a aba "Em andamento" muda
+                if (novaFicha.status === 'rascunho') return agendarEmAndamento();
                 const existe = appState.fichas.some(f => f.id === novaFicha.id);
                 if (!existe) {
                     appState.fichas.unshift(novaFicha);
@@ -3159,6 +3246,7 @@ async function sincronizarFichasComSupabase() {
                 }
             },
             (fichaAtualizada) => {
+                if (fichaAtualizada.status === 'rascunho') return agendarEmAndamento();
                 const idx = appState.fichas.findIndex(f => f.id === fichaAtualizada.id);
                 if (idx >= 0) {
                     appState.fichas[idx] = fichaAtualizada;
@@ -3168,6 +3256,16 @@ async function sincronizarFichasComSupabase() {
                     atualizarGraficos();
                     renderizarTabelaAcertos();
                     carregarFiltroMotoristas();
+                } else {
+                    // Viagem em andamento que o motorista acabou de enviar (o id muda de RASC-... para o número)
+                    appState.fichas.unshift(fichaAtualizada);
+                    salvarFichasNoStorage();
+                    calcularMetricasDashboard();
+                    renderizarTabelaFichas();
+                    atualizarGraficos();
+                    carregarFiltroMotoristas();
+                    exibirToast(`🔔 Nova ficha recebida: ${fichaAtualizada.id} (${fichaAtualizada.motorista})`, 'info');
+                    agendarEmAndamento();
                 }
             },
             (idFichaExcluida) => {
@@ -3274,6 +3372,7 @@ ajbAoAutenticar(['admin', 'diretoria'], 'Login.html#admin', (usuarioSessao) => {
             btn.classList.add('active');
             appState.filtroStatus = btn.getAttribute('data-status');
             renderizarTabelaFichas();
+            if (appState.filtroStatus === 'em_andamento') carregarEmAndamento();
         });
     });
 
