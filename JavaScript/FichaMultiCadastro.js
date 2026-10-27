@@ -112,6 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Os documentos (CNH, CRLVs, RNTRC e comprovante) aceitam só PDF; só a zona marcada com
     // data-aceita="foto" aceita imagem
     const aceitaFoto = (input) => input?.dataset.aceita === 'foto';
+    // Até 3 arquivos por documento; a zona pode pedir menos (data-max="1" na selfie)
+    const maxDe = (input) => Number(input?.dataset.max) || MAX_ARQUIVOS;
     const docDaZona = (input) => input?.closest('.cartao-doc')?.dataset.doc || '';
     const MSG_SO_PDF = 'Envie o PDF do documento (baixe pelo app CNH Digital / CRLV Digital / ANTT). Foto não é aceita.';
     const MSG_SO_PDF_RESIDENCIA = 'Envie o comprovante em PDF (a conta em PDF baixada do app ou do site da empresa).';
@@ -208,7 +210,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 avisos.push(problema);
                 continue;
             }
-            if (itens.length >= MAX_ARQUIVOS) {
+            const max = maxDe(input);
+            // Zona de 1 arquivo (selfie): a foto nova troca a anterior
+            if (max === 1 && itens.length) {
+                itens.length = 0;
+                fotos.length = 0;
+            }
+            if (itens.length >= max) {
                 passou = true;
                 continue;
             }
@@ -274,6 +282,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.querySelectorAll('.upload-dropzone').forEach((zone) => ligarDropzone(zone));
+
+    // Selfie: o botão abre a câmera da frente (capture="user"); a zona continua aceitando
+    // a foto da galeria. As duas vão para a mesma lista (1 foto).
+    document.querySelectorAll('.btn-tirar-selfie').forEach((btn) => {
+        const destino = document.getElementById(btn.dataset.selfieDe);
+        const camera = btn.parentElement.querySelector('input[capture]');
+        if (!destino || !camera) return;
+        btn.addEventListener('click', () => camera.click());
+        camera.addEventListener('change', () => {
+            if (camera.files && camera.files.length) adicionarArquivos(destino, camera.files);
+            camera.value = '';
+        });
+    });
 
     // Arquivo solto fora de uma zona não abre no navegador
     window.addEventListener('dragover', (e) => e.preventDefault());
@@ -381,6 +402,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function documentosDe(prefixo) {
         return [
             { doc: 'cnh', titulo: 'CNH', obrigatorio: true },
+            { doc: 'selfie', titulo: 'Selfie segurando a CNH', obrigatorio: true },
             ...papeisDe(prefixo).map((papel, i) => ({ doc: `crlv_${i + 1}`, titulo: nomeCrlv(papel), obrigatorio: true })),
             { doc: 'rntrc', titulo: 'RNTRC', obrigatorio: true },
             { doc: 'residencia', titulo: 'Comprovante de residência', obrigatorio: false }
@@ -513,9 +535,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const arquivos = arquivosDe(prefixo, doc);
         if (obrigatorio && arquivos.length === 0) {
-            return aceitaFoto(input) ? `Anexe ${artigo} ${titulo}.` : `Anexe o PDF ${artigo === 'a' ? 'da' : 'do'} ${titulo}.`;
+            return aceitaFoto(input) ? 'Anexe a selfie segurando a CNH ao lado do rosto.' : `Anexe o PDF ${artigo === 'a' ? 'da' : 'do'} ${titulo}.`;
         }
-        if (arquivos.length > MAX_ARQUIVOS) return `Envie no máximo ${MAX_ARQUIVOS} arquivos para ${artigo} ${titulo}.`;
+        if (aceitaFoto(input) && arquivos.length > maxDe(input)) return 'Envie só 1 foto: a selfie segurando a CNH.';
+        if (arquivos.length > maxDe(input)) return `Envie no máximo ${maxDe(input)} arquivo(s) para ${artigo} ${titulo}.`;
         for (const f of arquivos) {
             const problema = conferirArquivo(f, input);
             if (problema) return problema;

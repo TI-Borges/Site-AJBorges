@@ -463,6 +463,7 @@ Deno.serve(async (req: Request) => {
 
     const documentosDoEnvio: Record<string, string> = {
       cnh: "a CNH",
+      selfie: "a selfie segurando a CNH",
     };
 
     papeis.forEach((papel, i) => {
@@ -475,6 +476,7 @@ Deno.serve(async (req: Request) => {
     // Obrigatórios; o comprovante de residência é opcional.
     const obrigatorios = [
       "cnh",
+      "selfie",
       ...papeis.map((_, i) => `crlv_${i + 1}`),
       "rntrc",
     ];
@@ -552,6 +554,12 @@ Deno.serve(async (req: Request) => {
 
       const nomeDoc = documentosDoEnvio[campo];
 
+      if (campo === "selfie" && lista.length > 1) {
+        return resp(req, 400, {
+          erro: "Envie só 1 foto: a selfie segurando a CNH.",
+        });
+      }
+
       if (lista.length > MAX_ARQUIVOS) {
         return resp(req, 400, {
           erro: `Envie no máximo ${MAX_ARQUIVOS} arquivos para ${nomeDoc}.`,
@@ -568,7 +576,14 @@ Deno.serve(async (req: Request) => {
         const tipoArq = String(documento.tipo ?? "");
         const tamanho = Number(documento.tamanho ?? 0);
 
-        if (!TIPOS_PDF.includes(tipoArq)) {
+        // A selfie é a única imagem aceita; os documentos vão só em PDF.
+        if (campo === "selfie") {
+          if (!TIPOS_FOTO.includes(tipoArq)) {
+            return resp(req, 400, {
+              erro: "A selfie segurando a CNH precisa ser uma foto JPG ou PNG.",
+            });
+          }
+        } else if (!TIPOS_PDF.includes(tipoArq)) {
           return resp(req, 400, {
             erro: campo === "residencia"
               ? "Envie o comprovante em PDF (a conta em PDF baixada do app ou do site da empresa)."
@@ -606,7 +621,9 @@ Deno.serve(async (req: Request) => {
     for (const campo of obrigatorios) {
       if (!temDoc(campo)) {
         return resp(req, 400, {
-          erro: `Anexe o PDF ${comDe(documentosDoEnvio[campo])}.`,
+          erro: campo === "selfie"
+            ? "Anexe a selfie segurando a CNH ao lado do rosto."
+            : `Anexe o PDF ${comDe(documentosDoEnvio[campo])}.`,
         });
       }
     }

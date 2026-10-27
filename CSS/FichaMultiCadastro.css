@@ -1746,3 +1746,52 @@ footer {
         text-align: center;
     }
 }
+
+
+/* Selfie segurando a CNH: desenho, dica e botão da câmera da frente */
+.selfie-orientacao {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 12px;
+}
+
+.selfie-desenho {
+    flex: 0 0 auto;
+    width: 120px;
+    height: 90px;
+}
+
+.selfie-dica {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: #334155;
+}
+
+.btn-tirar-selfie {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    margin-top: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--azul-ajborges);
+    border-radius: 10px;
+    background: var(--branco);
+    color: var(--azul-ajborges);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.btn-tirar-selfie:hover,
+.btn-tirar-selfie:focus-visible {
+    background: #eef2ff;
+}
+
+@media (max-width: 480px) {
+    .selfie-orientacao {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
