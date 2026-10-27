@@ -1409,32 +1409,33 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         return isNaN(n) ? 0 : n;
     }
 
-    // Campo de litros no estilo caixa eletrônico: começa em 0,00 e os números entram pela direita
-    // (3 -> 0,03; 31 -> 0,31; 31292 -> 312,92). Sempre 2 casas e sem ponto de milhar (1250,50).
-    // 0,00 = campo vazio. O que vai para o banco é o texto do campo (312,92), como antes.
-    const LITROS_VAZIO = '0,00';
+    // Campo de litros no estilo caixa eletrônico, com 3 casas como a bomba (128,501 L): começa em
+    // 0,000 e os números entram pela direita (3 -> 0,003; 128501 -> 128,501). Sem ponto de milhar
+    // (1250,500). 0,000 = campo vazio. O que vai para o banco é o texto do campo (128,501).
+    const LITROS_VAZIO = '0,000';
     const MAX_DIGITOS_LITROS = 9;
 
-    function formatarCampoLitros(centavos) {
-        const c = Math.min(Math.max(0, Math.round(Number(centavos) || 0)), 10 ** MAX_DIGITOS_LITROS - 1);
-        return `${Math.floor(c / 100)},${String(c % 100).padStart(2, '0')}`;
+    function formatarCampoLitros(milesimos) {
+        const m = Math.min(Math.max(0, Math.round(Number(milesimos) || 0)), 10 ** MAX_DIGITOS_LITROS - 1);
+        return `${Math.floor(m / 1000)},${String(m % 1000).padStart(3, '0')}`;
     }
 
-    // Litros já gravados (312,92 / 1.250,5 / 312924) no formato do campo (312,92 / 1250,50 / 312924,00)
+    // Litros já gravados (as fichas antigas têm 2 casas: 312,92 / 1.250,5 / 312924) no formato
+    // do campo (312,920 / 1250,500 / 312924,000)
     function litrosParaCampo(val) {
-        return formatarCampoLitros(parseLitros(val) * 100);
+        return formatarCampoLitros(parseLitros(val) * 1000);
     }
 
     // Colar: com vírgula ou ponto, o último separador é o decimal e os outros são ignorados
-    // (312,92 / 312.92 -> 312,92; 1.250,50 -> 1250,50; mais de 2 casas arredonda: 312,924 -> 312,92);
-    // só números = como se tivessem sido digitados (31292 -> 312,92)
-    function centavosLitrosColados(texto) {
+    // (128,501 / 128.501 -> 128,501; 128,50 -> 128,500; 1.250,50 -> 1250,500; mais de 3 casas
+    // arredonda); só números = como se tivessem sido digitados (128501 -> 128,501)
+    function milesimosLitrosColados(texto) {
         const s = String(texto || '').replace(/[^\d.,]/g, '');
         const pos = Math.max(s.lastIndexOf(','), s.lastIndexOf('.'));
         if (pos < 0) return parseInt(s.replace(/^0+/, '').slice(0, MAX_DIGITOS_LITROS) || '0', 10);
         const inteiro = s.slice(0, pos).replace(/\D/g, '') || '0';
         const decimais = s.slice(pos + 1).replace(/\D/g, '') || '0';
-        return Math.round(parseFloat(`${inteiro}.${decimais}`) * 100);
+        return Math.round(parseFloat(`${inteiro}.${decimais}`) * 1000);
     }
 
     function aplicarMascaraLitros(input, callback) {
@@ -1476,7 +1477,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         input.addEventListener('paste', (e) => {
             e.preventDefault();
             const texto = (e.clipboardData || window.clipboardData)?.getData('text') || '';
-            input.value = formatarCampoLitros(centavosLitrosColados(texto));
+            input.value = formatarCampoLitros(milesimosLitrosColados(texto));
             cursorNoFim();
             if (callback) callback();
         });
@@ -1940,10 +1941,13 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     popularSelectsPostosConvenidos();
 
     // Litros acima do limite da linha (Diesel S10/S500 ou sem combustível: mais de 1.500 L; ARLA:
-    // mais de 150 L): quase sempre é número a mais (3129200 = 31292,00 em vez de 312,92)
+    // mais de 150 L): quase sempre é número a mais (1285010 = 1285,010 em vez de 128,501)
     const LIMITE_LITROS_DIESEL = 1500;
     const LIMITE_LITROS_ARLA = 150;
-    const AVISO_LITROS = 'Confira os litros: digite só os números, a vírgula entra sozinha (31292 = 312,92).';
+    const AVISO_LITROS = 'Confira os litros: digite só os números, a vírgula entra sozinha (128501 = 128,501).';
+    // Preço por litro fora de R$ 3,00 a R$ 10,00: provável litro digitado errado (só avisa, não bloqueia)
+    const PRECO_LITRO_MIN = 3;
+    const PRECO_LITRO_MAX = 10;
 
     function litrosForaDoLimite(i) {
         const comb = document.querySelector(`select[name="combustivel_ml_${i}"]`)?.value || '';
@@ -1951,13 +1955,28 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         return litros > (comb === 'arla' ? LIMITE_LITROS_ARLA : LIMITE_LITROS_DIESEL);
     }
 
-    // Marca (ou desmarca) o campo de litros da linha; true = passou do limite
+    // Valor ÷ litros da linha fora da faixa: o preço (R$ por litro); dentro da faixa ou sem base, null
+    function precoLitroSuspeito(i) {
+        const valor = parseMoeda(document.querySelector(`input[name="valor_ml_${i}"]`)?.value || '');
+        const litros = parseLitros(document.querySelector(`input[name="litros_ml_${i}"]`)?.value || '');
+        if (!(valor > 0) || !(litros > 0)) return null;
+        const preco = valor / litros;
+        return (preco < PRECO_LITRO_MIN || preco > PRECO_LITRO_MAX) ? preco : null;
+    }
+
+    // Marca (ou desmarca) o campo de litros da linha; true = passou do limite (bloqueia o envio do
+    // motorista). Dentro do limite, o preço por litro fora da faixa só avisa.
     function conferirLitrosDaLinha(i) {
         const input = document.querySelector(`input[name="litros_ml_${i}"]`);
         if (!input) return false;
         if (litrosForaDoLimite(i)) {
             marcarErroCampo(input, AVISO_LITROS);
             return true;
+        }
+        const preco = precoLitroSuspeito(i);
+        if (preco !== null) {
+            marcarErroCampo(input, `Confira os litros: deu R$ ${formatarMoedaSemPrefixo(preco)} por litro`);
+            return false;
         }
         const aviso = (input.closest('.tabela-litros-wrap') || input).nextElementSibling;
         if (aviso && aviso.classList.contains('erro-campo-celular') && aviso.textContent.startsWith('Confira os litros')) limparErroCampo(input);
@@ -2017,6 +2036,10 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
         if (inputValor) {
             inputsValorAbastMl.push(inputValor);
+            // Ao sair do valor, o preço por litro é conferido de novo (aviso nos litros)
+            inputValor.addEventListener('blur', () => {
+                if (inputLitros && parseLitros(inputLitros.value) > 0) conferirLitrosDaLinha(i);
+            });
             aplicarMascaraMoeda(inputValor, () => {
                 calcularTotaisAbastecimentoMl();
                 calcularIndicadoresViagemMl();

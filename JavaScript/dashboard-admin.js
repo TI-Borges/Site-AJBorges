@@ -1183,10 +1183,10 @@ function abrirModalResumoFicha(fichaId) {
         // Abaixo de cada uma, a média ARLA (km ÷ litros de ARLA), só informativa.
         const mediaPorPlacaModal = (rotulo, p) => `
                     <div class="modal-info-linha"><span>Média Consumo Diesel (${escaparHtml(rotulo)}):</span> <strong style="color: #047857;">${p.media === null ? '—'
-                        : `${p.media.toFixed(2)} km/l <small>(${p.km.toLocaleString('pt-BR')} km ÷ ${p.litros.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} L)</small>`}</strong></div>`;
+                        : `${p.media.toFixed(2)} km/l <small>(${p.km.toLocaleString('pt-BR')} km ÷ ${p.litros.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} L)</small>`}</strong></div>`;
         const mediaArlaModal = (rotulo, p) => `
                     <div class="modal-info-linha modal-media-arla"><span>Média ARLA${rotulo ? ` (${escaparHtml(rotulo)})` : ''}:</span> <strong>${p.media === null ? '—'
-                        : `${p.media.toFixed(2)} km/l <small>(${p.km.toLocaleString('pt-BR')} km ÷ ${p.litros.toLocaleString('pt-BR', { maximumFractionDigits: 2 })} L de ARLA)</small>`}</strong></div>`;
+                        : `${p.media.toFixed(2)} km/l <small>(${p.km.toLocaleString('pt-BR')} km ÷ ${p.litros.toLocaleString('pt-BR', { maximumFractionDigits: 3 })} L de ARLA)</small>`}</strong></div>`;
         const arlaModal = mediasArlaDaFicha(ficha);
         const mediasModal = placaSecModal ? mediasPorPlacaDaFicha(ficha) : null;
         const mediaLinhasHtml = mediasModal
@@ -2281,20 +2281,20 @@ function renderizarTabelaCombustivel() {
         const precoL = l > 0 ? (v / l).toFixed(2).replace('.', ',') : '0,00';
         return `
             <tr>
-                <td><strong>${ab.posto}</strong></td>
-                <td>NF ${ab.nf}</td>
+                <td><strong>${escaparHtml(ab.posto)}</strong></td>
+                <td>NF ${escaparHtml(ab.nf)}</td>
                 <td>
                     <a href="relatorio-viagem.html?ficha=${encodeURIComponent(ab.fichaId)}&mode=admin" 
                        class="td-ficha-id" 
-                       title="Visualizar Ficha ${ab.fichaId}">
-                        ${ab.fichaId}
+                       title="Visualizar Ficha ${escaparHtml(ab.fichaId)}">
+                        ${escaparHtml(ab.fichaId)}
                     </a>
                 </td>
-                <td>${ab.data}</td>
-                <td>${ab.motorista}</td>
-                <td>${ab.litros} L</td>
+                <td>${escaparHtml(ab.data)}</td>
+                <td>${escaparHtml(ab.motorista)}</td>
+                <td>${escaparHtml(ab.litros)} L</td>
                 <td>R$ ${precoL}</td>
-                <td><strong>R$ ${ab.valor}</strong></td>
+                <td><strong>R$ ${escaparHtml(ab.valor)}</strong></td>
                 <td><span class="status-pill status-concluido">✓ Lançado</span></td>
             </tr>
         `;
@@ -2573,7 +2573,7 @@ function renderizarTabelaPlacasAnalise() {
                 <td class="td-num"><span class="${classeResultado(t.resultado)}">${textoOuTraco(margem, n => `${formatarNumeroBR(n * 100, 1)}%`)}</span></td>
                 <td class="td-num">${textoOuTraco(custoKm, reaisKm)}</td>
                 <td class="td-num"><span class="${classeResultado(t.resultado)}">${textoOuTraco(resultadoKm, reaisKm)}</span></td>
-                <td class="td-num">${t.litros > 0 ? `${formatarNumeroBR(t.litros, 2)} L` : '—'}</td>
+                <td class="td-num">${t.litros > 0 ? `${formatarNumeroBR(t.litros, 3)} L` : '—'}</td>
                 <td class="td-num">${textoOuTraco(media, n => `${formatarNumeroBR(n, 2)} km/l`)}</td>
                 <td class="td-num">${vsMeta}</td>
                 <td class="td-num">${moeda(t.diesel)}</td>
@@ -2895,7 +2895,7 @@ function renderizarAnalises() {
             <tr>
                 <td><strong>${escaparHtml(p.nome)}</strong></td>
                 <td class="td-num">${p.abastecimentos}</td>
-                <td class="td-num">${p.litros > 0 ? `${formatarNumeroBR(p.litros, 2)} L` : '—'}</td>
+                <td class="td-num">${p.litros > 0 ? `${formatarNumeroBR(p.litros, 3)} L` : '—'}</td>
                 <td class="td-num">${moeda(p.valor)}</td>
                 <td class="td-num">${textoOuTraco(dividirOuNulo(p.valor, p.litros), n => `R$ ${formatarNumeroBR(n, 3)}`)}</td>
             </tr>
@@ -2929,7 +2929,7 @@ function renderizarAnalises() {
         ], combustiveis.some(c => c.qtd > 0) ? combustiveis.map(c => `
             <tr>
                 <td><strong>${escaparHtml(c.nome)}</strong></td>
-                <td class="td-num">${c.litros > 0 ? `${formatarNumeroBR(c.litros, 2)} L` : '—'}</td>
+                <td class="td-num">${c.litros > 0 ? `${formatarNumeroBR(c.litros, 3)} L` : '—'}</td>
                 <td class="td-num">${moeda(c.valor)}</td>
                 <td class="td-num">${textoOuTraco(dividirOuNulo(c.valor, c.litros), n => `R$ ${formatarNumeroBR(n, 3)}`)}</td>
             </tr>
