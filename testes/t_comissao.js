@@ -213,7 +213,8 @@ async function testarFicha({ base, page }) {
   r.camposMotorista = await page.evaluate(() => {
     const info = (el) => ({
       editavel: !el.readOnly && !el.disabled && !el.closest('.campo-bloqueado-gestao') && !el.classList.contains('campo-bloqueado-gestao'),
-      tag: (el.closest('.campo-grupo')?.querySelector('.tag-motorista')?.textContent || '').trim() || '(sem tag)',
+      // (desde o passo 19 o destino final também tem a etiqueta "Na chegada": aqui vale a de quem preenche)
+      tag: (el.closest('.campo-grupo')?.querySelector('.tag-motorista:not(.tag-na-chegada)')?.textContent || '').trim() || '(sem tag)',
       obrigatorio: el.required,
       gestao: /Definido pela/.test(el.closest('.campo-grupo')?.textContent || '')
     });
@@ -238,8 +239,10 @@ async function testarFicha({ base, page }) {
   await mudar('#valor-adiantamento', '');
   r.semAdiantamento = (await tentarEnviar(page)).erros;
   await page.focus('#valor-adiantamento'); await page.keyboard.type('50000');
+  // Desde o passo 19 o valor do frete é opcional para o motorista (a gestão completa): abre a revisão
   await page.$eval('[name="valor_frete_ml_1"]', el => { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); });
-  r.semValorFrete = (await tentarEnviar(page)).erros;
+  r.semValorFrete = await tentarEnviar(page);
+  if (r.semValorFrete.revisaoAberta) { await page.click('#btn-revisar-voltar'); await new Promise(res => setTimeout(res, 200)); }
   await linhaFrete(page, 1, { cliente: 'shopee' });
 
   // Revisão e envio com os campos novos
