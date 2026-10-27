@@ -1,4 +1,5 @@
-// Litros com 3 casas, como a bomba (128,501 L): máscara, colar, aviso de preço por litro (só avisa),
+// Litros com 3 casas, como a bomba (128,501 L): máscara, colar, sem aviso de preço por litro (só o de limite),
+// totais de diesel e ARLA com 3 casas,
 // média do diesel e da ARLA igual à conta feita à mão, o que vai para o banco, ficha antiga com 2 casas
 // reaberta na conferência da gestão e o dashboard (resumo da ficha e média da frota).
 // Uso: node testes/t_litros_3casas.js [largura]
@@ -61,8 +62,10 @@ const espera = (ms) => new Promise(res => setTimeout(res, ms));
   r.colar = {};
   for (const t of ['128,501', '128.501', '128501', '128,50', '1.250,50', 'R$ 312,92 L']) r.colar[t] = await colar(2, t);
 
-  // 3. Aviso de preço: R$ 872,52 com 128,501 L (6,79/L) sem aviso; com 1285,01 L (0,68/L) avisa e não bloqueia
+  // 3. Sem aviso de preço por litro (foi tirado): R$ 872,52 com 128,501 L ou com 1285,01 L, nenhum aviso;
+  //    o aviso de limite (1.500 L de diesel / 150 L de ARLA) continua. Totais com 3 casas, como as linhas.
   await novaFicha();
+  r.totaisAoAbrir = await page.evaluate(() => `diesel ${document.getElementById('ml-total-litros-diesel').value} L | ARLA ${document.getElementById('ml-total-litros-arla').value} L`);
   await digitar('#placas', 'ABC1D23');
   await digitar('#data-saida', '01102026');
   await digitar('#data-chegada', '05102026');
@@ -71,18 +74,24 @@ const espera = (ms) => new Promise(res => setTimeout(res, ms));
   await page.$eval('#destino-inicial', el => { el.value = 'Marília - SP'; el.dispatchEvent(new Event('input', { bubbles: true })); });
   await digitar('#valor-adiantamento', '0');
   await abastecimento(1, 'diesel_s10', '87252', '128501');
-  r.preco = { certo_128_501: `${await valorDe(campo(1))} L → ${await avisoDe(1)}` };
+  r.semAvisoDePreco = { r128_501: `${await valorDe(campo(1))} L → ${await avisoDe(1)}` };
   await abastecimento(2, 'diesel_s500', '87252', '1285010');
-  r.preco.errado_1285_01 = `${await valorDe(campo(2))} L → ${await avisoDe(2)}`;
-  // valor digitado depois dos litros também confere
-  await abastecimento(3, 'arla', '100', '20125');   // R$ 1,00 por 20,125 L de ARLA = 0,05/L
-  r.preco.arla_barata = `${await valorDe(campo(3))} L → ${await avisoDe(3)}`;
-  await page.$eval('[name="valor_ml_3"]', el => { el.value = ''; });
-  await digitar('[name="valor_ml_3"]', '8050');      // R$ 80,50 / 20,125 = 4,00/L
+  r.semAvisoDePreco.r1285_01 = `${await valorDe(campo(2))} L → ${await avisoDe(2)}`;
+  await abastecimento(3, 'arla', '100', '20125');   // R$ 1,00 por 20,125 L de ARLA
   await page.$eval('[name="valor_ml_3"]', el => el.blur());
   await espera(100);
-  r.preco.arla_corrigida = `${await valorDe(campo(3))} L → ${await avisoDe(3)}`;
-  r.preco.limite1500Continua = await (async () => { await abastecimento(4, 'diesel_s10', '1200000', '1600000'); return avisoDe(4); })();
+  r.semAvisoDePreco.arla_r1 = `${await valorDe(campo(3))} L → ${await avisoDe(3)}`;
+  await page.$eval('[name="valor_ml_3"]', el => { el.value = ''; });
+  await digitar('[name="valor_ml_3"]', '8050');      // R$ 80,50
+  await page.$eval('[name="valor_ml_3"]', el => el.blur());
+  await espera(100);
+  r.semAvisoDePreco.textoNaPagina = await page.evaluate(() => /por litro/i.test(document.getElementById('form-relatorio').innerText) ? 'APARECE' : 'não aparece');
+  r.limite1500Continua = await (async () => { await abastecimento(4, 'diesel_s10', '1200000', '1600000'); return avisoDe(4); })();
+  r.limite150ArlaContinua = await (async () => { await abastecimento(5, 'arla', '50000', '150010'); return avisoDe(5); })();
+  await page.$eval(campo(5), el => { el.value = '0,000'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.$eval('[name="valor_ml_5"]', el => { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.select('[name="posto_ml_5"]', '');
+  await page.select('[name="combustivel_ml_5"]', '');
   await page.$eval(campo(4), el => { el.value = '0,000'; el.dispatchEvent(new Event('input', { bubbles: true })); });
   await page.$eval('[name="valor_ml_4"]', el => { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); });
   await page.select('[name="posto_ml_4"]', '');
@@ -102,7 +111,7 @@ const espera = (ms) => new Promise(res => setTimeout(res, ms));
   r.media.aMao = `diesel ${fmt2(kmViagem / dieselL)} km/l (1.500 ÷ ${dieselL.toLocaleString('pt-BR', { maximumFractionDigits: 3 })}) | ARLA ${fmt2(kmViagem / arlaL)} km/l (1.500 ÷ 20,125)`;
   r.media.bate = r.media.mediaDiesel.startsWith(fmt2(kmViagem / dieselL)) && r.media.mediaArla.includes(fmt2(kmViagem / arlaL));
 
-  // 5. Envio: o aviso de preço não bloqueia; vai 128,501 (3 casas) para o banco
+  // 5. Envio: vai 128,501 (3 casas) para o banco
   await page.$eval('#btn-finalizar-relatorio-ml', el => el.scrollIntoView({ block: 'center' }));
   await page.click('#btn-finalizar-relatorio-ml');
   await espera(400);

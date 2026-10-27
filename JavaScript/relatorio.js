@@ -1945,9 +1945,6 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     const LIMITE_LITROS_DIESEL = 1500;
     const LIMITE_LITROS_ARLA = 150;
     const AVISO_LITROS = 'Confira os litros: digite só os números, a vírgula entra sozinha (128501 = 128,501).';
-    // Preço por litro fora de R$ 3,00 a R$ 10,00: provável litro digitado errado (só avisa, não bloqueia)
-    const PRECO_LITRO_MIN = 3;
-    const PRECO_LITRO_MAX = 10;
 
     function litrosForaDoLimite(i) {
         const comb = document.querySelector(`select[name="combustivel_ml_${i}"]`)?.value || '';
@@ -1955,28 +1952,13 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         return litros > (comb === 'arla' ? LIMITE_LITROS_ARLA : LIMITE_LITROS_DIESEL);
     }
 
-    // Valor ÷ litros da linha fora da faixa: o preço (R$ por litro); dentro da faixa ou sem base, null
-    function precoLitroSuspeito(i) {
-        const valor = parseMoeda(document.querySelector(`input[name="valor_ml_${i}"]`)?.value || '');
-        const litros = parseLitros(document.querySelector(`input[name="litros_ml_${i}"]`)?.value || '');
-        if (!(valor > 0) || !(litros > 0)) return null;
-        const preco = valor / litros;
-        return (preco < PRECO_LITRO_MIN || preco > PRECO_LITRO_MAX) ? preco : null;
-    }
-
-    // Marca (ou desmarca) o campo de litros da linha; true = passou do limite (bloqueia o envio do
-    // motorista). Dentro do limite, o preço por litro fora da faixa só avisa.
+    // Marca (ou desmarca) o campo de litros da linha; true = passou do limite (bloqueia o envio do motorista)
     function conferirLitrosDaLinha(i) {
         const input = document.querySelector(`input[name="litros_ml_${i}"]`);
         if (!input) return false;
         if (litrosForaDoLimite(i)) {
             marcarErroCampo(input, AVISO_LITROS);
             return true;
-        }
-        const preco = precoLitroSuspeito(i);
-        if (preco !== null) {
-            marcarErroCampo(input, `Confira os litros: deu R$ ${formatarMoedaSemPrefixo(preco)} por litro`);
-            return false;
         }
         const aviso = (input.closest('.tabela-litros-wrap') || input).nextElementSibling;
         if (aviso && aviso.classList.contains('erro-campo-celular') && aviso.textContent.startsWith('Confira os litros')) limparErroCampo(input);
@@ -2036,10 +2018,6 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
         if (inputValor) {
             inputsValorAbastMl.push(inputValor);
-            // Ao sair do valor, o preço por litro é conferido de novo (aviso nos litros)
-            inputValor.addEventListener('blur', () => {
-                if (inputLitros && parseLitros(inputLitros.value) > 0) conferirLitrosDaLinha(i);
-            });
             aplicarMascaraMoeda(inputValor, () => {
                 calcularTotaisAbastecimentoMl();
                 calcularIndicadoresViagemMl();
@@ -2094,10 +2072,11 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             alvo.litros += parseLitros(document.querySelector(`input[name="litros_ml_${i}"]`)?.value || '');
         }
 
+        // Litros dos totais com 3 casas, no mesmo formato das linhas (50,000 / 0,000); só exibição
         if (inputTotalValorDieselMl) inputTotalValorDieselMl.value = formatarMoedaSemPrefixo(diesel.valor);
-        if (inputTotalLitrosDieselMl) inputTotalLitrosDieselMl.value = formatarLitros(diesel.litros);
+        if (inputTotalLitrosDieselMl) inputTotalLitrosDieselMl.value = formatarCampoLitros(diesel.litros * 1000);
         if (inputTotalValorArlaMl) inputTotalValorArlaMl.value = formatarMoedaSemPrefixo(arla.valor);
-        if (inputTotalLitrosArlaMl) inputTotalLitrosArlaMl.value = formatarLitros(arla.litros);
+        if (inputTotalLitrosArlaMl) inputTotalLitrosArlaMl.value = formatarCampoLitros(arla.litros * 1000);
 
         return { valor: diesel.valor + arla.valor, litros: diesel.litros + arla.litros, diesel, arla };
     }
