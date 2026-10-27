@@ -744,8 +744,12 @@
         const nomeCrlv = (papel) => `CRLV ${/carreta$/i.test(papel) ? 'da' : 'do'} ${papel}`;
         const SECOES_FIXAS_NOVAS = [
             ['Empresa (PJ)', SECOES[0][1]],
-            ['Motorista', [['motorista-nome', 'Nome'], ['motorista-sobrenome', 'Sobrenome'], ['cpf', 'CPF'], ['celular', 'Celular']]]
+            ['Motorista', [['motorista-nome', 'Nome'], ['motorista-sobrenome', 'Sobrenome'], ['cpf', 'CPF'], ['celular', 'Celular']]],
+            // Pedido desde os cadastros só com PDF; nos anteriores aparece "não informado"
+            ['Rastreador', [['rastreador-marca', 'Marca do rastreador'], ['rastreador-id', 'Código / ID do rastreador']]]
         ];
+        // Campos que, vazios, aparecem como "não informado" (e não "—")
+        const CAMPOS_NAO_INFORMADO = new Set(['rastreador-marca', 'rastreador-id']);
         const CAMPOS_CNH_NOVOS = [['nascimento', 'Nascimento'], ['rg', 'RG'], ['rg-uf', 'UF do RG'], ['uf-nasc', 'Estado de nascimento'],
             ['cidade-nasc', 'Cidade de nascimento'], ['mae', 'Nome da mãe'], ...SECOES[2][1]];
         const camposCrlvNovos = (n) => [['placa', 'Placa'], ['renavam', 'RENAVAM'], ['chassi', 'Chassi'], ['marca', 'Marca'],
@@ -1156,7 +1160,7 @@
             const novo = !!d._tipologia;
             const tabela = (linhas) => `<table>${linhas.map(([rotulo, valor]) =>
                 `<tr><th>${esc(rotulo)}</th><td>${esc(valor) || '—'}</td></tr>`).join('')}</table>`;
-            const tabelaCampos = (campos) => tabela(campos.map(([k, rotulo]) => [rotulo, valorCampo(k, d[k])]));
+            const tabelaCampos = (campos) => tabela(campos.map(([k, rotulo]) => [rotulo, valorCampo(k, d[k]) || (CAMPOS_NAO_INFORMADO.has(k) ? 'não informado' : '')]));
             const arquivos = (lista) => (lista.length ? `<ul>${lista.map((x) =>
                 `<li>${esc(nomes[x.path] || x.nome)} <small>(enviado como "${esc(x.nome)}")${enviados.has(x.path) ? '' : ' — não chegou a ser enviado'}</small></li>`).join('')}</ul>` : '');
             const fotos = (lista) => {
@@ -1441,7 +1445,7 @@ ${secao('Documentos extras', listaExtras)}
                             ${campos.map(([k, rotulo]) => `
                                 <label class="cad-campo">
                                     <span>${esc(rotulo)}</span>
-                                    <input type="text" data-campo="${esc(k)}" value="${esc(valorCampo(k, d[k]))}" readonly placeholder="—">
+                                    <input type="text" data-campo="${esc(k)}" value="${esc(valorCampo(k, d[k]))}" readonly placeholder="${CAMPOS_NAO_INFORMADO.has(k) ? 'não informado' : '—'}">
                                 </label>`).join('')}
                         </div>`;
             const secaoFixa = ([titulo, campos]) => `

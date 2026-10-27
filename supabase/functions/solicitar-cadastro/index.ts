@@ -211,6 +211,15 @@ const CAMPOS_EMPRESA = [
   "responsavel",
 ];
 
+// Rastreador do veículo (PF e PJ), obrigatório.
+const CAMPOS_RASTREADOR = [
+  "rastreador-marca",
+  "rastreador-id",
+];
+
+const MAX_MARCA_RASTREADOR = 60;
+const MAX_ID_RASTREADOR = 40;
+
 const TIPOLOGIAS: Record<string, string[]> = {
   "VUC/¾": ["Caminhão"],
   "Toco (4×2)": ["Caminhão"],
@@ -260,6 +269,8 @@ const ROTULOS: Record<string, string> = {
   "motorista-sobrenome": "Sobrenome",
   "cpf": "CPF",
   "celular": "Celular",
+  "rastreador-marca": "Marca do rastreador",
+  "rastreador-id": "Código / ID do rastreador",
 };
 
 // "a CNH" → "da CNH"; "o RNTRC" → "do RNTRC".
@@ -496,6 +507,7 @@ Deno.serve(async (req: Request) => {
     const permitidos = new Set([
       ...CAMPOS_ACESSO,
       ...(tipo === "pj" ? CAMPOS_EMPRESA : []),
+      ...CAMPOS_RASTREADOR,
     ]);
 
     const dadosBrutos = objetoValido(corpo.dados)
@@ -653,10 +665,24 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    exigir(
+      CAMPOS_RASTREADOR,
+      (campo) => ROTULOS[campo] ?? campo,
+    );
+
     if (faltando.length > 0) {
       return resp(req, 400, {
         erro: "Preencha os campos obrigatórios.",
         faltando,
+      });
+    }
+
+    if (
+      dados["rastreador-marca"].length > MAX_MARCA_RASTREADOR ||
+      dados["rastreador-id"].length > MAX_ID_RASTREADOR
+    ) {
+      return resp(req, 400, {
+        erro: `Rastreador: a marca tem no máximo ${MAX_MARCA_RASTREADOR} caracteres e o código/ID, ${MAX_ID_RASTREADOR}.`,
       });
     }
 

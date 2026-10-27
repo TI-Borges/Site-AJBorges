@@ -100,6 +100,15 @@ document.addEventListener('DOMContentLoaded', () => {
         applyMask(document.getElementById(`${p}-celular`), maskPhone);
         ['motorista-nome', 'motorista-sobrenome'].forEach((s) => bloquearNumeros(document.getElementById(`${p}-${s}`)));
     });
+    // Rastreador: escolher "Outra" na lista limpa o campo para digitar o nome da marca
+    ['pj', 'pf'].forEach((p) => {
+        const marca = document.getElementById(`${p}-rastreador-marca`);
+        marca?.addEventListener('input', () => {
+            if (marca.value.trim().toLowerCase() !== 'outra') return;
+            marca.value = '';
+            marca.placeholder = 'Digite o nome da marca';
+        });
+    });
     applyMask(document.getElementById('pj-cnpj'), maskCNPJ);
     applyMask(document.getElementById('pj-telefone-empresa'), maskPhone);
     bloquearNumeros(document.getElementById('pj-responsavel'));
@@ -371,6 +380,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const CAMPOS_ACESSO = ['motorista-nome', 'motorista-sobrenome', 'cpf', 'celular'];
     const CAMPOS_EMPRESA = ['nome-empresa', 'cnpj', 'telefone-empresa', 'responsavel'];
+    // Rastreador do veículo (PF e PJ), obrigatório
+    const CAMPOS_RASTREADOR = ['rastreador-marca', 'rastreador-id'];
     const MAX_ARQUIVOS = 3;
     // Documentos: só PDF, até 3 por documento. Foto (JPG/PNG) só onde a zona aceita foto.
     const TIPOS_PDF = ['application/pdf'];
@@ -549,8 +560,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function montarEnvio(prefixo) {
         const docs = documentosDe(prefixo);
-        // Só os dados de acesso (e os da empresa): os dos documentos vêm no PDF
-        const chaves = [...CAMPOS_ACESSO, ...(prefixo === 'pj' ? CAMPOS_EMPRESA : [])];
+        // Dados de acesso, da empresa e do rastreador: os dos documentos vêm no PDF
+        const chaves = [...CAMPOS_ACESSO, ...(prefixo === 'pj' ? CAMPOS_EMPRESA : []), ...CAMPOS_RASTREADOR];
         const dados = {};
         chaves.forEach((s) => {
             const el = campo(prefixo, s);
@@ -667,6 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div>Tipo: <b>${prefixo === 'pj' ? 'Pessoa Jurídica' : 'Pessoa Física'}</b> · Veículo: <b>${esc(corpo.tipologia)}</b></div>
                 <div>Motorista: <b>${esc(nome)}</b> · CPF <b>${esc(corpo.dados.cpf || '')}</b></div>
                 <div>E-mail: <b>${esc(corpo.email || 'Não informado')}</b></div>
+                <div>Rastreador: <b>${esc(corpo.dados['rastreador-marca'] || '')}</b> · ID <b>${esc(corpo.dados['rastreador-id'] || '')}</b></div>
                 ${documentosDe(prefixo).map((d) => `<div>${esc(d.titulo)}: <b>${situacao(d)}</b></div>`).join('')}
                 <div>Política de Privacidade: <b>aceita</b></div>`;
             envioEmAndamento = { form, prefixo };
