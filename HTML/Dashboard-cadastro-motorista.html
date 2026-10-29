@@ -21,7 +21,7 @@
         rel="stylesheet">
 
     <!-- Folha de Estilos Base -->
-    <link rel="stylesheet" href="../CSS/dashboard-admin.css?v=2.7">
+    <link rel="stylesheet" href="../CSS/dashboard-admin.css?v=2.8">
 
     <!-- Verificação de Sessão Administrativa (Route Guard) -->
     <script>
@@ -369,7 +369,9 @@
              ==================================================================== -->
         <aside class="admin-sidebar" id="admin-sidebar">
             <div class="sidebar-header">
-                <a href="escolhaDashboard.html" class="sidebar-brand" title="Voltar à Seleção de Dashboard">
+                <!-- Logo: recolhe e abre a barra (alternarSidebar, no script desta página) -->
+                <div class="sidebar-brand" id="sidebar-brand" role="button" tabindex="0" aria-label="Recolher menu"
+                    aria-expanded="true" aria-controls="admin-sidebar" title="Recolher menu">
                     <div class="brand-logo-wrapper" style="background: linear-gradient(135deg, #059669, #10b981);">
                         <img src="../Imagens/logo-brand-1x.png" srcset="../Imagens/logo-brand-1x.png 1x, ../Imagens/logo-brand-2x.png 2x" alt="AJBorges Logo" class="brand-logo" width="24" height="16">
                     </div>
@@ -377,7 +379,7 @@
                         <span class="brand-name">AJBorges</span>
                         <span class="brand-tag" style="color: #34d399;">Cadastro do Motorista</span>
                     </div>
-                </a>
+                </div>
             </div>
 
             <nav class="sidebar-nav" aria-label="Menu de Fichas Cadastrais">
@@ -669,6 +671,68 @@
             window.ajbAvisoAtualizacaoGestao?.iniciar(document.getElementById('btn-aviso-atualizacao'));
             iniciarNotificacoesCadastros(usuarioSessao && usuarioSessao.id);
         });
+
+        // Barra lateral recolhível pelo logo, igual à do dashboard da frota (classes do
+        // dashboard-admin.css). Só no computador; no celular esta barra não aparece, nada muda.
+        (function () {
+            const sidebar = document.getElementById('admin-sidebar');
+            const logoSidebar = document.getElementById('sidebar-brand');
+            const layoutApp = document.querySelector('.admin-app-layout');
+            const CHAVE_SIDEBAR = 'ajborges_sidebar_recolhida_cadastro';
+            if (!sidebar || !logoSidebar || !layoutApp) return;
+
+            // Barra recolhida: o nome de cada item vai no title (o title de antes volta quando abre)
+            const colocarDicaSidebar = (item) => {
+                const nome = (item.querySelector('.nav-text, .user-email')?.textContent || '').trim();
+                if (!nome) return;
+                if (!item.hasAttribute('data-title-aberta')) item.setAttribute('data-title-aberta', item.getAttribute('title') || '');
+                item.title = nome;
+            };
+            const tirarDicasSidebar = () => {
+                sidebar.querySelectorAll('[data-title-aberta]').forEach(item => {
+                    const t = item.getAttribute('data-title-aberta');
+                    if (t) item.title = t; else item.removeAttribute('title');
+                    item.removeAttribute('data-title-aberta');
+                });
+            };
+
+            const aplicarSidebarRecolhida = (recolhida) => {
+                layoutApp.classList.toggle('sidebar-recolhida', recolhida);
+                const rotulo = recolhida ? 'Abrir menu' : 'Recolher menu';
+                logoSidebar.setAttribute('aria-label', rotulo);
+                logoSidebar.setAttribute('aria-expanded', String(!recolhida));
+                logoSidebar.title = rotulo;
+                if (recolhida) sidebar.querySelectorAll('.nav-link, .user-profile-badge').forEach(colocarDicaSidebar);
+                else tirarDicasSidebar();
+            };
+
+            const alternarSidebar = () => {
+                if (window.matchMedia('(max-width: 992px)').matches) return;
+                const recolhida = !layoutApp.classList.contains('sidebar-recolhida');
+                aplicarSidebarRecolhida(recolhida);
+                try { localStorage.setItem(CHAVE_SIDEBAR, recolhida ? '1' : '0'); } catch (e) { /* só nesta aba */ }
+            };
+
+            // Volta como estava, sem animar na abertura da página
+            let recolhidaAntes = false;
+            try { recolhidaAntes = localStorage.getItem(CHAVE_SIDEBAR) === '1'; } catch (e) { /* aberta */ }
+            if (recolhidaAntes) {
+                layoutApp.classList.add('sidebar-sem-transicao');
+                aplicarSidebarRecolhida(true);
+                requestAnimationFrame(() => requestAnimationFrame(() => layoutApp.classList.remove('sidebar-sem-transicao')));
+            }
+            sidebar.addEventListener('mouseover', (e) => {
+                const item = e.target.closest('.nav-link, .user-profile-badge');
+                if (item && layoutApp.classList.contains('sidebar-recolhida')) colocarDicaSidebar(item);
+            });
+            logoSidebar.addEventListener('click', alternarSidebar);
+            logoSidebar.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    alternarSidebar();
+                }
+            });
+        })();
 
         // =====================================================================
         // Fichas de cadastro lidas do Supabase (tabela cadastros_agregados).

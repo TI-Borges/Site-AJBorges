@@ -421,6 +421,88 @@ body.admin-body {
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
+/* Logo do topo: recolhe e abre a barra (os dois dashboards) */
+.sidebar-brand[role="button"] {
+    cursor: pointer;
+    border-radius: 10px;
+}
+
+.sidebar-brand[role="button"]:focus-visible {
+    outline: 2px solid #818cf8;
+    outline-offset: 4px;
+}
+
+/* Barra recolhida (só no computador; o celular segue com a gaveta sidebar-aberta): só os ícones,
+   o logo continua visível para abrir de novo e o conteúdo ocupa o espaço que sobra */
+@media (min-width: 993px) {
+    .admin-app-layout .admin-sidebar,
+    .admin-app-layout .admin-main-wrapper {
+        transition: width 0.2s ease, margin-left 0.2s ease;
+    }
+
+    .sidebar-sem-transicao .admin-sidebar,
+    .sidebar-sem-transicao .admin-main-wrapper {
+        transition: none;
+    }
+
+    .sidebar-recolhida .admin-sidebar {
+        width: var(--sidebar-colapsada);
+    }
+
+    .sidebar-recolhida .admin-main-wrapper {
+        margin-left: var(--sidebar-colapsada);
+    }
+
+    .sidebar-recolhida .sidebar-header {
+        padding: 0;
+        justify-content: center;
+    }
+
+    .sidebar-recolhida .brand-info,
+    .sidebar-recolhida .btn-toggle-sidebar,
+    .sidebar-recolhida .nav-group-label,
+    .sidebar-recolhida .badge-pendentes-sidebar,
+    .sidebar-recolhida .user-details {
+        display: none;
+    }
+
+    /* Texto escondido só da vista: o leitor de tela continua lendo o nome do item */
+    .sidebar-recolhida .nav-text,
+    .sidebar-recolhida .btn-logout-sidebar span {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .sidebar-recolhida .nav-list + .nav-group-label + .nav-list {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--sidebar-border);
+    }
+
+    .sidebar-recolhida .nav-link {
+        justify-content: center;
+        gap: 0;
+        padding: 10px;
+    }
+
+    .sidebar-recolhida .sidebar-footer {
+        padding: 16px 12px;
+    }
+
+    .sidebar-recolhida .user-profile-badge {
+        justify-content: center;
+    }
+
+    .sidebar-recolhida .btn-logout-sidebar {
+        gap: 0;
+        padding: 8px 0;
+    }
+}
+
 /* ==========================================================================
    Área Principal do Dashboard
    ========================================================================== */

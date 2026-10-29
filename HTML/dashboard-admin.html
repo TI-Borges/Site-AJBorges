@@ -24,7 +24,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <!-- Folha de Estilos do Dashboard -->
-    <link rel="stylesheet" href="../CSS/dashboard-admin.css?v=2.7">
+    <link rel="stylesheet" href="../CSS/dashboard-admin.css?v=2.8">
 
     <!-- Verificação de Sessão Administrativa (Route Guard) -->
     <script>
@@ -42,7 +42,9 @@
         <aside class="admin-sidebar" id="admin-sidebar">
             <!-- Topo / Identidade da Marca -->
             <div class="sidebar-header">
-                <a href="dashboard-admin.html" class="sidebar-brand" title="AJBorges Transportes">
+                <!-- Logo: recolhe e abre a barra (dashboard-admin.js → alternarSidebar) -->
+                <div class="sidebar-brand" id="sidebar-brand" role="button" tabindex="0" aria-label="Recolher menu"
+                    aria-expanded="true" aria-controls="admin-sidebar" title="Recolher menu">
                     <div class="brand-logo-wrapper">
                         <img src="../Imagens/logo-brand-1x.png" srcset="../Imagens/logo-brand-1x.png 1x, ../Imagens/logo-brand-2x.png 2x" alt="AJBorges Logo" class="brand-logo" width="24" height="16">
                     </div>
@@ -50,7 +52,7 @@
                         <span class="brand-name">AJBorges</span>
                         <span class="brand-tag">Gestão Operacional</span>
                     </div>
-                </a>
+                </div>
                 <button type="button" class="btn-toggle-sidebar" id="btn-toggle-sidebar" aria-label="Recolher Menu">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1635,7 +1637,7 @@
     <script src="../JavaScript/senha.js"></script>
     <script src="../JavaScript/aviso-atualizacao-gestao.js?v=1"></script>
     <script src="../JavaScript/notificacoes-gestao.js?v=1"></script>
-    <script src="../JavaScript/dashboard-admin.js?v=2.9"></script>
+    <script src="../JavaScript/dashboard-admin.js?v=3.0"></script>
 </body>
 
 </html>

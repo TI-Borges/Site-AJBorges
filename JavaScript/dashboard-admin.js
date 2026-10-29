@@ -3594,9 +3594,14 @@ ajbAoAutenticar(['admin', 'diretoria'], 'Login.html#admin', (usuarioSessao) => {
     }
 
     // 11. Toggle Sidebar no Mobile e Desktop
+    //     Celular: o "<" fecha a gaveta (sidebar-aberta), como sempre. Computador: o "<" e o logo
+    //     recolhem e abrem a barra (sidebar-recolhida, só ícones); a escolha fica no localStorage.
     const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
     const btnMobileMenu = document.getElementById('btn-mobile-menu');
     const sidebar = document.getElementById('admin-sidebar');
+    const logoSidebar = document.getElementById('sidebar-brand');
+    const layoutApp = document.querySelector('.admin-app-layout');
+    const CHAVE_SIDEBAR = 'ajborges_sidebar_recolhida_frota';
 
     if (btnMobileMenu && sidebar) {
         btnMobileMenu.addEventListener('click', () => {
@@ -3604,9 +3609,70 @@ ajbAoAutenticar(['admin', 'diretoria'], 'Login.html#admin', (usuarioSessao) => {
         });
     }
 
-    if (btnToggleSidebar && sidebar) {
-        btnToggleSidebar.addEventListener('click', () => {
+    // Barra recolhida: o nome de cada item vai no title (o title de antes volta quando abre)
+    const colocarDicaSidebar = (item) => {
+        const nome = (item.querySelector('.nav-text, .user-email')?.textContent || '').trim();
+        if (!nome) return;
+        if (!item.hasAttribute('data-title-aberta')) item.setAttribute('data-title-aberta', item.getAttribute('title') || '');
+        item.title = nome;
+    };
+    const tirarDicasSidebar = () => {
+        sidebar.querySelectorAll('[data-title-aberta]').forEach(item => {
+            const t = item.getAttribute('data-title-aberta');
+            if (t) item.title = t; else item.removeAttribute('title');
+            item.removeAttribute('data-title-aberta');
+        });
+    };
+
+    const aplicarSidebarRecolhida = (recolhida) => {
+        layoutApp.classList.toggle('sidebar-recolhida', recolhida);
+        const rotulo = recolhida ? 'Abrir menu' : 'Recolher menu';
+        if (logoSidebar) {
+            logoSidebar.setAttribute('aria-label', rotulo);
+            logoSidebar.setAttribute('aria-expanded', String(!recolhida));
+            logoSidebar.title = rotulo;
+        }
+        if (recolhida) sidebar.querySelectorAll('.nav-link, .user-profile-badge').forEach(colocarDicaSidebar);
+        else tirarDicasSidebar();
+    };
+
+    const alternarSidebar = () => {
+        if (window.matchMedia('(max-width: 992px)').matches) {
             sidebar.classList.toggle('sidebar-aberta');
+            return;
+        }
+        const recolhida = !layoutApp.classList.contains('sidebar-recolhida');
+        aplicarSidebarRecolhida(recolhida);
+        try { localStorage.setItem(CHAVE_SIDEBAR, recolhida ? '1' : '0'); } catch (e) { /* só nesta aba */ }
+    };
+
+    if (sidebar && layoutApp) {
+        // Volta como estava, sem animar na abertura da página
+        let recolhidaAntes = false;
+        try { recolhidaAntes = localStorage.getItem(CHAVE_SIDEBAR) === '1'; } catch (e) { /* aberta */ }
+        if (recolhidaAntes) {
+            layoutApp.classList.add('sidebar-sem-transicao');
+            aplicarSidebarRecolhida(true);
+            requestAnimationFrame(() => requestAnimationFrame(() => layoutApp.classList.remove('sidebar-sem-transicao')));
+        }
+        // O e-mail do gestor chega depois: a dica do avatar é conferida ao passar o mouse
+        sidebar.addEventListener('mouseover', (e) => {
+            const item = e.target.closest('.nav-link, .user-profile-badge');
+            if (item && layoutApp.classList.contains('sidebar-recolhida')) colocarDicaSidebar(item);
+        });
+    }
+
+    if (btnToggleSidebar && sidebar) {
+        btnToggleSidebar.addEventListener('click', alternarSidebar);
+    }
+
+    if (logoSidebar && sidebar) {
+        logoSidebar.addEventListener('click', alternarSidebar);
+        logoSidebar.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                alternarSidebar();
+            }
         });
     }
 
