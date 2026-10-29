@@ -1,13 +1,10 @@
 // Onde o aviso de atualização aparece (passo 21):
 //  1. cada página pede a RPC com o seu local e cada combinação de locais aparece só nos lugares certos
-//     (faixa no relatório de viagem/login e nas páginas do site; ícone nos dashboards e no escolhaDashboard,
-//     nunca faixa nos dashboards);
-//  2. ícone dos dashboards: perto do sino, pontinho até abrir, modal com programada/em atualização, dia,
-//     início, término e descrição escapada; ids vistos no localStorage (e sem localStorage não quebra);
-//     360 px sem rolagem lateral;
+//     (faixa em todos: relatório de viagem/login, páginas do site, dashboards e escolhaDashboard);
+//  2. dashboards: a faixa fica em cima do conteúdo, sem cobrir a barra lateral (aberta, recolhida e a gaveta
+//     do celular), descrição escapada, e não sobra ícone, modal nem ids vistos no localStorage;
 //  3. modal da gestão: "Todos" e as 4 caixas, não salva sem nenhuma, grava locais, lista mostra onde.
-// A RPC é simulada no navegador (fetch e supabaseClient falsos) e filtra por p_local como o banco;
-// aviso novo ou removido é conferido recarregando a página (no painel o visibilitychange também recarrega os dados).
+// A RPC é simulada no navegador (fetch e supabaseClient falsos) e filtra por p_local como o banco.
 const { abrir } = require('./harness');
 
 const HORA = 3600 * 1000;
@@ -15,7 +12,7 @@ const ADMIN = { role: 'admin', nome: 'Gestão Teste', id: 'admin-1', email: 'ges
 const MOTORISTA = { role: 'motorista', nome: 'Motorista Teste', id: 'u1', cpf: '00000000000' };
 const PAGINAS = [
   ['relatorio-viagem', MOTORISTA], ['Login', null], ['index', null], ['FichaMultiCadastro', null], ['Nossosfretes', null],
-  ['Sobrenos', null], ['Contato', null], ['dashboard-admin', ADMIN], ['escolhaDashboard', ADMIN], ['Dashboard-cadastro-motorista', ADMIN]
+  ['Sobrenos', null], ['Contato', null], ['politica-privacidade', null], ['dashboard-admin', ADMIN], ['escolhaDashboard', ADMIN], ['Dashboard-cadastro-motorista', ADMIN]
 ];
 
 (async () => {
@@ -86,9 +83,7 @@ const PAGINAS = [
   };
   const oQueAparece = () => page.evaluate(() => {
     const f = document.querySelector('.aviso-atualizacao-faixa');
-    const b = document.getElementById('btn-aviso-local');
     if (f) return `faixa "${f.textContent.match(/Teste \w+/)?.[0] || f.textContent.slice(0, 40)}"`;
-    if (b && !b.hidden) return `ícone${b.querySelector('.aviso-local-ponto').hidden ? '' : ' com pontinho'}`;
     return '—';
   });
   const r = {};
@@ -111,92 +106,64 @@ const PAGINAS = [
     }
     r.matriz.push(`[${locais.join(', ')}] → ${linha.filter(l => !l.endsWith('—')).join(' | ') || 'nenhum lugar'}`);
   }
-  // Nos dashboards nunca há faixa, mesmo com aviso de todos os lugares
-  r.faixaNosDashboards = [];
-  for (const pag of ['dashboard-admin', 'Dashboard-cadastro-motorista', 'escolhaDashboard']) {
-    await preparar([aviso(1, -1 * HORA, 1 * HORA, 'Teste todos', ['frota', 'cadastro', 'ficha', 'site'])], ADMIN);
-    await abrirPagina(pag);
-    r.faixaNosDashboards.push(`${pag}: ${await page.evaluate(() => document.querySelectorAll('.aviso-atualizacao-faixa').length)} faixa(s)`);
-  }
-
-  // 2. Ícone e modal nos dashboards
-  r.icone = {};
+  // 2. Faixa nos dashboards: em cima do conteúdo, sem cobrir a barra lateral (aberta, recolhida e a
+  //    gaveta do celular); descrição escapada; sem ícone, modal ou ids vistos
+  r.painel = {};
   const DESC = 'Nova tela <img src=x onerror="window.__xss=1"> & "fichas"';
+  const medirFaixa = () => page.evaluate(() => {
+    const f = document.querySelector('.aviso-atualizacao-faixa');
+    if (!f) return 'SEM faixa';
+    const rf = f.getBoundingClientRect();
+    const sb = document.getElementById('admin-sidebar');
+    const rs = sb ? sb.getBoundingClientRect() : null;
+    const topo = document.querySelector('.admin-topbar');
+    const rt = topo ? topo.getBoundingClientRect() : null;
+    const sobreposta = rs && rs.right > 0 && rf.left < rs.right - 0.5 && rf.right > rs.left;
+    return [
+      `faixa x ${Math.round(rf.left)}–${Math.round(rf.right)} y ${Math.round(rf.top)}–${Math.round(rf.bottom)}`,
+      rs ? `barra ${Math.round(rs.left)}–${Math.round(rs.right)}` : 'sem barra',
+      `dentro de ${f.parentElement.className || f.parentElement.tagName.toLowerCase()}`,
+      rt ? `topbar começa em ${Math.round(rt.top)} (${rt.top >= rf.bottom - 0.5 ? 'abaixo da faixa' : 'EM CIMA da faixa'})` : '',
+      sobreposta ? `sobrepõe a barra: ${sb.contains(document.elementFromPoint(Math.round((Math.max(rf.left, rs.left) + Math.min(rf.right, rs.right)) / 2), Math.round(rf.top + rf.height / 2))) ? 'barra por cima' : 'FAIXA COBRE A BARRA'}` : 'não sobrepõe a barra',
+      `rolagemH=${document.documentElement.scrollWidth > window.innerWidth ? 'SIM' : 'não'}`
+    ].filter(Boolean).join(' | ');
+  });
+  const restosDoIcone = () => page.evaluate(() => [
+    document.getElementById('btn-aviso-local') ? 'ícone' : '', document.getElementById('modal-aviso-local') ? 'modal' : '',
+    ...Object.keys(localStorage).filter(k => k.startsWith('ajborges_avisos_vistos'))].filter(Boolean).join(', ') || 'nenhum');
   for (const [nome, pag, local] of [['frota', 'dashboard-admin', 'frota'], ['cadastro', 'Dashboard-cadastro-motorista', 'cadastro'], ['escolha', 'escolhaDashboard', 'frota']]) {
     const t = {};
-    await page.setViewport({ width: 1366, height: 800 });
-    await preparar([aviso(21, -1 * HORA, 2 * HORA, 'Troca do servidor', [local]), aviso(22, 26 * HORA, 27 * HORA, DESC, [local])], ADMIN);
-    await abrirPagina(pag);
-    t.posicao = await page.evaluate(() => {
-      const b = document.getElementById('btn-aviso-local');
-      const sino = document.querySelector('.notif-sino-wrap');
-      if (sino) return b.nextElementSibling === sino ? 'logo antes do sino' : 'LONGE do sino';
-      const rr = b.getBoundingClientRect();
-      return `${getComputedStyle(b.parentElement).position} no canto (${Math.round(window.innerWidth - rr.right)}px da direita, ${Math.round(rr.top)}px do topo)`;
-    });
-    t.antes = await oQueAparece();
-    t.rotulo = await page.$eval('#btn-aviso-local', b => b.getAttribute('aria-label'));
-    await page.click('#btn-aviso-local');
-    await espera(200);
-    t.modal = await page.evaluate(() => {
-      const m = document.getElementById('modal-aviso-local');
-      return { aberto: !m.hidden, foco: document.activeElement.className, itens: Array.from(m.querySelectorAll('.aviso-local-item')).map(li => li.innerText.replace(/\s+/g, ' ').trim()) };
-    });
-    t.descricaoEscapada = await page.evaluate(() => !document.querySelector('#modal-aviso-local img') && !window.__xss);
-    t.depoisDeAbrir = await oQueAparece();
-    t.vistos = await page.evaluate((k) => localStorage.getItem(k), `ajborges_avisos_vistos_${local}`);
-    await page.keyboard.press('Escape');
-    await espera(100);
-    t.escFecha = await page.evaluate(() => document.getElementById('modal-aviso-local').hidden && document.activeElement.id === 'btn-aviso-local');
-    await page.reload({ waitUntil: 'load' });
-    await espera(500);
-    t.depoisDeRecarregar = await oQueAparece();
-    // Chega um aviso novo
-    await page.evaluate((novo) => { const l = JSON.parse(localStorage.getItem('teste_avisos')); l.push(novo); localStorage.setItem('teste_avisos', JSON.stringify(l)); }, aviso(23, 48 * HORA, 49 * HORA, 'Outro', [local]));
-    await page.reload({ waitUntil: 'load' });
-    await espera(500);
-    t.avisoNovo = await oQueAparece();
-    // Sem aviso para este local: some
-    await page.evaluate(() => localStorage.setItem('teste_avisos', JSON.stringify([{ id: 30, inicio: new Date(Date.now() + 3600e3).toISOString(), fim: new Date(Date.now() + 7200e3).toISOString(), descricao: 'Só site', locais: ['site'] }])));
-    await page.reload({ waitUntil: 'load' });
-    await espera(500);
-    t.semAvisoDoLocal = await oQueAparece();
-    // 360 px: com o ícone, sem rolagem lateral e ícone dentro da tela
-    await preparar([aviso(21, -1 * HORA, 2 * HORA, 'Troca do servidor', [local])], ADMIN);
-    await page.setViewport({ width: 360, height: 780 });
-    await abrirPagina(pag);
-    t.em360 = await page.evaluate(() => {
-      const b = document.getElementById('btn-aviso-local').getBoundingClientRect();
-      return `ícone ${b.left >= 0 && b.right <= window.innerWidth ? 'dentro da tela' : 'FORA da tela'}, rolagemH=${document.documentElement.scrollWidth > window.innerWidth ? 'SIM' : 'não'}`;
-    });
-    await page.click('#btn-aviso-local');
-    await espera(200);
-    t.modalEm360 = await page.evaluate(() => {
-      const c = document.querySelector('.aviso-local-caixa').getBoundingClientRect();
-      return `${Math.round(c.width)}px, ${c.left >= 0 && c.right <= window.innerWidth ? 'cabe' : 'NÃO cabe'}`;
-    });
-    r.icone[nome] = t;
-  }
-  // Sem localStorage (bloqueado): não quebra, o pontinho some ao abrir (fica na memória)
-  await page.setViewport({ width: 1366, height: 800 });
-  await preparar([aviso(41, 2 * HORA, 3 * HORA, 'Sem storage', ['frota'])], ADMIN);
-  const errosAntes = erros.length;
-  await page.evaluateOnNewDocument(() => {
-    if (location.pathname.endsWith('dashboard-admin.html')) {
-      const g = Storage.prototype.getItem;
-      const s = Storage.prototype.setItem;
-      Storage.prototype.getItem = function (k) { if (String(k).startsWith('ajborges_avisos_vistos')) throw new Error('bloqueado'); return g.call(this, k); };
-      Storage.prototype.setItem = function (k, v) { if (String(k).startsWith('ajborges_avisos_vistos')) throw new Error('bloqueado'); return s.call(this, k, v); };
+    for (const w of [1366, 1920]) {
+      await page.setViewport({ width: w, height: 800 });
+      await preparar([aviso(21, 26 * HORA, 27 * HORA, DESC, [local])], ADMIN);
+      await abrirPagina(pag);
+      t[`${w} aberta`] = await medirFaixa();
+      if (nome !== 'escolha') {
+        await page.click('#sidebar-brand');
+        await espera(400);
+        t[`${w} recolhida`] = await medirFaixa();
+        await page.reload({ waitUntil: 'load' });
+        await espera(600);
+        t[`${w} recolhida, recarregada`] = await medirFaixa();
+      }
     }
-  });
-  await abrirPagina('dashboard-admin');
-  const semStorage = { antes: await oQueAparece() };
-  await page.click('#btn-aviso-local');
-  await espera(200);
-  await page.keyboard.press('Escape');
-  semStorage.depois = await oQueAparece();
-  semStorage.erros = erros.slice(errosAntes).filter(e => /aviso/i.test(e));
-  r.semLocalStorage = semStorage;
+    t.texto = await page.$eval('.aviso-atualizacao-faixa', f => f.textContent.replace(/\s+/g, ' ').trim());
+    t.descricaoEscapada = await page.evaluate(() => !document.querySelector('.aviso-atualizacao-faixa img') && !window.__xss);
+    await preparar([aviso(22, -1 * HORA, 1 * HORA, 'Troca do servidor', [local])], ADMIN);
+    await abrirPagina(pag);
+    t.emAndamento = await page.$eval('.aviso-atualizacao-faixa', f => `${f.classList.contains('aviso-em-andamento') ? 'vermelha' : 'amarela'}: ${f.textContent.replace(/\s+/g, ' ').trim()}`);
+    // Celular: faixa no topo; na frota, a gaveta aberta fica por cima da faixa
+    await page.setViewport({ width: 390, height: 780 });
+    await abrirPagina(pag);
+    t['390'] = await medirFaixa();
+    if (nome === 'frota') {
+      await page.click('#btn-mobile-menu');
+      await espera(500);
+      t['390 gaveta aberta'] = await medirFaixa();
+    }
+    t.restosDoIcone = await restosDoIcone();
+    r.painel[nome] = t;
+  }
 
   // 3. Modal da gestão: caixas, bloqueio, gravação e lista
   r.gestao = {};

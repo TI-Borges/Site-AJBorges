@@ -76,9 +76,8 @@
                 <button type="button" class="modal-close-btn" data-aviso-fechar aria-label="Fechar">✕</button>
             </div>
             <div class="modal-body">
-                <p class="aviso-atu-explica">Escolha onde o aviso aparece. No Relatório de Viagem (ficha do motorista e
-                    login) e nas páginas do site, ele é uma faixa no topo; nos dashboards, um ícone de aviso perto do
-                    sino. Fica até o término previsto. Horários de Brasília.</p>
+                <p class="aviso-atu-explica">Escolha onde o aviso aparece: a faixa fica no topo dos lugares marcados
+                    (nos dashboards, só a gestão vê) até o término previsto. Horários de Brasília.</p>
                 <div class="mot-alerta" id="aviso-atu-alerta" role="alert" hidden></div>
                 <form id="aviso-atu-form" class="mot-form" novalidate>
                     <label class="mot-campo">
