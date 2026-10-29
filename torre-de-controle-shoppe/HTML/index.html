@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="description" content="Torre de Controle - Shoppe AJBorges Transportes - Em construção.">
+    <title>AJBorges Gestão • Torre de Controle - Shoppe</title>
+
+    <link rel="icon" type="image/png" href="/Imagens/logo-header-1x.png">
+    <link rel="shortcut icon" type="image/png" href="/Imagens/logo-header-1x.png">
+    <link rel="apple-touch-icon" href="/Imagens/logo-header-1x.png">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
+    <!-- Folha de Estilos da Torre de Controle -->
+    <link rel="stylesheet" href="/torre-de-controle-shoppe/CSS/torre.css?v=1">
+
+    <!-- Verificação de Sessão Administrativa (Route Guard) -->
+    <script>
+        // Página fica oculta até a sessão ser validada no servidor (JavaScript/auth.js)
+        document.documentElement.style.visibility = 'hidden';
+    </script>
+</head>
+
+<body>
+    <main class="torre-container">
+
+        <section class="torre-card" aria-labelledby="torre-titulo">
+            <div class="torre-icone" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="1" y="3" width="15" height="13" rx="1"></rect>
+                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
+                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
+                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
+                </svg>
+            </div>
+
+            <span class="torre-tag">Em construção</span>
+
+            <h1 class="torre-titulo" id="torre-titulo">Torre de Controle - Shoppe</h1>
+            <p class="torre-texto">
+                Esta área está em construção. Em breve, o acompanhamento em tempo real das rotas Shopee: origem,
+                carregamento, trânsito e descarga, com alertas de atraso e paradas.
+            </p>
+
+            <div class="torre-acoes">
+                <a href="/HTML/escolhaDashboard.html" class="torre-botao">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    <span>Voltar aos painéis</span>
+                </a>
+                <a href="/HTML/Login.html#admin" class="torre-link-sair" id="torre-sair">Sair ou entrar com outra conta</a>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/JavaScript/supabase-client.js"></script>
+    <script src="/JavaScript/auth.js"></script>
+    <script src="/torre-de-controle-shoppe/JavaScript/torre.js?v=1"></script>
+</body>
+
+</html>

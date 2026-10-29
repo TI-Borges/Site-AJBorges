@@ -1,0 +1,189 @@
+/* ==========================================================================
+   AJBorges Transportes - Torre de Controle - Shoppe (em construção)
+   Mesma base visual da Seleção de Painéis, com acento laranja Shopee
+   ========================================================================== */
+
+:root {
+    --aj-azul-primario: #3d3d90;
+    --aj-azul-suave: #eef2ff;
+
+    --torre-laranja: #EE4D2D;
+    --torre-laranja-hover: #d63e20;
+    --torre-laranja-suave: #fff1ec;
+    --torre-laranja-borda: #fcc8b8;
+    --torre-laranja-glow: rgba(238, 77, 45, 0.18);
+
+    --fundo-pagina: #ffffff;
+    --card-border: #e2e8f0;
+
+    --texto-titulo: #0f172a;
+    --texto-corpo: #475569;
+    --texto-mutado: #64748b;
+
+    --sombra-card: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
+    --transicao: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    width: 100%;
+    min-height: 100vh;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--fundo-pagina);
+    color: var(--texto-corpo);
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 3rem 1.5rem;
+}
+
+.torre-container {
+    width: 100%;
+    max-width: 560px;
+}
+
+.torre-card {
+    position: relative;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1.5px solid var(--card-border);
+    border-radius: 20px;
+    padding: 2.75rem 2.25rem;
+    box-shadow: var(--sombra-card);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Detalhe laranja no topo */
+.torre-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #EE4D2D, #ff7a45);
+}
+
+.torre-icone {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--torre-laranja-suave);
+    color: var(--torre-laranja);
+    border: 1px solid var(--torre-laranja-borda);
+    margin-bottom: 1.25rem;
+}
+
+.torre-icone svg {
+    width: 30px;
+    height: 30px;
+}
+
+.torre-tag {
+    font-size: 0.74rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 5px 12px;
+    border-radius: 9999px;
+    background-color: var(--torre-laranja-suave);
+    color: var(--torre-laranja);
+    border: 1px solid var(--torre-laranja-borda);
+    margin-bottom: 1rem;
+}
+
+.torre-titulo {
+    font-family: 'Outfit', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--texto-titulo);
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+    margin-bottom: 0.85rem;
+}
+
+.torre-texto {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--texto-mutado);
+    margin-bottom: 2rem;
+}
+
+.torre-acoes {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+}
+
+.torre-botao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0.9rem 1.6rem;
+    border-radius: 12px;
+    background-color: var(--torre-laranja);
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 4px 12px var(--torre-laranja-glow);
+    transition: var(--transicao);
+}
+
+.torre-botao:hover,
+.torre-botao:focus-visible {
+    background-color: var(--torre-laranja-hover);
+    box-shadow: 0 6px 18px rgba(238, 77, 45, 0.35);
+    outline: none;
+}
+
+.torre-link-sair {
+    color: var(--texto-mutado);
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 8px;
+    transition: var(--transicao);
+}
+
+.torre-link-sair:hover {
+    color: var(--aj-azul-primario);
+    background-color: var(--aj-azul-suave);
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 2rem 1rem;
+    }
+
+    .torre-card {
+        padding: 2.25rem 1.5rem;
+    }
+
+    .torre-titulo {
+        font-size: 1.6rem;
+    }
+
+    .torre-botao {
+        width: 100%;
+    }
+}

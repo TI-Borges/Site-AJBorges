@@ -432,6 +432,96 @@ body {
 }
 
 /* ==========================================================================
+   Segunda Linha: Torre de Controle - Shoppe e Dashboard - RH
+   ========================================================================== */
+:root {
+    /* Acento Card Torre (Laranja Shopee) */
+    --aj-laranja-primario: #EE4D2D;
+    --aj-laranja-hover: #d63e20;
+    --aj-laranja-suave: #fff1ec;
+    --aj-laranja-borda: #fcc8b8;
+    --aj-laranja-glow: rgba(238, 77, 45, 0.14);
+
+    /* Acento Card RH (Neutro provisório) */
+    --aj-neutro-primario: #64748b;
+    --aj-neutro-suave: #f1f5f9;
+    --aj-neutro-borda: #cbd5e1;
+}
+
+/* Card Torre de Controle - Shoppe */
+.card-torre::before {
+    background: linear-gradient(90deg, #EE4D2D, #ff7a45);
+}
+
+.card-torre:hover,
+.card-torre:focus-visible {
+    border-color: var(--aj-laranja-primario);
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px -8px rgba(238, 77, 45, 0.16), 0 4px 12px -2px rgba(238, 77, 45, 0.08);
+    outline: none;
+}
+
+.card-torre .card-icon-container,
+.card-torre .card-tag {
+    background-color: var(--aj-laranja-suave);
+    color: var(--aj-laranja-primario);
+    border: 1px solid var(--aj-laranja-borda);
+}
+
+.card-torre .feature-check {
+    background-color: var(--aj-laranja-suave);
+    color: var(--aj-laranja-primario);
+}
+
+.card-torre .card-button {
+    background-color: var(--aj-laranja-primario);
+    color: #ffffff;
+    box-shadow: 0 4px 12px var(--aj-laranja-glow);
+}
+
+.card-torre:hover .card-button {
+    background-color: var(--aj-laranja-hover);
+    box-shadow: 0 6px 18px rgba(238, 77, 45, 0.35);
+}
+
+/* Card Dashboard - RH (em breve: apagado e sem interação) */
+.card-rh {
+    cursor: default;
+    opacity: 0.7;
+}
+
+.card-rh::before {
+    background: linear-gradient(90deg, #94a3b8, #cbd5e1);
+}
+
+.card-rh .card-icon-container,
+.card-rh .card-tag {
+    background-color: var(--aj-neutro-suave);
+    color: var(--aj-neutro-primario);
+    border: 1px solid var(--aj-neutro-borda);
+}
+
+.card-rh .card-button {
+    background-color: var(--aj-neutro-suave);
+    color: var(--aj-neutro-primario);
+    border: 1px solid var(--aj-neutro-borda);
+    cursor: not-allowed;
+}
+
+.card-rh .arrow-icon-circle {
+    background: rgba(100, 116, 139, 0.12);
+}
+
+.card-rh:hover .card-icon-container,
+.card-rh:hover .arrow-icon-circle {
+    transform: none;
+}
+
+.card-rh:hover .arrow-icon-circle {
+    background: rgba(100, 116, 139, 0.12);
+}
+
+/* ==========================================================================
    Responsividade
    ========================================================================== */
 @media (max-width: 860px) {
