@@ -1,14 +1,22 @@
 // ==========================================
 // AJBorges - "Avisar atualização do site" (dashboards da frota e do Agregue-se)
 // ==========================================
-// Modal para agendar e cancelar os avisos da tabela avisos_atualizacao (passo 16). Os dois
-// dashboards gerenciam os mesmos avisos. Só a gestão grava (RLS com is_admin()); a lista vem da
-// RPC avisos_atualizacao_ativos (não cancelados e que ainda não terminaram).
+// Modal para agendar e cancelar os avisos da tabela avisos_atualizacao (passos 16 e 21). Os dois
+// dashboards gerenciam os mesmos avisos. Só a gestão grava (RLS com is_admin()). Cada aviso diz onde
+// aparece (coluna locais: frota, cadastro, ficha, site). A lista junta a RPC
+// avisos_atualizacao_ativos(p_local) dos 4 locais (não cancelados e que ainda não terminaram).
 // Uso, depois do ajbAoAutenticar da gestão: ajbAvisoAtualizacaoGestao.iniciar(botao).
 // O toast é o exibirToast(mensagem, tipo) da página.
 (function () {
     const FUSO = 'America/Sao_Paulo';
     const MAX_DESCRICAO = 500;
+    // Onde o aviso aparece: [valor no banco, caixa de marcar, nome curto na lista]
+    const LOCAIS = [
+        ['frota', 'Dashboard - Portal da Frota', 'Frota'],
+        ['cadastro', 'Dashboard - Cadastro do Motorista', 'Cadastro'],
+        ['ficha', 'Relatório de Viagem', 'Relatório de Viagem'],
+        ['site', 'Páginas do site', 'Páginas do site']
+    ];
 
     function escaparHtml(valor) {
         return String(valor ?? '').replace(/[&<>"'`]/g, (c) => ({
@@ -68,8 +76,9 @@
                 <button type="button" class="modal-close-btn" data-aviso-fechar aria-label="Fechar">✕</button>
             </div>
             <div class="modal-body">
-                <p class="aviso-atu-explica">A faixa aparece na ficha do motorista, no login e nas páginas públicas
-                    até o término previsto. Horários de Brasília.</p>
+                <p class="aviso-atu-explica">Escolha onde o aviso aparece. No Relatório de Viagem (ficha do motorista e
+                    login) e nas páginas do site, ele é uma faixa no topo; nos dashboards, um ícone de aviso perto do
+                    sino. Fica até o término previsto. Horários de Brasília.</p>
                 <div class="mot-alerta" id="aviso-atu-alerta" role="alert" hidden></div>
                 <form id="aviso-atu-form" class="mot-form" novalidate>
                     <label class="mot-campo">
@@ -80,6 +89,13 @@
                         <span>Término previsto <b class="mot-obrigatorio">*</b></span>
                         <input type="datetime-local" id="aviso-atu-fim" required>
                     </label>
+                    <fieldset class="aviso-atu-locais mot-campo-largo" id="aviso-atu-locais">
+                        <legend>Onde mostrar o aviso <b class="mot-obrigatorio">*</b></legend>
+                        <label><input type="checkbox" id="aviso-atu-local-todos" checked> Todos</label>
+                        ${LOCAIS.map(([valor, rotulo]) => `
+                        <label><input type="checkbox" name="aviso-atu-local" value="${valor}" checked> ${escaparHtml(rotulo)}</label>`).join('')}
+                        <small id="aviso-atu-locais-msg" class="aviso-atu-locais-msg" aria-live="polite" hidden>Marque pelo menos um lugar para salvar o aviso.</small>
+                    </fieldset>
                     <label class="mot-campo mot-campo-largo">
                         <span>Descrição do que vai mudar <b class="mot-obrigatorio">*</b></span>
                         <textarea id="aviso-atu-descricao" rows="3" maxlength="${MAX_DESCRICAO}" required></textarea>
@@ -111,10 +127,36 @@
         el('aviso-atu-contador').textContent = `${n}/${MAX_DESCRICAO} caracteres`;
     }
 
+    // ---------------- Onde mostrar ----------------
+
+    const caixasLocais = () => Array.from(document.querySelectorAll('input[name="aviso-atu-local"]'));
+    const locaisMarcados = () => caixasLocais().filter(c => c.checked).map(c => c.value);
+
+    // "Todos" marcado só com as 4 marcadas; nenhuma marcada bloqueia o "Salvar aviso"
+    function atualizarLocais() {
+        const marcados = locaisMarcados().length;
+        el('aviso-atu-local-todos').checked = marcados === LOCAIS.length;
+        el('aviso-atu-locais-msg').hidden = marcados > 0;
+        el('aviso-atu-salvar').disabled = marcados === 0;
+    }
+
+    function marcarTodos(marcar) {
+        caixasLocais().forEach(c => { c.checked = marcar; });
+        atualizarLocais();
+    }
+
+    // "Frota · Relatório de Viagem"; com os 4, "Todos"
+    function locaisTexto(locais) {
+        const lista = Array.isArray(locais) ? locais : [];
+        if (LOCAIS.every(([valor]) => lista.includes(valor))) return 'Todos';
+        return LOCAIS.filter(([valor]) => lista.includes(valor)).map(([, , curto]) => curto).join(' · ');
+    }
+
     function limparFormulario() {
         el('aviso-atu-form').reset();
         mostrarAlerta('');
         atualizarContador();
+        atualizarLocais();
     }
 
     function abrir() {
@@ -143,13 +185,18 @@
             return;
         }
         lista.innerHTML = '<li class="aviso-atu-vazio">Carregando...</li>';
-        const { data, error } = await c.rpc('avisos_atualizacao_ativos');
-        if (error) {
-            console.warn('Erro ao listar avisos de atualização:', error.message);
-            lista.innerHTML = '<li class="aviso-atu-vazio">Não foi possível carregar os avisos. Confira se o passo 16 do banco foi aplicado.</li>';
+        // Um aviso pode estar em mais de um local: junta as 4 consultas pelo id
+        const respostas = await Promise.all(LOCAIS.map(([valor]) => c.rpc('avisos_atualizacao_ativos', { p_local: valor })));
+        const falha = respostas.find(r => r.error);
+        if (falha) {
+            console.warn('Erro ao listar avisos de atualização:', falha.error.message);
+            lista.innerHTML = '<li class="aviso-atu-vazio">Não foi possível carregar os avisos. Confira se o passo 21 do banco foi aplicado.</li>';
             return;
         }
-        const avisos = Array.isArray(data) ? data : [];
+        const porId = new Map();
+        respostas.forEach(r => (Array.isArray(r.data) ? r.data : []).forEach(a => porId.set(String(a.id), a)));
+        const avisos = Array.from(porId.values())
+            .sort((a, b) => (new Date(a.inicio) - new Date(b.inicio)) || (Number(a.id) - Number(b.id)));
         if (avisos.length === 0) {
             lista.innerHTML = '<li class="aviso-atu-vazio">Nenhum aviso agendado.</li>';
             return;
@@ -163,6 +210,7 @@
                 <div class="aviso-atu-item-texto">
                     <span class="aviso-atu-selo ${emAndamento ? 'aviso-atu-selo-andamento' : ''}">${emAndamento ? 'Em andamento' : 'Agendado'}</span>
                     <strong>${escaparHtml(periodoTexto(inicio, new Date(a.fim)))}</strong>
+                    <span class="aviso-atu-onde">Onde: ${escaparHtml(locaisTexto(a.locais))}</span>
                     <p>${escaparHtml(a.descricao)}</p>
                 </div>
                 <button type="button" class="btn-modal-perigo aviso-atu-cancelar" data-aviso-id="${escaparHtml(a.id)}">Cancelar aviso</button>
@@ -175,12 +223,14 @@
         const inicio = campoParaData(el('aviso-atu-inicio').value);
         const fim = campoParaData(el('aviso-atu-fim').value);
         const descricao = el('aviso-atu-descricao').value.trim();
+        const locais = locaisMarcados();
         // Vale o minuto atual (quem digita a hora de agora não leva erro pelos segundos)
         const minutoAtual = Math.floor(Date.now() / 60000) * 60000;
         if (!inicio) return mostrarAlerta('Informe a data e a hora do início.');
         if (inicio.getTime() < minutoAtual) return mostrarAlerta('O início não pode ser no passado.');
         if (!fim) return mostrarAlerta('Informe a data e a hora do término previsto.');
         if (fim <= inicio) return mostrarAlerta('O término previsto tem que ser depois do início.');
+        if (!locais.length) return mostrarAlerta('Marque pelo menos um lugar em "Onde mostrar o aviso".');
         if (!descricao) return mostrarAlerta('Descreva o que vai mudar.');
         if (descricao.length > MAX_DESCRICAO) return mostrarAlerta(`A descrição pode ter até ${MAX_DESCRICAO} caracteres.`);
 
@@ -190,22 +240,22 @@
         botao.disabled = true;
         try {
             const { error } = await c.from('avisos_atualizacao')
-                .insert({ inicio: inicio.toISOString(), fim: fim.toISOString(), descricao });
+                .insert({ inicio: inicio.toISOString(), fim: fim.toISOString(), descricao, locais });
             if (error) {
                 console.warn('Erro ao salvar aviso de atualização:', error.message);
-                return mostrarAlerta('Não foi possível salvar o aviso. Confira se o passo 16 do banco foi aplicado e tente de novo.');
+                return mostrarAlerta('Não foi possível salvar o aviso. Confira se o passo 21 do banco foi aplicado e tente de novo.');
             }
             limparFormulario();
-            toast('Aviso de atualização salvo. A faixa já aparece nas páginas.', 'sucesso');
+            toast('Aviso de atualização salvo. Ele já aparece nos lugares escolhidos.', 'sucesso');
             carregarLista();
         } finally {
-            botao.disabled = false;
+            atualizarLocais();
         }
     }
 
     async function cancelarAviso(botao) {
         const id = Number(botao.dataset.avisoId);
-        if (!id || !confirm('Cancelar este aviso? A faixa some das páginas.')) return;
+        if (!id || !confirm('Cancelar este aviso? Ele some de todos os lugares onde aparece.')) return;
         const c = window.supabaseClient;
         if (!c) return;
         botao.disabled = true;
@@ -227,6 +277,8 @@
         botaoAbrir.addEventListener('click', abrir);
         el('aviso-atu-salvar').addEventListener('click', salvar);
         el('aviso-atu-descricao').addEventListener('input', atualizarContador);
+        el('aviso-atu-local-todos').addEventListener('change', (e) => marcarTodos(e.target.checked));
+        caixasLocais().forEach(c => c.addEventListener('change', atualizarLocais));
         el('aviso-atu-lista').addEventListener('click', (e) => {
             const botao = e.target.closest('.aviso-atu-cancelar');
             if (botao) cancelarAviso(botao);
