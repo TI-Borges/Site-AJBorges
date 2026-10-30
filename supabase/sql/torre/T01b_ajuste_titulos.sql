@@ -509,3 +509,4 @@ begin
     v_antes, v_depois, (v_antes = v_depois);
 end $$;
 rollback;
+
