@@ -703,7 +703,7 @@ function calcularMetricasDashboard() {
 
     if (piorMotorista && metaDiesel > 0 && menorMedia < metaDiesel) {
         if (elAlertaConsumoTexto) {
-            elAlertaConsumoTexto.innerHTML = `${piorMotorista} está com a menor média (<strong>${menorMedia.toFixed(2)} km/l</strong>), abaixo da meta (${metaDiesel.toFixed(2)} km/l).`;
+            elAlertaConsumoTexto.innerHTML = `${escaparHtml(piorMotorista)} está com a menor média (<strong>${menorMedia.toFixed(2)} km/l</strong>), abaixo da meta (${metaDiesel.toFixed(2)} km/l).`;
         }
         if (elTagCritico) {
             elTagCritico.textContent = '⚠️ Alerta de Alto Consumo';
@@ -899,14 +899,14 @@ function renderizarTabelaFichas() {
 
         tr.innerHTML = `
             <td>
-                <span class="td-ficha-id">${ficha.id}</span>
+                <span class="td-ficha-id">${escaparHtml(ficha.id)}</span>
             </td>
             <td>
-                <span class="td-data-envio">${ficha.dataEnvio || ficha.dataSaida || '-'}</span>
+                <span class="td-data-envio">${escaparHtml(ficha.dataEnvio || ficha.dataSaida || '-')}</span>
             </td>
             <td>
                 <div class="driver-cell">
-                    <span class="driver-name">${ficha.motorista || 'Motorista Não Identificado'}</span>
+                    <span class="driver-name">${escaparHtml(ficha.motorista || 'Motorista Não Identificado')}</span>
                     ${origemEnvioBadge}
                 </div>
             </td>
@@ -914,7 +914,7 @@ function renderizarTabelaFichas() {
                 <span class="placa-box">${escaparHtml(placasDaFicha(ficha, 'Não informada'))}</span>
             </td>
             <td>
-                <span class="frete-val-destaque">R$ ${ficha.totalFrete || '0,00'}</span>
+                <span class="frete-val-destaque">R$ ${escaparHtml(ficha.totalFrete || '0,00')}</span>
                 ${fichaTemFreteSemValor(ficha) ? seloFreteSemValor() : ''}
             </td>
             <td>
@@ -930,22 +930,22 @@ function renderizarTabelaFichas() {
             </td>
             <td class="col-acoes text-right">
                 <div class="table-actions-cell">
-                    <a href="relatorio-viagem.html?ficha=${ficha.id}&mode=admin" class="btn-acao-conferir" title="Abrir ficha completa para conferência e edição">
+                    <a href="relatorio-viagem.html?ficha=${encodeURIComponent(ficha.id)}&mode=admin" class="btn-acao-conferir" title="Abrir ficha completa para conferência e edição">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                         </svg>
                         <span>Conferir / Editar</span>
                     </a>
-                    <button type="button" class="btn-acao-resumo" data-ficha-id="${ficha.id}" title="Resumo rápido em modal">
+                    <button type="button" class="btn-acao-resumo" data-ficha-id="${escaparHtml(ficha.id)}" title="Resumo rápido em modal">
                         👁️
                     </button>
                     ${statusFicha !== 'aprovado' ? `
-                        <button type="button" class="btn-acao-aprovar-rapido" data-ficha-id="${ficha.id}" title="Aprovar Ficha Imediatamente">
+                        <button type="button" class="btn-acao-aprovar-rapido" data-ficha-id="${escaparHtml(ficha.id)}" title="Aprovar Ficha Imediatamente">
                             ✓
                         </button>
                     ` : ''}
-                    <button type="button" class="btn-acao-excluir" data-ficha-id="${ficha.id}" title="Excluir Ficha e remover dados do Dashboard">
+                    <button type="button" class="btn-acao-excluir" data-ficha-id="${escaparHtml(ficha.id)}" title="Excluir Ficha e remover dados do Dashboard">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="3 6 5 6 21 6"></polyline>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -1234,7 +1234,7 @@ function abrirModalResumoFicha(fichaId) {
             <div class="modal-grid-2">
                 <div class="modal-info-box">
                     <div class="modal-info-box-title">Dados Operacionais da Viagem</div>
-                    <div class="modal-info-linha"><span>Data Envio:</span> <strong>${ficha.dataEnvio || '-'}</strong></div>
+                    <div class="modal-info-linha"><span>Data Envio:</span> <strong>${escaparHtml(ficha.dataEnvio || '-')}</strong></div>
                     <div class="modal-info-linha"><span>Data de saída:</span> <strong>${escaparHtml(dataDaFichaBR(ficha.dataSaida) || '-')}</strong></div>
                     <div class="modal-info-linha"><span>Data de chegada:</span> <strong>${escaparHtml(dataDaFichaBR(ficha.dataChegada) || '-')}</strong></div>
                     <div class="modal-info-linha"><span>Destino inicial:</span> <strong>${escaparHtml(ficha.destinoInicial || '-')}</strong></div>
@@ -1244,12 +1244,12 @@ function abrirModalResumoFicha(fichaId) {
                 </div>
                 <div class="modal-info-box">
                     <div class="modal-info-box-title">Fechamento Financeiro</div>
-                    <div class="modal-info-linha"><span>Total Frete Bruto:</span> <strong style="color: #047857;">R$ ${ficha.totalFrete || '0,00'}${semValorModal ? ` ${pendenteModal}` : ''}</strong></div>
+                    <div class="modal-info-linha"><span>Total Frete Bruto:</span> <strong style="color: #047857;">R$ ${escaparHtml(ficha.totalFrete || '0,00')}${semValorModal ? ` ${pendenteModal}` : ''}</strong></div>
                     <div class="modal-info-linha"><span>Total Diesel:</span> <strong>${totalCombustivelTxt(totaisCombustivel.diesel)}</strong></div>
                     <div class="modal-info-linha"><span>Total ARLA:</span> <strong>${totalCombustivelTxt(totaisCombustivel.arla)}</strong></div>
                     <div class="modal-info-linha"><span>Pedágios + Imposto:</span> <strong>R$ ${formatarMoedaSemPrefixo(parseValorMoeda(ficha.totalPedagio) + parseValorMoeda(ficha.impFederal))}</strong></div>
                     <div class="modal-info-linha"><span>Adiantamento Concedido:</span> <strong>R$ ${escaparHtml(ficha.valorAdiantamento || '0,00')}</strong></div>
-                    <div class="modal-info-linha"><span>Saldo Comissão:</span> <strong style="color: #8b5cf6;">${semValorModal ? pendenteModal : `R$ ${ficha.saldoComissao || '0,00'}`}</strong></div>
+                    <div class="modal-info-linha"><span>Saldo Comissão:</span> <strong style="color: #8b5cf6;">${semValorModal ? pendenteModal : `R$ ${escaparHtml(ficha.saldoComissao || '0,00')}`}</strong></div>
                 </div>
             </div>
 
@@ -1285,7 +1285,7 @@ function abrirModalResumoFicha(fichaId) {
             ${ficha.observacoesMotorista ? `
                 <div class="modal-info-box" style="background-color: #fffbeb; border-color: #fde68a;">
                     <div class="modal-info-box-title" style="color: #b45309;">Observações do Motorista</div>
-                    <p style="font-size: 0.85rem; color: #78350f;">${ficha.observacoesMotorista}</p>
+                    <p style="font-size: 0.85rem; color: #78350f;">${escaparHtml(ficha.observacoesMotorista)}</p>
                 </div>
             ` : ''}
         `;
@@ -1702,7 +1702,7 @@ function renderizarTabelaFaturamentoDiario() {
         const ticketMedio = item.qtdViagens > 0 ? (item.totalFaturamento / item.qtdViagens) : 0;
         return `
             <tr>
-                <td class="td-data-diaria">${item.dataBR}</td>
+                <td class="td-data-diaria">${escaparHtml(item.dataBR)}</td>
                 <td style="text-align: center;">
                     <span class="badge-qtd-viagens" title="${item.qtdViagens} viagens">${item.qtdViagens}</span>
                 </td>
@@ -1816,7 +1816,7 @@ function renderizarTabelaDespesasDiarias() {
 
         return `
             <tr>
-                <td class="td-data-diaria">${item.dataBR}</td>
+                <td class="td-data-diaria">${escaparHtml(item.dataBR)}</td>
                 <td style="text-align: center;">
                     <span class="badge-qtd-despesas" title="${item.qtdLancamentos} lançamentos">${item.qtdLancamentos}</span>
                 </td>
@@ -1988,9 +1988,9 @@ function preencherSecoesSecundarias() {
                     <tbody>
                         ${appState.fichas.slice(0, 10).map(f => `
                             <tr>
-                                <td><strong>${f.id}</strong></td>
-                                <td>${f.dataSaida || f.dataEnvio || '-'}</td>
-                                <td>${f.motorista || 'Motorista'}</td>
+                                <td><strong>${escaparHtml(f.id)}</strong></td>
+                                <td>${escaparHtml(f.dataSaida || f.dataEnvio || '-')}</td>
+                                <td>${escaparHtml(f.motorista || 'Motorista')}</td>
                                 <td><span class="placa-box">${escaparHtml(placasDaFicha(f, 'Não informada'))}</span></td>
                                 <td><span class="status-pill ${f.status === 'pendente' ? 'status-pendente' : 'status-concluido'}">${f.status === 'pendente' ? 'Em Conferência' : 'Concluído'}</span></td>
                             </tr>
@@ -2017,11 +2017,11 @@ function preencherSecoesSecundarias() {
             tbodyPedagios.innerHTML = fichasComPedagio.map(f => {
                 return `
                     <tr>
-                        <td><strong>${f.id}</strong></td>
-                        <td>${f.motorista}</td>
+                        <td><strong>${escaparHtml(f.id)}</strong></td>
+                        <td>${escaparHtml(f.motorista)}</td>
                         <td>Praças declaradas</td>
-                        <td>R$ ${f.totalPedagio || '0,00'}</td>
-                        <td>R$ ${f.totalPedagio || '0,00'}</td>
+                        <td>R$ ${escaparHtml(f.totalPedagio || '0,00')}</td>
+                        <td>R$ ${escaparHtml(f.totalPedagio || '0,00')}</td>
                         <td><span class="status-pill status-concluido">✓ Auditado</span></td>
                     </tr>
                 `;
@@ -2108,10 +2108,10 @@ function preencherSecoesSecundarias() {
                     <tbody>
                         ${fichasPendentes.map(f => `
                             <tr>
-                                <td><strong>${f.id}</strong></td>
-                                <td>${f.motorista}</td>
-                                <td>${f.destinoInicial || '-'}</td>
-                                <td>${f.destinoFinal || '-'}</td>
+                                <td><strong>${escaparHtml(f.id)}</strong></td>
+                                <td>${escaparHtml(f.motorista)}</td>
+                                <td>${escaparHtml(f.destinoInicial || '-')}</td>
+                                <td>${escaparHtml(f.destinoFinal || '-')}</td>
                                 <td>${escaparHtml(placasDaFicha(f, '-'))}</td>
                                 <td><span class="status-pill status-pendente">Aguardando Conferência</span></td>
                             </tr>
@@ -2423,7 +2423,7 @@ function renderizarTabelaCombustivel() {
 
     if (abastFiltrados.length === 0) {
         const msg = filtroSelecionado
-            ? `Nenhum abastecimento encontrado para o motorista "${filtroSelecionado}".`
+            ? `Nenhum abastecimento encontrado para o motorista "${escaparHtml(filtroSelecionado)}".`
             : `Nenhum registro de abastecimento para conferência no momento.`;
         tbodyCombustivel.innerHTML = `
             <tr>
