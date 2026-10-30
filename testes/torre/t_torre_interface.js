@@ -2,7 +2,7 @@
  * Suite completa de testes da Torre de Controle - Shoppe (Puppeteer).
  * Segue o padrão do projeto (testes/harness.js e testes/t_torre_painel.js)
  * com respostas simuladas das views do schema `torre` (sem dados reais de motorista).
- * Também salva as capturas em `testes/capturas/` (MATRIZ, TRÂNSITO e Modo TV).
+ * Também salva as capturas em `testes/capturas/` (MATRIZ, TRÂNSITO, Validações e Modo TV).
  */
 const http = require('http');
 const fs = require('fs');
@@ -126,6 +126,13 @@ function criarViewsSimuladas({ minutosDesde = 4, semCopia = false, injetarXss = 
             descarga_status_situacao: etapa === 'descarga' ? 'andamento' : 'info'
         };
     });
+    // Linhas vazias da planilha: sem LH (ou só espaços) e sem etapa -> não podem aparecer nem contar
+    v_matriz.push(
+        { ordem: 900, lh: '', etapa: '', transito_status: 'Atrasado', transito_status_situacao: 'critico' },
+        { ordem: 901, lh: '   ', etapa: 'transito' },
+        { ordem: 902, lh: null, etapa: 'origem' },
+        { ordem: 903, lh: 'LH2026SEMETAPA', etapa: '  ', cavalo: 'ZZZ9999' }
+    );
 
     const cargasCiclo = ['Forecast', 'Reversa', 'Spot'];
     const vinculosCiclo = ['Frota', 'Terceiro', 'Agregado'];
@@ -148,7 +155,7 @@ function criarViewsSimuladas({ minutosDesde = 4, semCopia = false, injetarXss = 
             motorista: i === 0 && injetarXss
                 ? 'Condutor Exemplo <img src=x onerror="window.__xssExecutou=true">'
                 : `Motorista Simulado ${String(num).padStart(2, '0')}`,
-            motorista_situacao: null,
+            motorista_situacao: i === 1 ? 'critico' : null,
             carga,
             carga_situacao: carga === 'Spot' ? 'destaque' : (carga === 'Reversa' ? 'info' : 'ok'),
             contato: i === 0
@@ -156,7 +163,7 @@ function criarViewsSimuladas({ minutosDesde = 4, semCopia = false, injetarXss = 
                 : `(42) 99900-${String(1000 + num)}`,
             contato_situacao: null,
             cavalo: `TRK${String(2000 + num)}`,
-            cavalo_situacao: null,
+            cavalo_situacao: i === 1 ? 'critico' : null,
             carreta: `SRR${String(5000 + num)}`,
             carreta_situacao: null,
             vinculo,
@@ -167,7 +174,7 @@ function criarViewsSimuladas({ minutosDesde = 4, semCopia = false, injetarXss = 
             destino_situacao: null,
             posicao_atual: `BR-116 KM ${120 + i * 5}`,
             posicao_atual_url: 'https://maps.google.com/?q=-23.55,-46.63',
-            posicao_atual_situacao: null,
+            posicao_atual_situacao: i === 1 ? 'atencao' : null,
             cpt_origem: '08:00',
             cpt_origem_situacao: 'ok',
             cpt_realizado: atrasado ? '09:15' : '07:55',
@@ -192,20 +199,25 @@ function criarViewsSimuladas({ minutosDesde = 4, semCopia = false, injetarXss = 
             t_chegada_situacao: null,
             status: atrasado ? 'Atrasado' : 'No prazo',
             status_situacao: atrasado ? 'critico' : 'ok',
-            progressao_viagem: `${Math.min(98, 18 + i * 3)}%`,
+            progressao_viagem: `■■■■□□□□□□ ${Math.min(98, 18 + i * 3)}%`,
             progressao_viagem_situacao: atrasado ? 'critico' : 'ok',
             faturamento: faturarPend ? 'Faturar' : 'Faturado',
             faturamento_situacao: faturarPend ? 'atencao' : 'ok',
             ciot_vpo: ciotPendente ? 'Pendente' : 'Emitido',
             ciot_vpo_situacao: ciotPendente ? 'critico' : 'ok',
-            sm: atrasado ? 'Revisar SM' : 'SM Ativa',
-            sm_situacao: atrasado ? 'atencao' : 'ok',
+            sm: `SM ${sitExemplo.toUpperCase()}`,
+            sm_situacao: sitExemplo,
             diferenca_do_cpt: atrasado ? '-01:40' : '+00:10',
             diferenca_do_cpt_situacao: atrasado ? 'critico' : 'ok',
             limite_de_parada: '01:30',
             limite_de_parada_situacao: null
         };
     });
+    // Linhas vazias da planilha no TRÂNSITO (sem LH): ficam fora da tabela e dos contadores
+    v_transito.push(
+        { ordem: 950, lh: '', carga: 'Spot', status: 'Atrasado', status_situacao: 'critico' },
+        { ordem: 951, lh: null, carga: 'Spot' }
+    );
 
     const v_validacoes = [
         {
@@ -561,12 +573,12 @@ function criarViewsSimuladas({ minutosDesde = 4, semCopia = false, injetarXss = 
             ultimo_erro: null
         }],
         v_matriz_contadores: [{
-            rotas_ativas: v_matriz.length,
-            pendentes_chegada: v_matriz.filter((r) => r.etapa === 'origem').length,
-            carregamentos: v_matriz.filter((r) => r.etapa === 'carregamento').length,
-            transito: v_matriz.filter((r) => r.etapa === 'transito').length,
-            atrasos: v_matriz.filter((r) => r.transito_status_situacao === 'critico').length,
-            descarga: v_matriz.filter((r) => r.etapa === 'descarga').length,
+            rotas_ativas: 91,
+            pendentes_chegada: 40,
+            carregamentos: 25,
+            transito: 2,
+            atrasos: 7,
+            descarga: null,
             atualizado_em: '14:25',
             copiado_em: '2026-10-30T14:25:00-03:00'
         }],
@@ -757,6 +769,33 @@ window.supabase = { createClient: () => ({
         estadoInicial.statusTexto
     );
 
+    const chipsMatriz = await page.evaluate(() => {
+        const num = (id) => document.querySelector(`.torre-chip[data-kpi-id="${id}"] .chip-num`)?.textContent.trim();
+        const tbody = document.querySelector('#torre-tabela-dados tbody');
+        return {
+            grupos: Array.from(document.querySelectorAll('.chips-grupo-titulo')).map((e) => e.textContent.trim()),
+            chips: document.querySelectorAll('.torre-chip').length,
+            icones: document.querySelectorAll('.torre-chip .chip-icone svg').length,
+            cardsAntigos: document.querySelectorAll('.kpi-card').length,
+            rotas: num('todas'),
+            transito: num('etapa:transito'),
+            descargaSemValor: num('etapa:descarga'),
+            semEtapaVisivel: tbody ? tbody.textContent.includes('LH2026SEMETAPA') : true
+        };
+    });
+    ok(
+        chipsMatriz.chips >= 6 && chipsMatriz.icones === chipsMatriz.chips && chipsMatriz.cardsAntigos === 0 &&
+        chipsMatriz.grupos.length >= 2,
+        'Contadores viraram chips compactos com ícone, agrupados com título pequeno',
+        chipsMatriz.grupos.join(' | ')
+    );
+    ok(
+        chipsMatriz.rotas === '91' && chipsMatriz.transito === '2' && chipsMatriz.descargaSemValor === '—',
+        'MATRIZ: contadores vêm de v_matriz_contadores, não da contagem de linhas (sem valor = "—")',
+        `${chipsMatriz.rotas}/${chipsMatriz.transito}/${chipsMatriz.descargaSemValor}`
+    );
+    ok(!chipsMatriz.semEtapaVisivel, 'MATRIZ ignora linhas sem LH e sem etapa');
+
     // Captura 1: MATRIZ
     await page.screenshot({
         path: path.join(PASTA_CAPTURAS, 'torre_matriz.png'),
@@ -798,6 +837,19 @@ window.supabase = { createClient: () => ({
         'Paginação padrão mostra 25 linhas por página de 32 totais'
     );
 
+    const numerosPagina = await page.$$eval('.btn-pagina-num', (bs) => bs.map((b) => b.textContent.trim()));
+    await page.click('.btn-pagina-num[data-pagina="2"]');
+    const pagina2 = await page.evaluate(() => ({
+        linhas: document.querySelectorAll('#torre-tabela-dados tbody tr').length,
+        atual: document.querySelector('.btn-pagina-num.atual')?.textContent.trim()
+    }));
+    await page.click('.btn-pagina-num[data-pagina="1"]');
+    ok(
+        numerosPagina.join(',') === '1,2' && pagina2.linhas === 7 && pagina2.atual === '2',
+        'Rodapé tem numeração de página (1 2) e clicar no número troca a página',
+        `${numerosPagina.join(',')} -> ${pagina2.linhas} linhas`
+    );
+
     await page.select('#select-por-pagina', '0');
     const linhasTodos = await page.evaluate(() => document.querySelectorAll('#torre-tabela-dados tbody tr').length);
     ok(linhasTodos === 32, 'Paginação "Todos" exibe todas as 32 linhas');
@@ -805,12 +857,21 @@ window.supabase = { createClient: () => ({
 
     // Filtro por card KPI na MATRIZ
     await page.click('[data-acao="kpi-filtro"][data-kpi-id="atrasos"]');
-    const linhasAtrasos = await page.evaluate(() => document.querySelectorAll('#torre-tabela-dados tbody tr').length);
-    ok(linhasAtrasos > 0 && linhasAtrasos < 25, `Card KPI "Atrasos" filtra a tabela (${linhasAtrasos} linhas)`);
+    const linhasAtrasos = await page.evaluate(() => ({
+        qtd: document.querySelectorAll('#torre-tabela-dados tbody tr').length,
+        destacado: document.querySelector('.torre-chip[data-kpi-id="atrasos"]')?.classList.contains('ativo')
+    }));
+    ok(
+        linhasAtrasos.qtd > 0 && linhasAtrasos.qtd < 25 && linhasAtrasos.destacado,
+        `Chip "Atrasos" filtra a tabela e fica destacado (${linhasAtrasos.qtd} linhas)`
+    );
 
     await page.click('[data-acao="kpi-filtro"][data-kpi-id="atrasos"]');
-    const linhasRestauradas = await page.evaluate(() => document.querySelectorAll('#torre-tabela-dados tbody tr').length);
-    ok(linhasRestauradas === 25, 'Clicar novamente no card KPI remove o filtro');
+    const linhasRestauradas = await page.evaluate(() => ({
+        qtd: document.querySelectorAll('#torre-tabela-dados tbody tr').length,
+        destacado: document.querySelector('.torre-chip[data-kpi-id="atrasos"]')?.classList.contains('ativo')
+    }));
+    ok(linhasRestauradas.qtd === 25 && !linhasRestauradas.destacado, 'Clicar novamente no chip remove o filtro e o destaque');
 
     // Ordenação clicando no cabeçalho (LH)
     await page.click('th[data-coluna="lh"] [data-acao="ordenar-coluna"]');
@@ -900,6 +961,28 @@ window.supabase = { createClient: () => ({
         const tituloAtual = await page.$eval('#torre-aba-titulo', (el) => el.textContent.trim());
         ok(tituloAtual === item.titulo, `Tela "${item.titulo}" (${item.hash}) abre corretamente`);
 
+        if (item.titulo !== 'Links') {
+            const temChips = await page.evaluate(() => (
+                document.querySelectorAll('.chips-faixa .torre-chip').length > 0 &&
+                document.querySelectorAll('.kpi-card, .transito-chip-btn').length === 0
+            ));
+            ok(temChips, `Tela "${item.titulo}" usa a faixa de chips no topo`);
+        }
+
+        if (item.hash === '#validacoes') {
+            await new Promise((r) => setTimeout(r, 120));
+            // Captura: Validações
+            await page.screenshot({
+                path: path.join(PASTA_CAPTURAS, 'torre_validacoes.png'),
+                fullPage: false
+            });
+            const chipChecklist = await page.$eval(
+                '.torre-chip[data-kpi-id="sit_critico:checklist"] .chip-num',
+                (el) => el.textContent.trim()
+            );
+            ok(chipChecklist === '1', 'Validações: chip "Checklist crítico" conta as linhas certas', chipChecklist);
+        }
+
         if (item.hash === '#transito') {
             await new Promise((r) => setTimeout(r, 120));
             // Captura 2: TRÂNSITO
@@ -912,10 +995,34 @@ window.supabase = { createClient: () => ({
                 const todasPills = ['critico', 'ok', 'atencao', 'andamento', 'info', 'destaque'].every(
                     (s) => document.querySelectorAll(`.torre-pilula.situacao-${s}`).length > 0
                 );
-                const tempoEl = document.querySelector('.torre-tempo-situacao.texto-situacao-critico');
-                const tempoSemPilula = tempoEl
-                    ? window.getComputedStyle(tempoEl).backgroundColor === 'rgba(0, 0, 0, 0)'
+                const tempoEl = document.querySelector('.torre-tempo-bloco.tempo-critico');
+                const tempoBlocoSolido = tempoEl
+                    ? window.getComputedStyle(tempoEl).backgroundColor === 'rgb(220, 38, 38)' &&
+                      window.getComputedStyle(tempoEl).color === 'rgb(255, 255, 255)' &&
+                      !tempoEl.classList.contains('torre-pilula')
                     : false;
+
+                const indiceColuna = (campo) => Array.from(document.querySelectorAll('#torre-tabela-dados thead th'))
+                    .findIndex((th) => th.getAttribute('data-coluna') === campo);
+                const linhaDoLh = (lh) => Array.from(document.querySelectorAll('#torre-tabela-dados tbody tr'))
+                    .find((tr) => tr.querySelector('td.col-fixa-lh')?.textContent.trim() === lh);
+                const celula = (lh, campo) => {
+                    const tr = linhaDoLh(lh);
+                    return tr ? tr.children[indiceColuna(campo)] : null;
+                };
+                const colunasTexto = ['motorista', 'cavalo', 'carreta', 'origem', 'destino', 'posicao_atual', 'vinculo', 'macro'];
+                const textoNormal = colunasTexto.every((c) => {
+                    const td = celula('LH20260102', c);
+                    return td && !td.querySelector('.torre-pilula, .torre-tempo-bloco');
+                });
+                const semPilulaForaDeStatus = colunasTexto.every((c) => {
+                    const i = indiceColuna(c);
+                    return Array.from(document.querySelectorAll('#torre-tabela-dados tbody tr'))
+                        .every((tr) => !tr.children[i].querySelector('.torre-pilula'));
+                });
+                const pilulaNoStatus = Boolean(celula('LH20260101', 'status')?.querySelector('.torre-pilula.situacao-critico'));
+
+                const labelsProgresso = Array.from(document.querySelectorAll('.barra-progresso-label')).map((s) => s.textContent.trim());
 
                 const trCritica = document.querySelector('tr.linha-critica');
                 const tdPrimeira = trCritica ? trCritica.querySelector('td:first-child') : null;
@@ -928,7 +1035,15 @@ window.supabase = { createClient: () => ({
 
                 return {
                     todasPills,
-                    tempoSemPilula,
+                    tempoBlocoSolido,
+                    textoNormal,
+                    semPilulaForaDeStatus,
+                    pilulaNoStatus,
+                    faixaSoPorStatus: linhaDoLh('LH20260101')?.classList.contains('linha-critica') &&
+                        !linhaDoLh('LH20260107')?.classList.contains('linha-critica'),
+                    progressoSoPct: labelsProgresso.length > 0 && labelsProgresso.every((l) => /^\d+%$/.test(l)) &&
+                        !document.querySelector('#torre-tabela-dados tbody').textContent.includes('■'),
+                    totalExibido: document.querySelector('.paginacao-contagem')?.textContent.replace(/\s+/g, ' ').trim(),
                     faixaEsquerdaVermelha: boxPrimeira.includes('rgb(220, 38, 38)') && boxPrimeira.includes('inset'),
                     linhaNaoPintadaInteira: bgSegunda !== 'rgb(254, 226, 226)' && bgSegunda !== 'rgb(220, 38, 38)',
                     waDoisNumeros: primeiraLinhaWa.length === 2 &&
@@ -943,7 +1058,53 @@ window.supabase = { createClient: () => ({
             });
 
             ok(detalhesTransito.todasPills, 'As 6 situações viram as pílulas certas (critico, ok, atencao, andamento, info, destaque)');
-            ok(detalhesTransito.tempoSemPilula, 'Tempos e datas com situação pintam apenas o texto, sem pílula');
+            ok(detalhesTransito.tempoBlocoSolido, 'Tempos com situação ganham bloco de cor sólida atrás do número (sem pílula)');
+            ok(
+                detalhesTransito.textoNormal && detalhesTransito.semPilulaForaDeStatus && detalhesTransito.pilulaNoStatus,
+                'Pílulas só nas colunas de status/flag; motorista, cavalo, carreta, origem, destino e posição ficam em texto normal'
+            );
+            ok(
+                detalhesTransito.faixaSoPorStatus,
+                'Faixa vermelha só quando o STATUS da linha é crítico (parada crítica com status ok não ganha faixa)'
+            );
+            ok(detalhesTransito.progressoSoPct, 'Progressão mostra só a barra com o % (sem os quadradinhos do texto)');
+            ok(
+                /de 28$/.test(detalhesTransito.totalExibido || ''),
+                'TRÂNSITO ignora linhas sem LH',
+                detalhesTransito.totalExibido
+            );
+
+            // Coluna LH fixa: fundo sólido, sombra na borda, sem cobrir a coluna seguinte
+            const lhFixa = await page.evaluate(() => {
+                const sc = document.getElementById('torre-tabela-scroll');
+                const tr = document.querySelector('#torre-tabela-dados tbody tr:nth-child(2)');
+                const lh = tr.querySelector('td.col-fixa-lh');
+                const seguinte = lh.nextElementSibling;
+                const rLh = lh.getBoundingClientRect();
+                const semSobreporParado = seguinte.getBoundingClientRect().left >= rLh.right - 0.5;
+                const y = rLh.top + rLh.height / 2;
+                const aoLado = document.elementFromPoint(rLh.right + 3, y)?.closest('td');
+                sc.scrollLeft = 500;
+                const rLh2 = lh.getBoundingClientRect();
+                const porCima = document.elementFromPoint(rLh2.left + rLh2.width / 2, y)?.closest('td') === lh;
+                const aoLado2 = document.elementFromPoint(rLh2.right + 3, y)?.closest('td');
+                const estilo = window.getComputedStyle(lh);
+                sc.scrollLeft = 0;
+                return {
+                    semSobreporParado,
+                    seguinteVisivel: aoLado === seguinte,
+                    porCima,
+                    naoPassaDaBorda: aoLado2 !== lh,
+                    fundoSolido: /^rgb\(/.test(estilo.backgroundColor),
+                    sombra: estilo.boxShadow.includes('6px 0px 6px -6px'),
+                    textoCabe: lh.scrollWidth <= lh.clientWidth
+                };
+            });
+            ok(
+                Object.values(lhFixa).every(Boolean),
+                'Coluna LH fixa tem fundo sólido e sombra, e não cobre a coluna seguinte ao rolar',
+                JSON.stringify(lhFixa)
+            );
             ok(
                 detalhesTransito.faixaEsquerdaVermelha && detalhesTransito.linhaNaoPintadaInteira,
                 'Linha crítica tem apenas a faixa vermelha fina na esquerda (não pinta a linha inteira)'
@@ -958,11 +1119,27 @@ window.supabase = { createClient: () => ({
                 'TRÂNSITO exibe barra de progressão, barrinha proporcional de parada e ponto verde/vermelho em km/h'
             );
 
-            await page.click('[data-acao="kpi-filtro"][data-kpi-id="pendencia:parada_alta"]');
-            const qtdParadaAlta = await page.evaluate(() => document.querySelectorAll('#torre-tabela-dados tbody tr').length);
-            await page.click('[data-acao="kpi-filtro"][data-kpi-id="pendencia:parada_alta"]');
-            const qtdSemFiltro = await page.evaluate(() => document.querySelectorAll('#torre-tabela-dados tbody tr').length);
-            ok(qtdParadaAlta < qtdSemFiltro, 'Contadores do TRÂNSITO filtram ao clicar e tiram o filtro ao clicar de novo');
+            const gruposTransito = await page.$$eval('.chips-grupo-titulo', (els) => els.map((e) => e.textContent.trim()));
+            ok(
+                ['Carga', 'Status', 'Pendências', 'Vínculo'].every((g) => gruposTransito.includes(g)),
+                'TRÂNSITO agrupa os chips em Carga, Status, Pendências e Vínculo'
+            );
+
+            const chipParada = '.torre-chip[data-kpi-id="pendencia:parada_alta"]';
+            await page.click(chipParada);
+            const comFiltro = await page.evaluate((s) => ({
+                qtd: document.querySelectorAll('#torre-tabela-dados tbody tr').length,
+                ativo: document.querySelector(s)?.classList.contains('ativo')
+            }), chipParada);
+            await page.click(chipParada);
+            const semFiltro = await page.evaluate((s) => ({
+                qtd: document.querySelectorAll('#torre-tabela-dados tbody tr').length,
+                ativo: document.querySelector(s)?.classList.contains('ativo')
+            }), chipParada);
+            ok(
+                comFiltro.qtd < semFiltro.qtd && comFiltro.ativo && !semFiltro.ativo,
+                'Chips do TRÂNSITO filtram ao clicar (destacado) e tiram o filtro ao clicar de novo'
+            );
         }
 
         if (item.hash === '#links') {

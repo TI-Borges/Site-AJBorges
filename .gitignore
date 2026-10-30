@@ -3,3 +3,4 @@ node_modules/
 *.xlsx
 *.xls
 .env
+testes/capturas/

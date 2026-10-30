@@ -65,7 +65,7 @@ const ABAS_META = {
             { campo: 'contato', rotulo: 'Contato', tipo: 'whatsapp' },
             { campo: 'cavalo', rotulo: 'Cavalo' },
             { campo: 'carreta', rotulo: 'Carreta' },
-            { campo: 'vinculo', rotulo: 'Vínculo', tipo: 'pilula' },
+            { campo: 'vinculo', rotulo: 'Vínculo' },
             { campo: 'origem', rotulo: 'Origem' },
             { campo: 'posicao_atual', rotulo: 'Posição Atual', urlCampo: 'posicao_atual_url' },
             { campo: 'eta', rotulo: 'ETA', tipo: 'tempo' },
@@ -75,7 +75,7 @@ const ABAS_META = {
             { campo: 'espelhamento', rotulo: 'Espelhamento', tipo: 'pilula' },
             { campo: 'km_faltante', rotulo: 'KM Faltante' },
             { campo: 'km_h', rotulo: 'KM/H', tipo: 'velocidade' },
-            { campo: 'macro', rotulo: 'Macro', tipo: 'pilula' },
+            { campo: 'macro', rotulo: 'Macro' },
             { campo: 'sm', rotulo: 'SM', tipo: 'pilula' },
             { campo: 'tag', rotulo: 'TAG', tipo: 'pilula' },
             { campo: 'tempo_para_bipagem', rotulo: 'Tempo p/ Bipagem', tipo: 'tempo' },
@@ -92,13 +92,13 @@ const ABAS_META = {
             { campo: 'contato', rotulo: 'Contato', tipo: 'whatsapp' },
             { campo: 'cavalo', rotulo: 'Cavalo' },
             { campo: 'carreta', rotulo: 'Carreta' },
-            { campo: 'vinculo', rotulo: 'Vínculo', tipo: 'pilula' },
+            { campo: 'vinculo', rotulo: 'Vínculo' },
             { campo: 'origem', rotulo: 'Origem' },
             { campo: 'destino', rotulo: 'Destino' },
             { campo: 'cpt', rotulo: 'CPT', tipo: 'tempo' },
             { campo: 'status', rotulo: 'Status', tipo: 'pilula' },
             { campo: 'checklist', rotulo: 'Checklist', tipo: 'pilula' },
-            { campo: 'macro', rotulo: 'Macro', tipo: 'pilula' },
+            { campo: 'macro', rotulo: 'Macro' },
             { campo: 'sm', rotulo: 'SM', tipo: 'pilula' },
             { campo: 'status_cpt', rotulo: 'Status CPT', tipo: 'pilula' },
             { campo: 'tag', rotulo: 'TAG', tipo: 'pilula' },
@@ -116,7 +116,7 @@ const ABAS_META = {
             { campo: 'contato', rotulo: 'Contato', tipo: 'whatsapp' },
             { campo: 'cavalo', rotulo: 'Cavalo' },
             { campo: 'carreta', rotulo: 'Carreta' },
-            { campo: 'vinculo', rotulo: 'Vínculo', tipo: 'pilula' },
+            { campo: 'vinculo', rotulo: 'Vínculo' },
             { campo: 'origem', rotulo: 'Origem' },
             { campo: 'destino', rotulo: 'Destino' },
             { campo: 'posicao_atual', rotulo: 'Posição Atual', urlCampo: 'posicao_atual_url' },
@@ -126,14 +126,14 @@ const ABAS_META = {
             { campo: 'km_h', rotulo: 'KM/H', tipo: 'velocidade' },
             { campo: 't_parada', rotulo: 'T. Parada', tipo: 'tempo' },
             { campo: 'total_parada', rotulo: 'Total Parada', tipo: 'parada_barra' },
-            { campo: 'macro', rotulo: 'Macro', tipo: 'pilula' },
+            { campo: 'macro', rotulo: 'Macro' },
             { campo: 'atualizacao', rotulo: 'Atualização', tipo: 'tempo' },
             { campo: 'previsao_chegada', rotulo: 'Previsão Chegada', tipo: 'tempo' },
             { campo: 'eta_destino', rotulo: 'ETA Destino', tipo: 'tempo' },
             { campo: 't_chegada', rotulo: 'T. Chegada', tipo: 'tempo' },
             { campo: 'status', rotulo: 'Status', tipo: 'pilula' },
             { campo: 'progressao_viagem', rotulo: 'Progressão Viagem', tipo: 'progresso_barra' },
-            { campo: 'faturamento', rotulo: 'Faturamento', tipo: 'pilula' },
+            { campo: 'faturamento', rotulo: 'Faturamento' },
             { campo: 'ciot_vpo', rotulo: 'CIOT / VPO', tipo: 'pilula' },
             { campo: 'sm', rotulo: 'SM', tipo: 'pilula' },
             { campo: 'diferenca_do_cpt', rotulo: 'Diferença do CPT', tipo: 'tempo' },
@@ -150,12 +150,12 @@ const ABAS_META = {
             { campo: 'contato', rotulo: 'Contato', tipo: 'whatsapp' },
             { campo: 'cavalo', rotulo: 'Cavalo' },
             { campo: 'carreta', rotulo: 'Carreta' },
-            { campo: 'vinculo', rotulo: 'Vínculo', tipo: 'pilula' },
+            { campo: 'vinculo', rotulo: 'Vínculo' },
             { campo: 'status', rotulo: 'Status', tipo: 'pilula' },
-            { campo: 'bipagem', rotulo: 'Bipagem', tipo: 'pilula' },
+            { campo: 'bipagem', rotulo: 'Bipagem' },
             { campo: 'cd_de_descarga', rotulo: 'CD de Descarga' },
             { campo: 'eta_destino', rotulo: 'ETA Destino', tipo: 'tempo' },
-            { campo: 'macro', rotulo: 'Macro', tipo: 'pilula' },
+            { campo: 'macro', rotulo: 'Macro' },
             { campo: 'tempo_de_espera', rotulo: 'Tempo de Espera', tipo: 'tempo' }
         ]
     },
@@ -168,7 +168,7 @@ const ABAS_META = {
             { campo: 'motorista', rotulo: 'Motorista' },
             { campo: 'cavalo', rotulo: 'Cavalo' },
             { campo: 'carreta', rotulo: 'Carreta' },
-            { campo: 'vinculo', rotulo: 'Vínculo', tipo: 'pilula' },
+            { campo: 'vinculo', rotulo: 'Vínculo' },
             { campo: 'origem', rotulo: 'Origem' },
             { campo: 'destino', rotulo: 'Destino' },
             { campo: 'valor', rotulo: 'Valor' },
@@ -187,9 +187,9 @@ const ABAS_META = {
         temOrdem: true,
         colunas: [
             { campo: 'nome', rotulo: 'Nome / CD', fixa: true },
-            { campo: 'sigla', rotulo: 'Sigla', tipo: 'pilula' },
-            { campo: 'tipo', rotulo: 'Tipo', tipo: 'pilula' },
-            { campo: 'id_station', rotulo: 'ID Station', tipo: 'pilula' },
+            { campo: 'sigla', rotulo: 'Sigla' },
+            { campo: 'tipo', rotulo: 'Tipo' },
+            { campo: 'id_station', rotulo: 'ID Station' },
             { campo: 'endereco', rotulo: 'Endereço' },
             { campo: 'uf', rotulo: 'UF' },
             { campo: 'cep', rotulo: 'CEP' },
@@ -270,33 +270,15 @@ const MATRIZ_COLUNAS_PLANAS = MATRIZ_BLOCOS.reduce((acc, b) => acc.concat(b.colu
 
 const SITUACOES_VALIDAS = new Set(['critico', 'ok', 'atencao', 'andamento', 'info', 'destaque']);
 
-/* Campos importantes de situação que acionam a faixa vermelha fina na esquerda da linha */
-const CAMPOS_SITUACAO_CRITICA_LINHA = [
-    'status_situacao',
-    'carregamento_status_situacao',
-    'transito_status_situacao',
-    'descarga_status_situacao',
-    'validador_origem_situacao',
-    'origem_timer_situacao',
-    'carregamento_cpt_situacao',
-    'carregamento_timer_situacao',
-    'transito_cpt_situacao',
-    'transito_delta_tt_situacao',
-    'descarga_timer_situacao',
-    'timer_situacao',
-    'cpt_situacao',
-    'status_cpt_situacao',
-    'cpt_origem_situacao',
-    'cpt_realizado_situacao',
-    'diferenca_do_cpt_situacao',
-    'total_parada_situacao',
-    'chega_a_tempo_situacao',
-    'tempo_de_espera_situacao',
-    'checklist_situacao',
-    'espelhamento_situacao',
-    'sm_situacao',
-    'ciot_vpo_situacao'
-];
+/* Na MATRIZ, o STATUS da linha é o do bloco da etapa atual (origem não tem coluna de status) */
+const MATRIZ_STATUS_POR_ETAPA = {
+    carregamento: 'carregamento_status_situacao',
+    transito: 'transito_status_situacao',
+    descarga: 'descarga_status_situacao'
+};
+
+/* Abas cujas linhas só valem com LH preenchido (linhas vazias da planilha ficam de fora) */
+const ABAS_COM_LH = new Set(['matriz', 'validacoes', 'origem', 'carregamentos', 'transito', 'descargas', 'faturamento']);
 
 /* ============================================================================
    ESTADO DA APLICAÇÃO
@@ -464,7 +446,7 @@ async function carregarDadosAbaAtual({ silencioso = false } = {}) {
         const linhasAba = respostas[1];
 
         estadoTorre.statusSinc = statusRows && statusRows.length > 0 ? statusRows[0] : null;
-        estadoTorre.dadosPorAba[aba] = Array.isArray(linhasAba) ? linhasAba : [];
+        estadoTorre.dadosPorAba[aba] = filtrarLinhasValidas(aba, Array.isArray(linhasAba) ? linhasAba : []);
 
         if (aba === 'matriz' && respostas[2]) {
             estadoTorre.matrizContadores = respostas[2].length > 0 ? respostas[2][0] : null;
@@ -486,6 +468,17 @@ async function carregarDadosAbaAtual({ silencioso = false } = {}) {
         estadoTorre.carregando = false;
         if (btnAtualizar) btnAtualizar.classList.remove('girando');
     }
+}
+
+function textoPreenchido(valor) {
+    return valor !== null && valor !== undefined && String(valor).trim() !== '';
+}
+
+function filtrarLinhasValidas(aba, linhas) {
+    if (!ABAS_COM_LH.has(aba)) return linhas;
+    return linhas.filter((l) => (
+        l && textoPreenchido(l.lh) && (aba !== 'matriz' || textoPreenchido(l.etapa))
+    ));
 }
 
 function mostrarAvisoRede() {
@@ -674,99 +667,120 @@ function renderizarEstadoVazio(mensagem, subtitulo = 'Assim que a sincronizaçã
 /* ============================================================================
    CONTADORES CLICÁVEIS DO TOPO (MATRIZ, TRÂNSITO E DEMAIS ABAS)
    ============================================================================ */
-function linhaTemCriticoImportante(linha) {
+function linhaTemStatusCritico(linha) {
     if (!linha || typeof linha !== 'object') return false;
-    for (const campoSit of CAMPOS_SITUACAO_CRITICA_LINHA) {
-        if (linha[campoSit] === 'critico') return true;
-    }
-    return false;
+    if (linha.status_situacao === 'critico') return true;
+    const campoStatusEtapa = MATRIZ_STATUS_POR_ETAPA[normalizarTexto(linha.etapa)];
+    return Boolean(campoStatusEtapa && linha[campoStatusEtapa] === 'critico');
 }
+
+/* Ícones pequenos dos chips (traço simples, cor herdada do tom do chip) */
+const ICONES_CHIP = {
+    total: '<line x1="9" y1="6" x2="20" y2="6"></line><line x1="9" y1="12" x2="20" y2="12"></line><line x1="9" y1="18" x2="20" y2="18"></line><circle cx="4.5" cy="6" r="1"></circle><circle cx="4.5" cy="12" r="1"></circle><circle cx="4.5" cy="18" r="1"></circle>',
+    pino: '<circle cx="12" cy="10" r="3"></circle><path d="M12 21.7C17.3 17 20 13 20 10a8 8 0 1 0-16 0c0 3 2.7 7 8 11.7z"></path>',
+    caixa: '<path d="M21 16V8l-9-5-9 5v8l9 5 9-5z"></path><polyline points="3.3 7 12 12 20.7 7"></polyline><line x1="12" y1="22" x2="12" y2="12"></line>',
+    caminhao: '<rect x="1" y="4" width="14" height="12" rx="1"></rect><polygon points="15 8 19 8 23 12 23 16 15 16 15 8"></polygon><circle cx="5.5" cy="18.5" r="2"></circle><circle cx="18.5" cy="18.5" r="2"></circle>',
+    descarga: '<line x1="12" y1="3" x2="12" y2="15"></line><polyline points="7 10 12 15 17 10"></polyline><polyline points="4 17 4 21 20 21 20 17"></polyline>',
+    alerta: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line>',
+    relogio: '<circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline>',
+    check: '<circle cx="12" cy="12" r="9"></circle><polyline points="8 12 11 15 16 9"></polyline>',
+    documento: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline>',
+    pausa: '<circle cx="12" cy="12" r="9"></circle><line x1="10" y1="9" x2="10" y2="15"></line><line x1="14" y1="9" x2="14" y2="15"></line>',
+    pessoa: '<circle cx="12" cy="8" r="4"></circle><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"></path>',
+    etiqueta: '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"></path><circle cx="7" cy="7" r="1.5"></circle>'
+};
+
+const TOM_POR_SITUACAO = {
+    critico: 'critico',
+    ok: 'ok',
+    atencao: 'atencao',
+    andamento: 'andamento',
+    info: 'info',
+    destaque: 'neutro'
+};
 
 function renderizarContadoresTopo(aba, linhas, config) {
+    let grupos;
     if (aba === 'matriz') {
-        return renderizarContadoresMatriz(linhas, config);
+        grupos = gruposChipsMatriz();
+    } else if (aba === 'transito') {
+        grupos = gruposChipsTransito(linhas);
+    } else {
+        grupos = gruposChipsDinamicos(aba, linhas);
     }
-    if (aba === 'transito') {
-        return renderizarContadoresTransito(linhas, config);
-    }
-    return renderizarContadoresDinamicosAba(aba, linhas, config);
+    return renderizarFaixaChips(grupos, config);
 }
 
-function renderizarContadoresMatriz(linhas, config) {
-    const mc = estadoTorre.matrizContadores;
-    const contarEtapa = (etapaAlvo) => linhas.filter((l) => normalizarTexto(l.etapa) === etapaAlvo).length;
-    const contarAtrasos = () => linhas.filter((l) => (
-        linhaTemCriticoImportante(l) ||
-        normalizarTexto(l.carregamento_status).includes('atras') ||
-        normalizarTexto(l.transito_status).includes('atras') ||
-        normalizarTexto(l.descarga_status).includes('atras')
-    )).length;
-
-    const kpis = [
-        {
-            id: 'todas',
-            rotulo: 'Rotas ativas',
-            valor: mc && mc.rotas_ativas != null ? mc.rotas_ativas : linhas.length,
-            sub: 'Total em operação',
-            classe: 'kpi-info'
-        },
-        {
-            id: 'etapa:origem',
-            rotulo: 'Pendentes chegada',
-            valor: mc && mc.pendentes_chegada != null ? mc.pendentes_chegada : contarEtapa('origem'),
-            sub: 'A caminho da origem',
-            classe: 'kpi-atencao'
-        },
-        {
-            id: 'etapa:carregamento',
-            rotulo: 'Carregamentos',
-            valor: mc && mc.carregamentos != null ? mc.carregamentos : contarEtapa('carregamento'),
-            sub: 'Em doca / pátio',
-            classe: 'kpi-andamento'
-        },
-        {
-            id: 'etapa:transito',
-            rotulo: 'Trânsito',
-            valor: mc && mc.transito != null ? mc.transito : contarEtapa('transito'),
-            sub: 'Na rodovia',
-            classe: 'kpi-ok'
-        },
-        {
-            id: 'atrasos',
-            rotulo: 'Atrasos',
-            valor: mc && mc.atrasos != null ? mc.atrasos : contarAtrasos(),
-            sub: 'Atenção imediata',
-            classe: 'kpi-critico'
-        },
-        {
-            id: 'etapa:descarga',
-            rotulo: 'Descarga',
-            valor: mc && mc.descarga != null ? mc.descarga : contarEtapa('descarga'),
-            sub: 'No destino final',
-            classe: 'kpi-ok'
-        }
-    ];
-
+/* Faixa de chips no estilo eLog: grupos com título pequeno, chips compactos lado a lado */
+function renderizarFaixaChips(grupos, config) {
     return `
-        <div class="kpi-grid-matriz">
-            ${kpis.map((k) => {
-                const ativo = (k.id === 'todas' && !config.filtroKpi && !config.filtroEtapa) ||
-                              config.filtroKpi === k.id ||
-                              (k.id.startsWith('etapa:') && config.filtroEtapa === k.id.split(':')[1]);
-                return `
-                    <button type="button"
-                        class="kpi-card ${k.classe} ${ativo ? 'ativo' : ''}"
-                        data-acao="kpi-filtro"
-                        data-kpi-id="${escapeHtml(k.id)}"
-                        aria-pressed="${ativo ? 'true' : 'false'}">
-                        <span class="kpi-rotulo">${escapeHtml(k.rotulo)}</span>
-                        <span class="kpi-valor">${escapeHtml(k.valor)}</span>
-                        <span class="kpi-sub">${escapeHtml(k.sub)}</span>
-                    </button>
-                `;
-            }).join('')}
+        <div class="chips-faixa">
+            ${grupos.filter((g) => g.chips.length > 0).map((g) => `
+                <div class="chips-grupo" role="group" aria-label="${escapeHtml(g.titulo)}">
+                    <span class="chips-grupo-titulo">${escapeHtml(g.titulo)}</span>
+                    <div class="chips-linha">
+                        ${g.chips.map((c) => renderizarChip(c, config)).join('')}
+                    </div>
+                </div>
+            `).join('')}
         </div>
     `;
+}
+
+function renderizarChip(chip, config) {
+    // "todas" só limpa os filtros; nunca fica destacado
+    const ativo = chip.id !== 'todas' && config.filtroKpi === chip.id;
+    const valor = chip.valor === null || chip.valor === undefined || chip.valor === '' ? '—' : chip.valor;
+    return `
+        <button type="button"
+            class="torre-chip chip-tom-${chip.tom || 'neutro'}${ativo ? ' ativo' : ''}"
+            data-acao="kpi-filtro"
+            data-kpi-id="${escapeHtml(chip.id)}"
+            aria-pressed="${ativo ? 'true' : 'false'}"
+            title="${escapeHtml(chip.nome)}">
+            <span class="chip-icone" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${ICONES_CHIP[chip.icone] || ICONES_CHIP.total}</svg>
+            </span>
+            <span class="chip-nome">${escapeHtml(chip.nome)}</span>
+            <span class="chip-num">${escapeHtml(valor)}</span>
+        </button>
+    `;
+}
+
+/* MATRIZ: os números vêm só de torre.v_matriz_contadores (sem valor na view = "—") */
+function gruposChipsMatriz() {
+    const mc = estadoTorre.matrizContadores || {};
+    return [
+        {
+            titulo: 'Rotas',
+            chips: [
+                { id: 'todas', nome: 'Rotas ativas', valor: mc.rotas_ativas, tom: 'marca', icone: 'total' }
+            ]
+        },
+        {
+            titulo: 'Etapas',
+            chips: [
+                { id: 'etapa:origem', nome: 'Pendentes chegada', valor: mc.pendentes_chegada, tom: 'atencao', icone: 'pino' },
+                { id: 'etapa:carregamento', nome: 'Carregamentos', valor: mc.carregamentos, tom: 'andamento', icone: 'caixa' },
+                { id: 'etapa:transito', nome: 'Trânsito', valor: mc.transito, tom: 'info', icone: 'caminhao' },
+                { id: 'etapa:descarga', nome: 'Descarga', valor: mc.descarga, tom: 'ok', icone: 'descarga' }
+            ]
+        },
+        {
+            titulo: 'Alertas',
+            chips: [
+                { id: 'atrasos', nome: 'Atrasos', valor: mc.atrasos, tom: 'critico', icone: 'alerta' }
+            ]
+        }
+    ];
+}
+
+function linhaMatrizAtrasada(linha) {
+    return linhaTemStatusCritico(linha) ||
+        normalizarTexto(linha.carregamento_status).includes('atras') ||
+        normalizarTexto(linha.transito_status).includes('atras') ||
+        normalizarTexto(linha.descarga_status).includes('atras');
 }
 
 function classificarFiltroTransito(linha, chaveChip) {
@@ -813,171 +827,109 @@ function classificarFiltroTransito(linha, chaveChip) {
     }
 }
 
-function renderizarContadoresTransito(linhas, config) {
+function gruposChipsTransito(linhas) {
     const contar = (chave) => linhas.filter((l) => classificarFiltroTransito(l, chave)).length;
+    const chip = (id, nome, tom, icone) => ({ id, nome, valor: contar(id), tom, icone });
 
-    const grupos = [
+    return [
         {
             titulo: 'Carga',
             chips: [
-                { id: 'carga:forecast', nome: 'Forecast', valor: contar('carga:forecast'), classe: '' },
-                { id: 'carga:reversa', nome: 'Reversa', valor: contar('carga:reversa'), classe: '' },
-                { id: 'carga:spot', nome: 'Spot', valor: contar('carga:spot'), classe: '' }
+                chip('carga:forecast', 'Forecast', 'ok', 'etiqueta'),
+                chip('carga:reversa', 'Reversa', 'atencao', 'etiqueta'),
+                chip('carga:spot', 'Spot', 'andamento', 'etiqueta')
             ]
         },
         {
             titulo: 'Status',
             chips: [
-                { id: 'status:no_prazo', nome: 'No prazo', valor: contar('status:no_prazo'), classe: 'chip-ok' },
-                { id: 'status:atrasado', nome: 'Atrasado', valor: contar('status:atrasado'), classe: 'chip-critico' }
+                chip('status:no_prazo', 'No prazo', 'ok', 'relogio'),
+                chip('status:atrasado', 'Atrasado', 'critico', 'alerta')
             ]
         },
         {
             titulo: 'Pendências',
             chips: [
-                { id: 'pendencia:ciot_vpo', nome: 'CIOT/VPO pendente', valor: contar('pendencia:ciot_vpo'), classe: 'chip-critico' },
-                { id: 'pendencia:faturar', nome: 'Faturar', valor: contar('pendencia:faturar'), classe: '' },
-                { id: 'pendencia:parada_alta', nome: 'Parada alta', valor: contar('pendencia:parada_alta'), classe: 'chip-critico' }
+                chip('pendencia:ciot_vpo', 'CIOT/VPO pendente', 'critico', 'documento'),
+                chip('pendencia:faturar', 'Faturar', 'atencao', 'documento'),
+                chip('pendencia:parada_alta', 'Parada alta', 'critico', 'pausa')
             ]
         },
         {
             titulo: 'Vínculo',
             chips: [
-                { id: 'vinculo:frota', nome: 'Frota', valor: contar('vinculo:frota'), classe: '' },
-                { id: 'vinculo:terceiro', nome: 'Terceiro', valor: contar('vinculo:terceiro'), classe: '' },
-                { id: 'vinculo:agregado', nome: 'Agregado', valor: contar('vinculo:agregado'), classe: '' }
+                chip('vinculo:frota', 'Frota', 'neutro', 'pessoa'),
+                chip('vinculo:terceiro', 'Terceiro', 'neutro', 'pessoa'),
+                chip('vinculo:agregado', 'Agregado', 'neutro', 'pessoa')
             ]
         }
     ];
-
-    return `
-        <div class="transito-grupos-grid">
-            ${grupos.map((g) => `
-                <div class="transito-grupo-card">
-                    <div class="transito-grupo-titulo">
-                        <span>${escapeHtml(g.titulo)}</span>
-                    </div>
-                    <div class="transito-chips-row">
-                        ${g.chips.map((c) => {
-                            const ativo = config.filtroKpi === c.id;
-                            return `
-                                <button type="button"
-                                    class="transito-chip-btn ${c.classe} ${ativo ? 'ativo' : ''}"
-                                    data-acao="kpi-filtro"
-                                    data-kpi-id="${escapeHtml(c.id)}"
-                                    aria-pressed="${ativo ? 'true' : 'false'}">
-                                    <span class="chip-nome" title="${escapeHtml(c.nome)}">${escapeHtml(c.nome)}</span>
-                                    <span class="chip-num">${escapeHtml(c.valor)}</span>
-                                </button>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    `;
 }
 
-function renderizarContadoresDinamicosAba(aba, linhas, config) {
-    const cards = [];
-
-    // 1º card sempre mostra o Total de registros (clicar limpa o filtro de KPI)
-    cards.push({
-        id: 'todas',
-        rotulo: 'Total na aba',
-        valor: linhas.length,
-        sub: 'Todos os registros',
-        classe: 'kpi-info'
-    });
+function gruposChipsDinamicos(aba, linhas) {
+    const grupos = [
+        {
+            titulo: 'Registros',
+            chips: [{ id: 'todas', nome: 'Total na aba', valor: linhas.length, tom: 'marca', icone: 'total' }]
+        }
+    ];
 
     if (aba === 'validacoes') {
-        const critChecklist = linhas.filter((l) => l.checklist_situacao === 'critico').length;
-        const critEspelhamento = linhas.filter((l) => l.espelhamento_situacao === 'critico').length;
-        const critSm = linhas.filter((l) => l.sm_situacao === 'critico').length;
-
-        cards.push(
-            {
-                id: 'sit_critico:checklist',
-                rotulo: 'Checklist crítico',
-                valor: critChecklist,
-                sub: 'checklist_situacao = critico',
-                classe: 'kpi-critico'
-            },
-            {
-                id: 'sit_critico:espelhamento',
-                rotulo: 'Espelhamento crítico',
-                valor: critEspelhamento,
-                sub: 'espelhamento_situacao = critico',
-                classe: 'kpi-critico'
-            },
-            {
-                id: 'sit_critico:sm',
-                rotulo: 'SM crítico',
-                valor: critSm,
-                sub: 'sm_situacao = critico',
-                classe: 'kpi-critico'
-            }
-        );
-    } else {
-        // Monta até 3 contadores com os valores reais existentes na coluna-chave da aba
-        const colunaChavePorAba = {
-            origem: 'chega_a_tempo',
-            carregamentos: 'status',
-            descargas: 'status',
-            faturamento: 'ciot_vpo',
-            enderecos: 'tipo'
-        };
-        const campoContagem = colunaChavePorAba[aba] || 'status';
-        const mapaValores = new Map();
-
-        linhas.forEach((l) => {
-            const val = l[campoContagem] != null ? String(l[campoContagem]).trim() : '';
-            if (!val) return;
-            const atual = mapaValores.get(val) || { qtd: 0, situacao: l[`${campoContagem}_situacao`] || null };
-            atual.qtd += 1;
-            if (l[`${campoContagem}_situacao`] === 'critico') atual.situacao = 'critico';
-            mapaValores.set(val, atual);
+        const contarCritico = (campo) => linhas.filter((l) => l[`${campo}_situacao`] === 'critico').length;
+        grupos.push({
+            titulo: 'Pendências',
+            chips: [
+                { id: 'sit_critico:checklist', nome: 'Checklist crítico', valor: contarCritico('checklist'), tom: 'critico', icone: 'check' },
+                { id: 'sit_critico:espelhamento', nome: 'Espelhamento crítico', valor: contarCritico('espelhamento'), tom: 'critico', icone: 'caminhao' },
+                { id: 'sit_critico:sm', nome: 'SM crítico', valor: contarCritico('sm'), tom: 'critico', icone: 'documento' }
+            ]
         });
-
-        const entradasOrdenadas = Array.from(mapaValores.entries())
-            .sort((a, b) => b[1].qtd - a[1].qtd)
-            .slice(0, 3);
-
-        entradasOrdenadas.forEach(([valorTexto, info]) => {
-            let classeKpi = 'kpi-info';
-            if (info.situacao === 'critico') classeKpi = 'kpi-critico';
-            else if (info.situacao === 'ok') classeKpi = 'kpi-ok';
-            else if (info.situacao === 'atencao') classeKpi = 'kpi-atencao';
-            else if (info.situacao === 'andamento') classeKpi = 'kpi-andamento';
-
-            cards.push({
-                id: `col_val:${campoContagem}:${valorTexto}`,
-                rotulo: valorTexto,
-                valor: info.qtd,
-                sub: `Filtro por ${campoContagem.replace(/_/g, ' ')}`,
-                classe: classeKpi
-            });
-        });
+        return grupos;
     }
 
-    return `
-        <div class="kpi-grid-padrao">
-            ${cards.map((k) => {
-                const ativo = (k.id === 'todas' && !config.filtroKpi) || config.filtroKpi === k.id;
-                return `
-                    <button type="button"
-                        class="kpi-card ${k.classe} ${ativo ? 'ativo' : ''}"
-                        data-acao="kpi-filtro"
-                        data-kpi-id="${escapeHtml(k.id)}"
-                        aria-pressed="${ativo ? 'true' : 'false'}">
-                        <span class="kpi-rotulo">${escapeHtml(k.rotulo)}</span>
-                        <span class="kpi-valor">${escapeHtml(k.valor)}</span>
-                        <span class="kpi-sub">${escapeHtml(k.sub)}</span>
-                    </button>
-                `;
-            }).join('')}
-        </div>
-    `;
+    // Chips com os valores reais existentes na coluna-chave da aba (os mais frequentes primeiro)
+    const colunaChavePorAba = {
+        origem: 'chega_a_tempo',
+        carregamentos: 'status',
+        descargas: 'status',
+        faturamento: 'ciot_vpo',
+        enderecos: 'tipo'
+    };
+    const campoContagem = colunaChavePorAba[aba] || 'status';
+    const colunaMeta = ((ABAS_META[aba] || {}).colunas || []).find((c) => c.campo === campoContagem);
+    const mapaValores = new Map();
+
+    linhas.forEach((l) => {
+        const val = l[campoContagem] != null ? String(l[campoContagem]).trim() : '';
+        if (!val) return;
+        const atual = mapaValores.get(val) || { qtd: 0, situacao: l[`${campoContagem}_situacao`] || null };
+        atual.qtd += 1;
+        if (l[`${campoContagem}_situacao`] === 'critico') atual.situacao = 'critico';
+        mapaValores.set(val, atual);
+    });
+
+    const chipsValores = Array.from(mapaValores.entries())
+        .sort((a, b) => b[1].qtd - a[1].qtd)
+        .slice(0, 6)
+        .map(([valorTexto, info]) => {
+            const tom = TOM_POR_SITUACAO[info.situacao] || 'neutro';
+            let icone = 'etiqueta';
+            if (tom === 'critico') icone = 'alerta';
+            else if (tom === 'ok') icone = 'check';
+            return {
+                id: `col_val:${campoContagem}:${valorTexto}`,
+                nome: valorTexto,
+                valor: info.qtd,
+                tom,
+                icone
+            };
+        });
+
+    grupos.push({
+        titulo: colunaMeta ? colunaMeta.rotulo : campoContagem.replace(/_/g, ' '),
+        chips: chipsValores
+    });
+    return grupos;
 }
 
 function renderizarBarraSubfiltros(aba, container, config) {
@@ -1050,11 +1002,7 @@ function aplicarFiltrosNasLinhas(aba, linhas, colunas, config) {
                     const etAlvo = filtroKpi.split(':')[1];
                     if (normalizarTexto(linha.etapa) !== etAlvo) return false;
                 } else if (filtroKpi === 'atrasos') {
-                    const atrasado = linhaTemCriticoImportante(linha) ||
-                        normalizarTexto(linha.carregamento_status).includes('atras') ||
-                        normalizarTexto(linha.transito_status).includes('atras') ||
-                        normalizarTexto(linha.descarga_status).includes('atras');
-                    if (!atrasado) return false;
+                    if (!linhaMatrizAtrasada(linha)) return false;
                 }
             } else if (aba === 'transito') {
                 if (!classificarFiltroTransito(linha, filtroKpi)) return false;
@@ -1251,22 +1199,37 @@ function renderizarTabelaDensa(aba, linhasBrutas, linhasOrdenadas, colunas, conf
                         Exibindo <strong>${inicioExibido}–${fimExibido}</strong> de <strong>${totalFiltrado}</strong>
                     </span>
                 </div>
-                <div class="paginacao-direita">
+                <nav class="paginacao-direita" aria-label="Páginas da tabela">
                     <button type="button" class="btn-pagina" data-acao="pagina-anterior"
-                        ${paginaAtual <= 1 || porPagina === 0 ? 'disabled' : ''}>
-                        &lsaquo; Anterior
-                    </button>
-                    <span class="paginacao-info-pag">
-                        Página <strong>${porPagina === 0 ? 1 : paginaAtual}</strong> de <strong>${porPagina === 0 ? 1 : totalPaginas}</strong>
-                    </span>
+                        aria-label="Página anterior"
+                        ${paginaAtual <= 1 || porPagina === 0 ? 'disabled' : ''}>&lsaquo;</button>
+                    ${gerarNumerosPagina(porPagina === 0 ? 1 : paginaAtual, porPagina === 0 ? 1 : totalPaginas).map((n) => (
+                        n === '…'
+                            ? '<span class="paginacao-reticencias" aria-hidden="true">…</span>'
+                            : `<button type="button" class="btn-pagina btn-pagina-num${n === (porPagina === 0 ? 1 : paginaAtual) ? ' atual' : ''}"
+                                data-acao="pagina-ir" data-pagina="${n}"
+                                ${n === (porPagina === 0 ? 1 : paginaAtual) ? 'aria-current="page"' : ''}>${n}</button>`
+                    )).join('')}
                     <button type="button" class="btn-pagina" data-acao="pagina-proxima"
-                        ${paginaAtual >= totalPaginas || porPagina === 0 ? 'disabled' : ''}>
-                        Próxima &rsaquo;
-                    </button>
-                </div>
+                        aria-label="Próxima página"
+                        ${paginaAtual >= totalPaginas || porPagina === 0 ? 'disabled' : ''}>&rsaquo;</button>
+                </nav>
             </div>
         </div>
     `;
+}
+
+/* Números de página: 1 … 4 5 6 … 20 (sempre a primeira, a última e as vizinhas da atual) */
+function gerarNumerosPagina(atual, total) {
+    const numeros = [];
+    for (let n = 1; n <= total; n++) {
+        if (n === 1 || n === total || Math.abs(n - atual) <= 1 || (atual <= 3 && n <= 4) || (atual >= total - 2 && n >= total - 3)) {
+            numeros.push(n);
+        } else if (numeros[numeros.length - 1] !== '…') {
+            numeros.push('…');
+        }
+    }
+    return numeros;
 }
 
 function renderizarCelulaTh(col, config, classeExtra = '') {
@@ -1338,7 +1301,7 @@ function renderizarTheadMatriz(config) {
 }
 
 function renderizarLinhaTabela(aba, linha, colunas, maxParadaMin) {
-    const ehCritica = linhaTemCriticoImportante(linha);
+    const ehCritica = linhaTemStatusCritico(linha);
     return `
         <tr class="${ehCritica ? 'linha-critica' : ''}">
             ${colunas.map((col) => {
@@ -1396,16 +1359,16 @@ function renderizarConteudoCelula(aba, linha, col, maxParadaMin) {
     // 6. Link seguro http/https quando houver coluna <col>_url
     const urlSegura = col.urlCampo ? urlSeguraHttp(linha[col.urlCampo]) : null;
 
-    // 7. Tempos e datas com situação -> pinta SÓ o texto (vermelho ou verde), sem pílula
+    // 7. Tempos e timers com situação -> bloco de cor sólida atrás do número (sem pílula)
     if (col.tipo === 'tempo') {
         if (situacao) {
-            return `<span class="torre-tempo-situacao texto-situacao-${situacao}">${textoSeguro}</span>`;
+            return `<span class="torre-tempo-bloco tempo-${situacao}">${textoSeguro}</span>`;
         }
         return `<span class="torre-tempo-normal">${textoSeguro}</span>`;
     }
 
-    // 8. Pílulas de situação (status, carga, CIOT, checklist, espelhamento, TAG ou qualquer coluna com _situacao)
-    if (situacao) {
+    // 8. Pílulas SÓ nas colunas de status/flag; as demais ficam em texto normal mesmo com situação
+    if (col.tipo === 'pilula' && situacao) {
         const pilula = `<span class="torre-pilula situacao-${situacao}">${textoSeguro}</span>`;
         if (urlSegura) {
             return `<a href="${escapeHtml(urlSegura)}" class="torre-link-celula" target="_blank" rel="noopener noreferrer">${pilula}</a>`;
@@ -1494,20 +1457,24 @@ function renderizarBarraProgressaoViagem(valorBruto, situacao) {
     if (valorBruto === null || valorBruto === undefined || String(valorBruto).trim() === '') {
         return '<span class="texto-vazio">—</span>';
     }
+    // A planilha manda o texto com quadradinhos (ex.: "■■■□□ 60%"): fica só o número do %
     const texto = String(valorBruto).trim();
-    const matchPct = texto.match(/(\d+(?:[.,]\d+)?)/);
-    let pct = matchPct ? parseFloat(matchPct[1].replace(',', '.')) : 0;
+    const matchPct = texto.match(/(\d+(?:[.,]\d+)?)\s*%/) || texto.match(/(\d+(?:[.,]\d+)?)/);
+    if (!matchPct) {
+        return '<span class="texto-vazio">—</span>';
+    }
+    let pct = parseFloat(matchPct[1].replace(',', '.'));
     if (Number.isNaN(pct)) pct = 0;
     const pctClamped = Math.max(0, Math.min(100, Math.round(pct)));
 
     return `
-        <div class="barra-progresso-celula" title="${escapeHtml(texto)}">
+        <div class="barra-progresso-celula" title="${pctClamped}%">
             <div class="barra-progresso-trilha" role="progressbar"
                  aria-valuenow="${pctClamped}" aria-valuemin="0" aria-valuemax="100">
                 <div class="barra-progresso-preenchimento ${situacao === 'critico' ? 'critico' : ''}"
                      style="width: ${pctClamped}%;"></div>
             </div>
-            <span class="barra-progresso-label">${escapeHtml(texto.includes('%') ? texto : `${pctClamped}%`)}</span>
+            <span class="barra-progresso-label">${pctClamped}%</span>
         </div>
     `;
 }
@@ -1520,7 +1487,7 @@ function renderizarBarraTotalParada(valorBruto, situacao, maxParadaMin) {
     const refMax = Math.max(30, maxParadaMin || 60);
     const pct = Math.max(6, Math.min(100, Math.round((minutos / refMax) * 100)));
     const classeCor = situacao === 'critico' ? 'critico' : (situacao === 'ok' ? 'ok' : '');
-    const classeTexto = situacao ? `torre-tempo-situacao texto-situacao-${situacao}` : '';
+    const classeTexto = situacao ? `torre-tempo-bloco tempo-${situacao}` : 'torre-tempo-normal';
 
     return `
         <div class="parada-proporcional-celula">
@@ -2115,6 +2082,13 @@ function registrarEventosGlobais() {
         } else if (acao === 'pagina-anterior') {
             if (config.pagina > 1) {
                 config.pagina -= 1;
+                salvarEstadoAbas();
+                renderizarTelaCompleta({ preservarRolagem: false });
+            }
+        } else if (acao === 'pagina-ir') {
+            const destino = parseInt(alvoAcao.getAttribute('data-pagina'), 10);
+            if (destino > 0 && destino !== config.pagina) {
+                config.pagina = destino;
                 salvarEstadoAbas();
                 renderizarTelaCompleta({ preservarRolagem: false });
             }

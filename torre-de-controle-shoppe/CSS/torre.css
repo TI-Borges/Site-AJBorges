@@ -19,8 +19,8 @@
     --bg-card: #ffffff;
     --bg-card-subtle: #f8fafc;
     --bg-row-even: #ffffff;
-    --bg-row-odd: #f9fbfd;
-    --bg-row-hover: #f1f5f9;
+    --bg-row-odd: #fafbfd;
+    --bg-row-hover: #f2f5fa;
     --border-color: #e2e8f0;
     --border-strong: #cbd5e1;
 
@@ -50,7 +50,7 @@ body.modo-tv {
     --bg-card: #111827;
     --bg-card-subtle: #1e293b;
     --bg-row-even: #111827;
-    --bg-row-odd: #162032;
+    --bg-row-odd: #141d2d;
     --bg-row-hover: #1e293b;
     --border-color: #1f2937;
     --border-strong: #334155;
@@ -662,216 +662,134 @@ body.modo-tv .torre-h1-marca {
     display: none;
 }
 
-/* Grade de Cards KPI (MATRIZ e Abas Operacionais) */
-.kpi-grid-matriz {
-    display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 8px;
+/* Faixa de chips (estilo eLog): grupos com título pequeno e chips compactos lado a lado */
+.chips-faixa {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 8px 18px;
+    min-width: 0;
 }
 
-.kpi-grid-padrao {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 8px;
-}
-
-.kpi-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-left: 4px solid var(--ajb-blue);
-    border-radius: 8px;
-    padding: 8px 12px;
+.chips-grupo {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 2px;
-    cursor: pointer;
-    text-align: left;
-    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
-    box-shadow: var(--shadow-xs);
+    gap: 4px;
     min-width: 0;
+    max-width: 100%;
 }
 
-.kpi-card:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-sm);
-    border-color: var(--border-strong);
-}
-
-.kpi-card.ativo {
-    background: var(--shopee-orange-soft);
-    border-color: var(--shopee-orange);
-    border-left-color: var(--shopee-orange);
-    box-shadow: 0 0 0 2px rgba(238, 77, 45, 0.2);
-}
-
-body.modo-tv .kpi-card.ativo {
-    background: rgba(238, 77, 45, 0.18);
-}
-
-.kpi-card.kpi-critico {
-    border-left-color: #dc2626;
-    background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
-}
-
-body.modo-tv .kpi-card.kpi-critico {
-    background: linear-gradient(135deg, rgba(220, 38, 38, 0.22) 0%, #111827 100%);
-    border-color: rgba(239, 68, 68, 0.45);
-    border-left-color: #ef4444;
-}
-
-.kpi-card.kpi-critico .kpi-valor {
-    color: #dc2626;
-}
-
-body.modo-tv .kpi-card.kpi-critico .kpi-valor {
-    color: #f87171;
-}
-
-.kpi-card.kpi-ok {
-    border-left-color: #16a34a;
-}
-
-.kpi-card.kpi-atencao {
-    border-left-color: #d97706;
-}
-
-.kpi-card.kpi-andamento {
-    border-left-color: var(--shopee-orange);
-}
-
-.kpi-card.kpi-info {
-    border-left-color: #0284c7;
-}
-
-.kpi-rotulo {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.kpi-valor {
-    font-family: var(--font-heading);
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--text-primary);
-    line-height: 1.1;
-    font-variant-numeric: tabular-nums;
-}
-
-.kpi-sub {
-    font-size: 10.5px;
-    color: var(--text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Grupos de Contadores do TRÂNSITO (Estilo eLog / Bigcore) */
-.transito-grupos-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 8px;
-}
-
-.transito-grupo-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 7px 10px;
-    box-shadow: var(--shadow-xs);
-    min-width: 0;
-}
-
-.transito-grupo-titulo {
-    font-family: var(--font-heading);
+.chips-grupo-titulo {
     font-size: 10.5px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--ajb-blue);
-    margin-bottom: 6px;
+    color: var(--text-muted);
+    padding-left: 2px;
+}
+
+.chips-linha {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-body.modo-tv .transito-grupo-titulo {
-    color: #93c5fd;
-}
-
-.transito-chips-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
-    gap: 5px;
-}
-
-.transito-chip-btn {
-    background: var(--bg-card-subtle);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 5px 7px;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1px;
-    text-align: left;
-    transition: all 0.14s ease;
+    flex-wrap: wrap;
+    gap: 6px;
     min-width: 0;
 }
 
-.transito-chip-btn:hover {
-    border-color: var(--ajb-blue);
-    background: var(--ajb-blue-soft);
+.torre-chip {
+    --chip-cor: #475569;
+    --chip-fundo: rgba(71, 85, 105, 0.12);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px 0 7px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    max-width: 100%;
+    min-width: 0;
+    transition: border-color 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
 }
 
-body.modo-tv .transito-chip-btn:hover {
-    background: #1e293b;
+.torre-chip:hover {
+    border-color: var(--chip-cor);
+    box-shadow: var(--shadow-xs);
 }
 
-.transito-chip-btn.ativo {
-    background: var(--shopee-orange);
-    border-color: var(--shopee-orange);
-    color: #ffffff;
+.torre-chip:focus-visible {
+    outline: 2px solid var(--ajb-blue);
+    outline-offset: 1px;
 }
 
-.transito-chip-btn.ativo .chip-nome,
-.transito-chip-btn.ativo .chip-num {
-    color: #ffffff !important;
+.chip-icone {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    color: var(--chip-cor);
+    background: var(--chip-fundo);
+}
+
+.chip-icone svg {
+    width: 12px;
+    height: 12px;
 }
 
 .chip-nome {
-    font-size: 10.5px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    white-space: nowrap;
+    font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 100%;
+    min-width: 0;
 }
 
 .chip-num {
-    font-family: var(--font-heading);
-    font-size: 16px;
     font-weight: 800;
+    font-size: 13px;
     color: var(--text-primary);
-    line-height: 1.1;
     font-variant-numeric: tabular-nums;
+    margin-left: 2px;
 }
 
-.transito-chip-btn.chip-critico .chip-num {
+.torre-chip.chip-tom-marca { --chip-cor: var(--ajb-blue); --chip-fundo: rgba(61, 61, 144, 0.12); }
+.torre-chip.chip-tom-ok { --chip-cor: #16a34a; --chip-fundo: rgba(22, 163, 74, 0.13); }
+.torre-chip.chip-tom-critico { --chip-cor: #dc2626; --chip-fundo: rgba(220, 38, 38, 0.12); }
+.torre-chip.chip-tom-atencao { --chip-cor: #d97706; --chip-fundo: rgba(217, 119, 6, 0.14); }
+.torre-chip.chip-tom-andamento { --chip-cor: #ea580c; --chip-fundo: rgba(234, 88, 12, 0.13); }
+.torre-chip.chip-tom-info { --chip-cor: #0284c7; --chip-fundo: rgba(2, 132, 199, 0.13); }
+.torre-chip.chip-tom-neutro { --chip-cor: #64748b; --chip-fundo: rgba(100, 116, 139, 0.13); }
+
+.torre-chip.chip-tom-critico .chip-num {
     color: #dc2626;
 }
 
-.transito-chip-btn.chip-ok .chip-num {
-    color: #15803d;
+/* Chip ativo (filtro aplicado): destaque com a cor do tom */
+.torre-chip.ativo {
+    background: var(--chip-cor);
+    border-color: var(--chip-cor);
+    color: #ffffff;
+    box-shadow: 0 0 0 2px var(--chip-fundo);
 }
+
+.torre-chip.ativo .chip-num,
+.torre-chip.ativo .chip-icone {
+    color: #ffffff;
+}
+
+.torre-chip.ativo .chip-icone {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+body.modo-tv .torre-chip.chip-tom-marca { --chip-cor: #818cf8; --chip-fundo: rgba(129, 140, 248, 0.18); }
+body.modo-tv .torre-chip.chip-tom-critico .chip-num { color: #f87171; }
+body.modo-tv .torre-chip.ativo .chip-num { color: #ffffff; }
 
 /* Barra de Subfiltros (Filtros rápidos por etapa na MATRIZ e chips de filtros ativos) */
 .torre-barra-subfiltros {
@@ -990,17 +908,15 @@ body.modo-tv .transito-chip-btn:hover {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: #f1f5f9;
-    color: #1e293b;
-    font-family: var(--font-heading);
-    font-size: 11px;
+    background: #f8fafc;
+    color: #334155;
+    font-family: var(--font-body);
+    font-size: 11.5px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    padding: 5px 8px;
-    height: 28px;
+    letter-spacing: 0;
+    padding: 5px 10px;
+    height: 30px;
     border-bottom: 1px solid var(--border-strong);
-    border-right: 1px solid var(--border-color);
     white-space: nowrap;
     text-align: left;
     user-select: none;
@@ -1135,8 +1051,13 @@ body.modo-tv .bloco-descarga-sub {
 }
 
 .th-icone-ordem {
-    font-size: 10px;
-    opacity: 0.45;
+    font-size: 9px;
+    opacity: 0.3;
+    transition: opacity 0.12s ease;
+}
+
+.th-btn-ordenar:hover .th-icone-ordem {
+    opacity: 0.8;
 }
 
 .th-btn-ordenar.ordenado .th-icone-ordem {
@@ -1148,7 +1069,7 @@ body.modo-tv .bloco-descarga-sub {
     background: transparent;
     border: none;
     color: inherit;
-    opacity: 0.45;
+    opacity: 0.28;
     cursor: pointer;
     padding: 2px;
     border-radius: 4px;
@@ -1178,24 +1099,28 @@ body.modo-tv .bloco-descarga-sub {
 }
 
 .torre-tabela tbody td {
-    padding: 3px 8px;
-    height: 26px;
-    border-bottom: 1px solid var(--border-color);
-    border-right: 1px solid rgba(226, 232, 240, 0.55);
+    padding: 3px 10px;
+    height: 27px;
+    border-bottom: 1px solid #eef1f5;
     white-space: nowrap;
     vertical-align: middle;
     color: var(--text-primary);
 }
 
 body.modo-tv .torre-tabela tbody td {
-    border-right-color: rgba(51, 65, 85, 0.5);
+    border-bottom-color: #1f2937;
 }
 
-/* 1ª Coluna (LH) Fixa ao Rolar para o Lado */
+/* 1ª Coluna (LH) fixa ao rolar para o lado: fundo sólido, largura mínima e sombra na borda
+   para não se misturar com a coluna seguinte */
 .torre-tabela th.col-fixa-lh,
 .torre-tabela td.col-fixa-lh {
     position: sticky;
     left: 0;
+    min-width: 116px;
+    background-clip: padding-box;
+    border-right: 1px solid var(--border-strong);
+    box-shadow: 6px 0 6px -6px rgba(15, 23, 42, 0.35);
 }
 
 .torre-tabela thead th.col-fixa-lh {
@@ -1207,7 +1132,6 @@ body.modo-tv .torre-tabela tbody td {
     background-color: var(--bg-row-even);
     font-weight: 700;
     color: var(--ajb-blue);
-    border-right: 2px solid var(--border-strong);
 }
 
 .torre-tabela tbody tr:nth-child(even) td.col-fixa-lh {
@@ -1222,9 +1146,18 @@ body.modo-tv .torre-tabela tbody td.col-fixa-lh {
     color: #93c5fd;
 }
 
-/* Linha Crítica: APENAS faixa vermelha fina na esquerda da linha (nunca pinta a linha inteira) */
+body.modo-tv .torre-tabela th.col-fixa-lh,
+body.modo-tv .torre-tabela td.col-fixa-lh {
+    box-shadow: 6px 0 6px -6px rgba(0, 0, 0, 0.8);
+}
+
+/* Linha crítica (STATUS = critico): APENAS faixa vermelha fina na esquerda (nunca pinta a linha) */
 .torre-tabela tbody tr.linha-critica > td:first-child {
     box-shadow: inset 4px 0 0 #dc2626;
+}
+
+.torre-tabela tbody tr.linha-critica > td.col-fixa-lh {
+    box-shadow: inset 4px 0 0 #dc2626, 6px 0 6px -6px rgba(15, 23, 42, 0.35);
 }
 
 /* ==========================================================================
@@ -1285,45 +1218,51 @@ body.modo-tv .torre-tabela tbody td.col-fixa-lh {
     border-color: #cbd5e1;
 }
 
-/* Tempos e datas com situação: pinta SÓ o texto, sem pílula */
-.torre-tempo-situacao {
+/* Tempos e timers com situação: bloco de cor sólida atrás do número (estilo eLog) */
+.torre-tempo-bloco {
+    display: inline-block;
+    min-width: 46px;
+    padding: 1px 7px;
+    border-radius: 4px;
     font-weight: 700;
-    background: transparent !important;
-    padding: 0 !important;
-    border: none !important;
+    line-height: 1.5;
+    text-align: center;
+    vertical-align: middle;
     font-variant-numeric: tabular-nums;
+    color: #ffffff;
 }
 
-.torre-tempo-situacao.texto-situacao-critico {
-    color: #dc2626;
+.torre-tempo-bloco.tempo-critico {
+    background-color: #dc2626;
 }
 
-.torre-tempo-situacao.texto-situacao-ok {
-    color: #15803d;
+.torre-tempo-bloco.tempo-ok {
+    background-color: #16a34a;
 }
 
-.torre-tempo-situacao.texto-situacao-atencao {
-    color: #b45309;
+.torre-tempo-bloco.tempo-atencao {
+    background-color: #facc15;
+    color: #422006;
 }
 
-.torre-tempo-situacao.texto-situacao-andamento {
-    color: #c2410c;
+.torre-tempo-bloco.tempo-andamento {
+    background-color: #ea580c;
 }
 
-.torre-tempo-situacao.texto-situacao-info {
-    color: #0369a1;
+.torre-tempo-bloco.tempo-info {
+    background-color: #0284c7;
 }
 
-.torre-tempo-situacao.texto-situacao-destaque {
-    color: #334155;
+.torre-tempo-bloco.tempo-destaque {
+    background-color: #1e293b;
 }
 
-body.modo-tv .torre-tempo-situacao.texto-situacao-critico {
-    color: #f87171;
+body.modo-tv .torre-tempo-bloco.tempo-destaque {
+    background-color: #475569;
 }
 
-body.modo-tv .torre-tempo-situacao.texto-situacao-ok {
-    color: #4ade80;
+.torre-tempo-normal {
+    font-variant-numeric: tabular-nums;
 }
 
 /* Indicador Visual de Etapa na MATRIZ (4 bolinhas + nome da etapa) */
@@ -1409,14 +1348,15 @@ body.modo-tv .barra-progresso-trilha {
 /* Barrinha Proporcional de Total Parada (TRÂNSITO) */
 .parada-proporcional-celula {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 78px;
+    align-items: center;
+    gap: 6px;
+    min-width: 104px;
 }
 
 .parada-proporcional-trilha {
-    width: 100%;
-    height: 4px;
+    flex: 1;
+    min-width: 40px;
+    height: 5px;
     background: #e2e8f0;
     border-radius: 999px;
     overflow: hidden;
@@ -1548,6 +1488,10 @@ body.modo-tv .torre-link-celula {
     flex-wrap: wrap;
 }
 
+.paginacao-direita {
+    gap: 4px;
+}
+
 .select-por-pagina {
     height: 28px;
     padding: 0 8px;
@@ -1585,6 +1529,27 @@ body.modo-tv .torre-link-celula {
 .btn-pagina:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+}
+
+.btn-pagina-num {
+    font-variant-numeric: tabular-nums;
+}
+
+.btn-pagina-num.atual {
+    background: var(--ajb-blue);
+    border-color: var(--ajb-blue);
+    color: #ffffff;
+    cursor: default;
+}
+
+.btn-pagina-num.atual:hover {
+    color: #ffffff !important;
+}
+
+.paginacao-reticencias {
+    min-width: 18px;
+    text-align: center;
+    color: var(--text-muted);
 }
 
 /* ==========================================================================
@@ -1830,24 +1795,34 @@ body.modo-tv .topbar-aba-titulo {
     font-size: 26px;
 }
 
-body.modo-tv .kpi-card {
-    padding: 12px 16px;
-}
-
-body.modo-tv .kpi-rotulo {
-    font-size: 13px;
-}
-
-body.modo-tv .kpi-valor {
-    font-size: 34px;
-}
-
-body.modo-tv .chip-nome {
+body.modo-tv .chips-grupo-titulo {
     font-size: 12px;
 }
 
+body.modo-tv .torre-chip {
+    height: 38px;
+    font-size: 15px;
+    padding: 0 13px 0 8px;
+    gap: 8px;
+}
+
+body.modo-tv .chip-icone {
+    width: 26px;
+    height: 26px;
+}
+
+body.modo-tv .chip-icone svg {
+    width: 15px;
+    height: 15px;
+}
+
 body.modo-tv .chip-num {
-    font-size: 24px;
+    font-size: 18px;
+}
+
+body.modo-tv .torre-tempo-bloco {
+    font-size: 13px;
+    padding: 2px 8px;
 }
 
 body.modo-tv .torre-tabela {
@@ -1876,16 +1851,6 @@ body.modo-tv .torre-tabela-scroll {
 /* ==========================================================================
    9. RESPONSIVIDADE (1366px, 1920px, TABLET E CELULAR 390px / 360px)
    ========================================================================== */
-@media (max-width: 1280px) {
-    .kpi-grid-matriz {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .transito-grupos-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
 @media (max-width: 900px) {
     .torre-sidebar {
         transform: translateX(-105%);
@@ -1945,10 +1910,13 @@ body.modo-tv .torre-tabela-scroll {
         padding: 8px 10px 12px;
     }
 
-    .kpi-grid-matriz,
-    .kpi-grid-padrao,
-    .transito-grupos-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .chips-faixa {
+        gap: 8px 12px;
+    }
+
+    .torre-chip {
+        height: 28px;
+        font-size: 11.5px;
     }
 
     .topbar-aba-titulo {
