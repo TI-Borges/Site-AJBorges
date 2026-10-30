@@ -79,6 +79,12 @@ function parseMilharOuFloat(val) {
 const ROTULOS_COMBUSTIVEL = { diesel_s10: 'Diesel S10', diesel_s500: 'Diesel S500', arla: 'ARLA' };
 const ehArla = (a) => !!a && a.combustivel === 'arla';
 const listaAbastecimentos = (f) => (Array.isArray(f && f.abastecimentos) ? f.abastecimentos.filter(Boolean) : []);
+// Posto "Outro" (passo 22): o motorista digitou o nome em posto_outro. Para mostrar: "Outro: <nome>"
+const POSTO_OUTRO = 'Outro';
+const ehPostoOutro = (a) => !!a && a.posto === POSTO_OUTRO;
+const nomePostoAbast = (a) => (ehPostoOutro(a)
+    ? `${POSTO_OUTRO}: ${String(a.posto_outro || '').trim() || '(sem nome)'}`
+    : String((a && a.posto) || ''));
 const valorAbastecimento = (a) => parseValorMoeda(a.valor || a.total || 0);
 
 // Litros de um abastecimento, com a mesma regra da ficha (parseLitros em relatorio.js):
@@ -1149,9 +1155,16 @@ function abrirModalResumoFicha(fichaId) {
             : (placaPrincipalModal ? `Principal (${placaPrincipalModal})` : 'Principal');
         let abastHtml = '';
         if (ficha.abastecimentos && ficha.abastecimentos.length > 0) {
+            // Posto "Outro": destacado, com o atalho para cadastrar o nome digitado (abre o modal de postos)
+            const celulaPosto = (ab) => {
+                if (!ehPostoOutro(ab)) return escaparHtml(ab.posto || '-');
+                const nome = String(ab.posto_outro || '').trim();
+                return `<span class="posto-outro-destaque">${escaparHtml(nomePostoAbast(ab))}</span>` +
+                    (nome ? `<button type="button" class="btn-cadastrar-posto" data-cadastrar-posto="${escaparHtml(nome)}">Cadastrar este posto</button>` : '');
+            };
             abastHtml = ficha.abastecimentos.map(ab => `
                 <tr>
-                    <td>${escaparHtml(ab.posto || '-')}</td>
+                    <td>${celulaPosto(ab)}</td>
                     <td>${escaparHtml(ROTULOS_COMBUSTIVEL[ab.combustivel] || '—')}</td>
                     ${placaSecModal ? `<td>${escaparHtml(placaDoAbast(ab))}</td>` : ''}
                     <td>NF: ${escaparHtml(ab.nf || '-')}</td>
@@ -1290,6 +1303,153 @@ function fecharModalResumo() {
         modal.classList.remove('active');
         modal.setAttribute('aria-hidden', 'true');
     }
+}
+
+// ==========================================================================
+// 5.1. POSTOS DA FICHA (tabela public.postos, passo 22)
+// A gestão cadastra posto e ativa/desativa; a ficha do motorista mostra os ativos
+// em ordem alfabética, com "Outro" no fim. Ninguém apaga (ficha antiga guarda o nome).
+// ==========================================================================
+
+let postosCadastrados = [];
+// Mesmo critério do índice único do banco: sem diferença de maiúsculas e de espaços
+const normalizarNomePosto = (t) => String(t || '').trim().replace(/\s+/g, ' ');
+const chaveNomePosto = (t) => normalizarNomePosto(t).toLocaleLowerCase('pt-BR');
+
+function mostrarAvisoPostos(texto, ok) {
+    const alerta = document.getElementById('postos-alerta');
+    const sucesso = document.getElementById('postos-ok');
+    if (alerta) { alerta.hidden = !texto || ok; alerta.textContent = ok ? '' : (texto || ''); }
+    if (sucesso) { sucesso.hidden = !texto || !ok; sucesso.textContent = ok ? texto : ''; }
+}
+
+function renderizarListaPostos(erro) {
+    const lista = document.getElementById('postos-lista');
+    const resumo = document.getElementById('postos-resumo');
+    if (!lista) return;
+    if (erro) {
+        lista.innerHTML = `<li class="postos-vazio">${escaparHtml(erro)}</li>`;
+        if (resumo) resumo.textContent = '';
+        return;
+    }
+    const ativos = postosCadastrados.filter(p => p.ativo).length;
+    if (resumo) resumo.textContent = `${ativos} ativo(s) na ficha · ${postosCadastrados.length - ativos} desativado(s)`;
+    lista.innerHTML = postosCadastrados.length ? postosCadastrados.map(p => `
+        <li class="postos-item${p.ativo ? '' : ' postos-item-inativo'}">
+            <span class="postos-nome">${escaparHtml(p.nome)}${p.ativo ? '' : ' <em>(desativado)</em>'}</span>
+            <button type="button" class="btn-acao-resumo" data-posto-id="${Number(p.id)}" data-posto-ativar="${p.ativo ? '0' : '1'}">${p.ativo ? 'Desativar' : 'Ativar'}</button>
+        </li>`).join('') : '<li class="postos-vazio">Nenhum posto cadastrado.</li>';
+}
+
+async function carregarPostosCadastrados() {
+    const c = window.supabaseClient;
+    if (!c) { renderizarListaPostos('Sem conexão com o banco.'); return; }
+    renderizarListaPostos('Carregando postos...');
+    try {
+        const { data, error } = await c.from('postos').select('id, nome, ativo');
+        if (error) throw error;
+        postosCadastrados = (data || []).filter(p => p && p.nome)
+            .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
+        renderizarListaPostos();
+    } catch (e) {
+        console.warn('Não foi possível carregar os postos:', (e && e.message) || e);
+        renderizarListaPostos('Não foi possível carregar os postos.');
+    }
+}
+
+// nomeInicial: atalho "Cadastrar este posto" do resumo da ficha (posto "Outro")
+function abrirModalPostos(nomeInicial) {
+    const modal = document.getElementById('modal-postos');
+    if (!modal) return;
+    mostrarAvisoPostos('');
+    const input = document.getElementById('postos-nome');
+    if (input) input.value = normalizarNomePosto(nomeInicial).slice(0, 80);
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden', 'false');
+    carregarPostosCadastrados();
+    setTimeout(() => input?.focus(), 100);
+}
+
+function fecharModalPostos() {
+    const modal = document.getElementById('modal-postos');
+    if (!modal) return;
+    modal.classList.remove('active');
+    modal.setAttribute('aria-hidden', 'true');
+}
+
+async function salvarPostoNovo() {
+    const input = document.getElementById('postos-nome');
+    const btn = document.getElementById('postos-salvar');
+    const nome = normalizarNomePosto(input?.value);
+    if (!nome) { mostrarAvisoPostos('Informe o nome do posto.'); input?.focus(); return; }
+    if (nome.length > 80) { mostrarAvisoPostos('O nome do posto tem no máximo 80 caracteres.'); input?.focus(); return; }
+    if (chaveNomePosto(nome) === chaveNomePosto(POSTO_OUTRO)) { mostrarAvisoPostos('"Outro" já é a última opção da ficha; use o nome do posto.'); input?.focus(); return; }
+    const repetido = postosCadastrados.find(p => chaveNomePosto(p.nome) === chaveNomePosto(nome));
+    if (repetido) {
+        mostrarAvisoPostos(`Esse posto já está cadastrado: "${repetido.nome}"${repetido.ativo ? '.' : ' (desativado; use Ativar na lista).'}`);
+        input?.focus();
+        return;
+    }
+    const c = window.supabaseClient;
+    if (!c) { mostrarAvisoPostos('Sem conexão com o banco.'); return; }
+    if (btn) btn.disabled = true;
+    try {
+        const { error } = await c.from('postos').insert({ nome });
+        if (error) {
+            if (error.code === '23505') mostrarAvisoPostos('Esse posto já está cadastrado.');
+            else if (error.code === '42501' || /row-level security|permission denied/i.test(error.message || '')) mostrarAvisoPostos('Sem permissão para cadastrar postos.');
+            else mostrarAvisoPostos('Não foi possível salvar o posto. Tente de novo.');
+            return;
+        }
+        if (input) input.value = '';
+        mostrarAvisoPostos(`Posto "${nome}" cadastrado. Já aparece na ficha do motorista.`, true);
+        exibirToast('Posto cadastrado.', 'sucesso');
+        await carregarPostosCadastrados();
+    } catch (e) {
+        mostrarAvisoPostos('Não foi possível salvar o posto. Tente de novo.');
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function alternarPostoAtivo(id, ativar) {
+    const c = window.supabaseClient;
+    if (!c) { mostrarAvisoPostos('Sem conexão com o banco.'); return; }
+    try {
+        // .select: sem permissão a RLS não dá erro, só não altera nada (0 linhas)
+        const { data, error } = await c.from('postos').update({ ativo: ativar }).eq('id', id).select('id');
+        if (error || !data || !data.length) {
+            mostrarAvisoPostos(error ? 'Não foi possível alterar o posto. Tente de novo.' : 'Sem permissão para alterar postos.');
+            return;
+        }
+        const posto = postosCadastrados.find(p => Number(p.id) === Number(id));
+        mostrarAvisoPostos(`Posto "${posto ? posto.nome : ''}" ${ativar ? 'ativado: volta a aparecer' : 'desativado: sai'} da ficha do motorista.`, true);
+        await carregarPostosCadastrados();
+    } catch (e) {
+        mostrarAvisoPostos('Não foi possível alterar o posto. Tente de novo.');
+    }
+}
+
+function inicializarPostos() {
+    const modal = document.getElementById('modal-postos');
+    if (!modal) return;
+    document.getElementById('btn-postos-abrir')?.addEventListener('click', () => abrirModalPostos(''));
+    document.getElementById('postos-form')?.addEventListener('submit', (e) => { e.preventDefault(); salvarPostoNovo(); });
+    document.getElementById('postos-lista')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-posto-id]');
+        if (btn) alternarPostoAtivo(Number(btn.getAttribute('data-posto-id')), btn.getAttribute('data-posto-ativar') === '1');
+    });
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal || e.target.closest('[data-postos-fechar]')) fecharModalPostos();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) fecharModalPostos();
+    });
+    // Resumo da ficha: "Cadastrar este posto" no abastecimento com posto "Outro"
+    document.getElementById('modal-ficha-conteudo')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-cadastrar-posto]');
+        if (btn) abrirModalPostos(btn.getAttribute('data-cadastrar-posto'));
+    });
 }
 
 // ==========================================================================
@@ -2215,7 +2375,7 @@ function renderizarTabelaCombustivel() {
             f.abastecimentos.forEach(ab => {
                 listaAbast.push({
                     fichaId: f.id || 'Sem ID',
-                    posto: ab.posto || 'Posto Conveniado',
+                    posto: nomePostoAbast(ab) || 'Posto Conveniado',
                     nf: ab.nf || '-',
                     data: f.dataSaida || f.data_saida || f.dataEnvio || '-',
                     motorista: motNome,
@@ -3377,6 +3537,7 @@ ajbAoAutenticar(['admin', 'diretoria'], 'Login.html#admin', (usuarioSessao) => {
     carregarFiltroMotoristas();
     carregarMotoristasCadastrados();
     inicializarAbaMotoristas();
+    inicializarPostos();
 
     // Sincroniza com o Supabase e ativa o Realtime
     sincronizarFichasComSupabase();

@@ -3507,3 +3507,141 @@ body.admin-body {
 .modal-tabela-resumo tr.linha-frete-sem-valor td {
     background: #fffbeb;
 }
+
+/* ==========================================================================
+   Postos da ficha (passo 22): botão na Conferência de Combustível, modal e
+   posto "Outro" destacado no resumo da ficha
+   ========================================================================== */
+#view-combustivel .tabela-toolbar {
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+#view-combustivel .toolbar-right {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.postos-form {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.postos-form .mot-campo {
+    flex: 1;
+}
+
+.postos-ok {
+    background: var(--verde-sucesso-fundo);
+    border: 1px solid var(--verde-sucesso-borda);
+    color: var(--verde-sucesso-escuro);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+#postos-alerta {
+    margin-bottom: 12px;
+}
+
+.postos-ok[hidden],
+#postos-alerta[hidden] {
+    display: none;
+}
+
+.postos-resumo {
+    font-size: 0.8rem;
+    color: var(--cor-texto-mutado);
+    margin: 0 0 8px;
+}
+
+.postos-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.postos-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.86rem;
+}
+
+.postos-item:last-child {
+    border-bottom: none;
+}
+
+.postos-nome {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.postos-item-inativo .postos-nome {
+    color: var(--cor-texto-claro);
+}
+
+.postos-item .btn-acao-resumo {
+    flex-shrink: 0;
+}
+
+.postos-vazio {
+    padding: 14px;
+    text-align: center;
+    color: var(--cor-texto-claro);
+    font-size: 0.85rem;
+}
+
+.posto-outro-destaque {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: var(--amarelo-alerta-fundo);
+    border: 1px solid var(--amarelo-alerta-borda);
+    color: var(--amarelo-alerta-escuro);
+    font-weight: 700;
+    overflow-wrap: break-word;
+}
+
+.btn-cadastrar-posto {
+    display: block;
+    margin-top: 4px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--aj-azul-primario);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+@media (max-width: 480px) {
+    .postos-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .postos-form .btn-modal-sucesso {
+        justify-content: center;
+        text-align: center;
+    }
+
+    /* Coluna do posto no resumo da ficha: largura para o destaque não quebrar palavra */
+    .modal-tabela-resumo td:has(.posto-outro-destaque) {
+        min-width: 150px;
+    }
+}

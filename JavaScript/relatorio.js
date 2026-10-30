@@ -96,6 +96,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             if (el.tagName === 'SELECT') el.selectedIndex = 0;
             else el.value = el.classList.contains('input-litros-abast-ml') ? LITROS_VAZIO : '';
         });
+        nova.querySelectorAll('.input-posto-outro').forEach(el => { el.hidden = true; el.required = false; });
         linhas[linhas.length - 1].after(nova);
         configuradoresLinha[tipo].forEach(configurar => configurar(n));
     }
@@ -1958,7 +1959,9 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     const inputTotalValorArlaMl = document.getElementById('ml-total-valor-arla');
     const inputTotalLitrosArlaMl = document.getElementById('ml-total-litros-arla');
 
-    // Lista Oficial dos 38 Postos de Combustíveis Conveniados da AJBorges
+    // Lista Oficial dos 38 Postos de Combustíveis Conveniados da AJBorges.
+    // Desde o passo 22 a lista vem da tabela public.postos (a gestão cadastra no dashboard);
+    // esta fica de reserva para quando o banco não responde (sem sinal na estrada).
     const POSTOS_COMBUSTIVEL_CONVENIADOS = [
         "Açailândia - Posto Magnólia 06",
         "Anaurilândia - Posto Lala (93)",
@@ -2000,24 +2003,101 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         "Posto Monte Carlo Nova Alexandria - Rod. Raposo Tavares"
     ];
 
+    // "Outro" fica sempre no fim da lista e abre o campo "Nome do posto" (posto_outro)
+    const POSTO_OUTRO = 'Outro';
+
+    // Ordem alfabética (sem diferenciar maiúsculas e acentos), sem repetidos e sem um posto chamado "Outro"
+    function ordenarPostos(nomes) {
+        const vistos = new Set();
+        return nomes.map(n => String(n || '').trim()).filter(n => {
+            const chave = n.toLocaleLowerCase('pt-BR');
+            if (!n || chave === POSTO_OUTRO.toLowerCase() || vistos.has(chave)) return false;
+            vistos.add(chave);
+            return true;
+        }).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+    }
+
+    let postosDaFicha = ordenarPostos(POSTOS_COMBUSTIVEL_CONVENIADOS);
+
+    // Posto que não está na lista (ficha antiga ou posto desativado): a opção entra antes do "Outro"
+    function garantirOpcaoPosto(sel, valor, texto) {
+        if (!sel || sel.tagName !== 'SELECT' || !valor || Array.from(sel.options).some(o => o.value === valor)) return;
+        const opt = document.createElement('option');
+        opt.value = valor;
+        opt.textContent = texto || valor;
+        const outro = Array.from(sel.options).find(o => o.value === POSTO_OUTRO);
+        sel.insertBefore(opt, outro || null);
+    }
+
     function popularSelectsPostosConvenidos() {
+        const esc = escapeHTMLAutocomplete;
+        const opcoes = '<option value="">Selecione o posto...</option>' +
+            postosDaFicha.map(nome => `<option value="${esc(nome)}">${esc(nome)}</option>`).join('') +
+            `<option value="${POSTO_OUTRO}">${POSTO_OUTRO}</option>`;
         const selectsPosto = document.querySelectorAll('.input-posto');
         selectsPosto.forEach(sel => {
             const valAtual = sel.value;
-            sel.innerHTML = '<option value="">Selecione o posto...</option>';
-            POSTOS_COMBUSTIVEL_CONVENIADOS.forEach(nomePosto => {
-                const opt = document.createElement('option');
-                opt.value = nomePosto;
-                opt.textContent = nomePosto;
-                sel.appendChild(opt);
-            });
+            sel.innerHTML = opcoes;
             if (valAtual) {
+                garantirOpcaoPosto(sel, valAtual);
                 sel.value = valAtual;
             }
         });
     }
 
     popularSelectsPostosConvenidos();
+
+    // Postos ativos do banco (passo 22). Sem resposta (ou antes do passo 22), fica a lista acima.
+    async function carregarPostosDoBanco() {
+        const cliente = window.supabaseClient;
+        if (!cliente) return;
+        try {
+            const { data, error } = await cliente.from('postos').select('nome').eq('ativo', true);
+            if (error || !Array.isArray(data) || !data.length) return;
+            postosDaFicha = ordenarPostos(data.map(p => p && p.nome));
+            popularSelectsPostosConvenidos();
+        } catch (e) { /* sem sinal: fica a lista de reserva */ }
+    }
+    carregarPostosDoBanco();
+
+    // Campo "Nome do posto" da linha i (criado ao lado do select nas linhas do HTML; as linhas
+    // novas já vêm com ele, copiado da linha 1)
+    function garantirCampoPostoOutro(i) {
+        const existente = campoPorNome(`posto_outro_ml_${i}`);
+        if (existente) return existente;
+        const sel = campoPorNome(`posto_ml_${i}`);
+        if (!sel) return null;
+        const campo = document.createElement('input');
+        campo.type = 'text';
+        campo.name = `posto_outro_ml_${i}`;
+        campo.className = 'input-tabela input-posto-outro';
+        campo.maxLength = 80;
+        campo.placeholder = 'Nome do posto';
+        campo.autocomplete = 'off';
+        campo.setAttribute('aria-label', 'Nome do posto');
+        campo.hidden = true;
+        sel.after(campo);
+        return campo;
+    }
+
+    // Mostra o "Nome do posto" só com "Outro" escolhido; trocando de posto, o nome digitado sai
+    function atualizarCampoPostoOutro(i) {
+        const sel = campoPorNome(`posto_ml_${i}`);
+        const campo = campoPorNome(`posto_outro_ml_${i}`);
+        if (!sel || !campo) return;
+        const outro = sel.value === POSTO_OUTRO;
+        campo.hidden = !outro;
+        campo.required = outro;
+        if (!outro && campo.value) campo.value = '';
+    }
+
+    // Nome do posto da linha para mostrar: "Outro: <nome>" no posto "Outro"
+    function nomePostoDaLinha(i) {
+        const posto = (campoPorNome(`posto_ml_${i}`)?.value || '').trim();
+        if (posto !== POSTO_OUTRO) return posto;
+        const nome = (campoPorNome(`posto_outro_ml_${i}`)?.value || '').trim();
+        return nome ? `${POSTO_OUTRO}: ${nome}` : POSTO_OUTRO;
+    }
 
     // Litros acima do limite da linha (Diesel S10/S500 ou sem combustível: mais de 1.500 L; ARLA:
     // mais de 150 L): quase sempre é número a mais (1285010 = 1285,010 em vez de 128,501)
@@ -2066,8 +2146,14 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             });
         });
 
+        // "Outro": aparece o "Nome do posto" (obrigatório, até 80 letras)
+        const inputPostoOutro = garantirCampoPostoOutro(i);
+
         if (inputPosto) {
             const atualizarPosto = () => {
+                const eraOutroOculto = !!inputPostoOutro && inputPostoOutro.hidden;
+                atualizarCampoPostoOutro(i);
+                if (eraOutroOculto && !inputPostoOutro.hidden) inputPostoOutro.focus();
                 salvarProgressoMl();
                 if (typeof atualizarListaLinhasAbastPreenchidasPopover === 'function') {
                     atualizarListaLinhasAbastPreenchidasPopover();
@@ -2075,6 +2161,15 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             };
             inputPosto.addEventListener('change', atualizarPosto);
             inputPosto.addEventListener('input', atualizarPosto);
+        }
+
+        if (inputPostoOutro) {
+            inputPostoOutro.addEventListener('input', () => {
+                salvarProgressoMl();
+                if (typeof atualizarListaLinhasAbastPreenchidasPopover === 'function') {
+                    atualizarListaLinhasAbastPreenchidasPopover();
+                }
+            });
         }
 
         if (inputNf) {
@@ -2177,14 +2272,21 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         const placa = campoPorNome(`placa_abast_ml_${i}`);
         if (comb) comb.value = '';
         if (placa) placa.value = 'principal';
+        const postoOutro = campoPorNome(`posto_outro_ml_${i}`);
+        if (postoOutro) postoOutro.value = '';
+        atualizarCampoPostoOutro(i);
     }
 
-    // Ficha antiga sem combustível fica vazia (e conta como diesel); sem placa = principal
+    // Ficha antiga sem combustível fica vazia (e conta como diesel); sem placa = principal;
+    // posto "Outro" volta com o nome digitado
     function definirCamposNovosAbast(i, ab) {
         const comb = campoPorNome(`combustivel_ml_${i}`);
         const placa = campoPorNome(`placa_abast_ml_${i}`);
         if (comb) comb.value = ROTULOS_COMBUSTIVEL[ab?.combustivel] ? ab.combustivel : '';
         if (placa) placa.value = ab?.placa === 'secundaria' ? 'secundaria' : 'principal';
+        const postoOutro = campoPorNome(`posto_outro_ml_${i}`);
+        if (postoOutro) postoOutro.value = ab?.posto === POSTO_OUTRO ? String(ab.posto_outro || '').slice(0, 80) : '';
+        atualizarCampoPostoOutro(i);
     }
 
     // Litros de diesel (S10 + S500 + sem combustível) por placa; o ARLA não entra na média
@@ -3070,7 +3172,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
         const partes = [];
         if (posto && posto.value.trim()) {
-            partes.push(posto.value.trim());
+            partes.push(nomePostoDaLinha(i)); // "Outro: <nome>" no posto "Outro"
         }
         if (comb && ROTULOS_COMBUSTIVEL[comb.value]) {
             partes.push(ROTULOS_COMBUSTIVEL[comb.value]);
@@ -3122,6 +3224,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         for (let i = 1; i <= qtdAbast(); i++) {
             if (verificarLinhaAbastPreenchida(i)) {
                 totalPreenchidas++;
+                // Escapado: o nome do posto "Outro" é digitado pelo motorista
                 const resumo = obterResumoLinhaAbast(i);
 
                 const itemBtn = document.createElement('button');
@@ -3130,7 +3233,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                 itemBtn.title = `Clique para apagar os dados da Linha ${i}`;
                 itemBtn.innerHTML = `
                     <span class="badge-num-linha">L${i}</span>
-                    <span class="detalhe-linha" title="${resumo}">${resumo}</span>
+                    <span class="detalhe-linha" title="${escapeHTMLAutocomplete(resumo)}">${escapeHTMLAutocomplete(resumo)}</span>
                     <span class="btn-apagar-icone-wrap">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="3 6 5 6 21 6"></polyline>
@@ -3270,6 +3373,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             for (let i = 1; i <= qtdAbast(); i++) {
                 abastecimentosMl.push({
                     posto: campoPorNome(`posto_ml_${i}`)?.value || '',
+                    posto_outro: campoPorNome(`posto_outro_ml_${i}`)?.value || '',
                     nf: campoPorNome(`nf_ml_${i}`)?.value || '',
                     km: campoPorNome(`km_ml_${i}`)?.value || '',
                     valor: campoPorNome(`valor_ml_${i}`)?.value || '',
@@ -3944,12 +4048,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                         const litros = campoPorNome(`litros_ml_${i}`);
 
                         if (posto && ab.posto) {
-                            if (!Array.from(posto.options).some(o => o.value === ab.posto)) {
-                                const opt = document.createElement('option');
-                                opt.value = ab.posto;
-                                opt.textContent = ab.posto;
-                                posto.appendChild(opt);
-                            }
+                            // Posto fora da lista (ficha antiga ou desativado): a opção entra antes do "Outro"
+                            garantirOpcaoPosto(posto, ab.posto);
                             posto.value = ab.posto;
                             temAbastPreenchido = true;
                         }
@@ -4073,6 +4173,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         for (let i = 1; i <= qtdAbast(); i++) {
             if (!linhaEmUso(campoPorNome(`posto_ml_${i}`))) continue;
             const posto = campoPorNome(`posto_ml_${i}`)?.value || '';
+            // Nome digitado no posto "Outro" (até 80 letras; vazio nos outros postos)
+            const postoOutro = posto === POSTO_OUTRO ? (campoPorNome(`posto_outro_ml_${i}`)?.value || '').trim().slice(0, 80) : '';
             const nf = campoPorNome(`nf_ml_${i}`)?.value || '';
             const km = campoPorNome(`km_ml_${i}`)?.value || '';
             const valor = campoPorNome(`valor_ml_${i}`)?.value || '';
@@ -4084,7 +4186,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             const placa = segundoTrechoAtivo() ? placaDaLinhaAbast(i) : '';
 
             if (posto || nf || km || valor || litros || combustivel) {
-                abasts.push({ posto, nf, km, valor, litros, combustivel, placa });
+                abasts.push({ posto, posto_outro: postoOutro, nf, km, valor, litros, combustivel, placa });
             }
         }
         return abasts;
@@ -4230,14 +4332,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                 const litros = campoPorNome(`litros_ml_${i}`);
 
                 if (posto && ab.posto) {
-                    if (posto.tagName === 'SELECT') {
-                        if (!Array.from(posto.options).some(o => o.value === ab.posto)) {
-                            const opt = document.createElement('option');
-                            opt.value = ab.posto;
-                            opt.textContent = ab.posto;
-                            posto.appendChild(opt);
-                        }
-                    }
+                    // Posto fora da lista (ficha antiga ou desativado): a opção entra antes do "Outro"
+                    garantirOpcaoPosto(posto, ab.posto);
                     posto.value = ab.posto;
                 }
                 if (nf && ab.nf) nf.value = ab.nf;
@@ -4345,6 +4441,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             // Ficha só para leitura (concluída): nada de adicionar/remover
             linhaBotao.classList.toggle('linha-oculta-celular', tabela.hasAttribute('data-somente-leitura'));
         });
+        // "Nome do posto" acompanha o posto de cada linha (depois de remover, limpar ou restaurar)
+        for (let i = 1; i <= qtdAbast(); i++) atualizarCampoPostoOutro(i);
     }
 
     const camposDaLinha = (tr) => Array.from(tr.querySelectorAll('input, select'));
@@ -4355,13 +4453,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         camposDaLinha(destino).forEach((el, k) => {
             const fonte = de[k];
             if (!fonte) return;
-            // Posto antigo fora da lista: a opção vai junto
-            if (el.tagName === 'SELECT' && fonte.value && !Array.from(el.options).some(o => o.value === fonte.value)) {
-                const opt = document.createElement('option');
-                opt.value = fonte.value;
-                opt.textContent = fonte.selectedOptions[0]?.textContent || fonte.value;
-                el.appendChild(opt);
-            }
+            // Posto antigo fora da lista: a opção vai junto (antes do "Outro")
+            if (el.tagName === 'SELECT') garantirOpcaoPosto(el, fonte.value, fonte.selectedOptions[0]?.textContent);
             el.value = fonte.value;
             if ('editadoManual' in fonte.dataset || 'editadoManual' in el.dataset) {
                 el.dataset.editadoManual = fonte.dataset.editadoManual || '';
@@ -5354,6 +5447,14 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                     return falharValidacao(selPlaca, 'Escolha a placa');
                 }
             }
+        }
+
+        // Posto "Outro": o nome do posto é obrigatório (motorista e gestão)
+        for (let i = 1; i <= qtdAbast(); i++) {
+            const sel = campoPorNome(`posto_ml_${i}`);
+            if (!sel || !linhaEmUso(sel) || sel.value !== POSTO_OUTRO) continue;
+            const nome = campoPorNome(`posto_outro_ml_${i}`);
+            if (!(nome?.value || '').trim()) return falharValidacao(nome, `Informe o nome do posto do abastecimento ${i}.`);
         }
 
         // Litros acima do limite da linha (provável número a mais): o motorista não envia;

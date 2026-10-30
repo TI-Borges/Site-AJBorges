@@ -108,7 +108,9 @@ const B = '33333333-3333-3333-3333-333333333333';
   const blocos = resto.split(/^(?=-- \d+\.\d+ )/m).filter(b => /^-- \d+\.\d+ /.test(b));
   const seqLer = async () => JSON.stringify((await db.query('select last_value, is_called from public.fichas_numero_seq')).rows[0]);
   const seqAntes = await seqLer();
-  const normalizar = (t) => t.replace(/^RESULTADO \(nada foi salvo\): /, '').replace(/^RESULTADO \(só leitura\): /, '');
+  // "bloqueado (motivo)" e "recusado (motivo)" valem só pela palavra; o 7.2 mostra o motivo no esperado
+  const normalizar = (t, esperado) => t.replace(/^RESULTADO \((nada foi salvo|só leitura)\): /, '')
+    .replace(/(bloqueado|recusado) \(([^|]*)\)( \||$)/g, (m, p, motivo, fim) => (esperado.includes(`${p} (${motivo})`) ? m : p + fim));
   r.conferencias = {};
   r.batem = {};
   for (const b of blocos) {
@@ -119,7 +121,7 @@ const B = '33333333-3333-3333-3333-333333333333';
     try { await db.exec(b); obtido = '(sem erro e sem RESULTADO)'; }
     catch (e) { obtido = e.message; await db.exec('rollback').catch(() => {}); }
     r.conferencias[titulo] = obtido;
-    r.batem[titulo] = normalizar(obtido) === esperado ? 'ok' : 'DIFERENTE, esperado: ' + esperado;
+    r.batem[titulo] = normalizar(obtido, esperado) === esperado ? 'ok' : 'DIFERENTE, esperado: ' + esperado;
   }
   r.conferenciasNaoGastamNumero = (await seqLer()) === seqAntes;
   r.fichasQueSobraram = Number((await db.query('select count(*) n from public.fichas_viagem')).rows[0].n);

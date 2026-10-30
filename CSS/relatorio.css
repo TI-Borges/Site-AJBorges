@@ -2672,6 +2672,16 @@ footer {
     display: none;
 }
 
+/* Posto "Outro": "Nome do posto" logo abaixo do select (passo 22) */
+.input-posto-outro {
+    display: block;
+    margin-top: 6px;
+}
+
+.input-posto-outro[hidden] {
+    display: none;
+}
+
 .popover-secao-apagar-linha {
     padding: 10px 14px;
     border-bottom: 1px solid #e2e8f0;

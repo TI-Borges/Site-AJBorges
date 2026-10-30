@@ -24,7 +24,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
     <!-- Folha de Estilos do Dashboard -->
-    <link rel="stylesheet" href="../CSS/dashboard-admin.css?v=2.9">
+    <link rel="stylesheet" href="../CSS/dashboard-admin.css?v=3.0">
 
     <!-- Verificação de Sessão Administrativa (Route Guard) -->
     <script>
@@ -1116,10 +1116,12 @@
                         </div>
                         <div class="toolbar-right">
                             <span class="tabela-info-registros" id="info-registros-combustivel">0 abastecimentos encontrados</span>
+                            <!-- Postos da ficha do motorista (tabela public.postos; dashboard-admin.js → abrirModalPostos) -->
+                            <button type="button" class="btn-acao-resumo" id="btn-postos-abrir">⛽ Adicionar posto</button>
                         </div>
                     </div>
 
-                    <div class="placeholder-section-card">
+                    <div class="placeholder-section-card tabela-fichas-responsive">
                         <table class="tabela-fichas">
                             <thead>
                                 <tr>
@@ -1622,6 +1624,44 @@
     </div>
 
     <!-- ====================================================================
+         MODAL: POSTOS DA FICHA (tabela public.postos, passo 22)
+         Cadastrar posto e ativar/desativar; a ficha mostra só os ativos
+         ==================================================================== -->
+    <div class="modal-overlay" id="modal-postos" aria-hidden="true" role="dialog" aria-modal="true"
+        aria-labelledby="postos-titulo">
+        <div class="modal-container mot-modal">
+            <div class="modal-header">
+                <div class="modal-header-info">
+                    <span class="badge-modal">Combustível</span>
+                    <h3 class="modal-title" id="postos-titulo">Postos da ficha</h3>
+                </div>
+                <button type="button" class="modal-close-btn" data-postos-fechar aria-label="Fechar">✕</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="mot-alerta" id="postos-alerta" role="alert" hidden></div>
+                <div class="postos-ok" id="postos-ok" role="status" hidden></div>
+
+                <form id="postos-form" class="postos-form" novalidate>
+                    <label class="mot-campo">
+                        <span>Nome do posto <b class="mot-obrigatorio">*</b></span>
+                        <input type="text" id="postos-nome" maxlength="80" autocomplete="off" required
+                            placeholder="Ex.: Marília - Posto Esmeralda">
+                    </label>
+                    <button type="submit" class="btn-modal-sucesso" id="postos-salvar">Adicionar posto</button>
+                </form>
+
+                <p class="postos-resumo" id="postos-resumo"></p>
+                <ul class="postos-lista" id="postos-lista"></ul>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-modal-secundario" data-postos-fechar>Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
          TOAST DE NOTIFICAÇÃO
          ==================================================================== -->
     <div class="admin-toast" id="admin-toast" role="alert" aria-live="assertive" aria-hidden="true">
@@ -1638,7 +1678,7 @@
     <script src="../JavaScript/aviso-atualizacao-gestao.js?v=3"></script>
     <script src="../JavaScript/aviso-atualizacao.js?v=3" data-aviso-local="frota"></script>
     <script src="../JavaScript/notificacoes-gestao.js?v=1"></script>
-    <script src="../JavaScript/dashboard-admin.js?v=3.1"></script>
+    <script src="../JavaScript/dashboard-admin.js?v=3.2"></script>
 </body>
 
 </html>
