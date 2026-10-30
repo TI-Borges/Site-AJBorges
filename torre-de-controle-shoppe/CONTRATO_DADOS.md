@@ -98,16 +98,22 @@ confundem.
 | `origem_situacao` | text | Situação de `origem` (CORES.md) |
 | `destino` | text | "DESTINO" |
 | `destino_situacao` | text | Situação de `destino` (CORES.md) |
-| `chegada` | text | "CHEGADA" ou "CHEGADA ORIGEM" |
-| `chegada_situacao` | text | Situação de `chegada` (CORES.md) |
 | `cpt` | text | "CPT" ou "CPT ORIGEM" |
 | `cpt_situacao` | text | Situação de `cpt` (CORES.md) |
-| `inicio_carregamento` | text | "INÍCIO CARREGAMENTO" ou "INÍCIO" |
-| `inicio_carregamento_situacao` | text | Situação de `inicio_carregamento` (CORES.md) |
-| `timer` | text | "TIMER" |
-| `timer_situacao` | text | Situação de `timer` (CORES.md) |
 | `status` | text | "STATUS" |
 | `status_situacao` | text | Situação de `status` (CORES.md) |
+| `checklist` | text | "CHECKLIST" |
+| `checklist_situacao` | text | Situação de `checklist` (CORES.md) |
+| `macro` | text | "MACRO" |
+| `macro_situacao` | text | Situação de `macro` (CORES.md) |
+| `sm` | text | "SM" |
+| `sm_situacao` | text | Situação de `sm` (CORES.md) |
+| `status_cpt` | text | "STATUS CPT" |
+| `status_cpt_situacao` | text | Situação de `status_cpt` (CORES.md) |
+| `tag` | text | "TAG" |
+| `tag_situacao` | text | Situação de `tag` (CORES.md) |
+| `ultima_atualizacao` | text | "ULTIMA ATUALIZAÇÃO" |
+| `ultima_atualizacao_situacao` | text | Situação de `ultima_atualizacao` (CORES.md) |
 
 ### torre.v_descargas
 
@@ -126,20 +132,18 @@ confundem.
 | `carreta_situacao` | text | Situação de `carreta` (CORES.md) |
 | `vinculo` | text | "VÍNCULO" |
 | `vinculo_situacao` | text | Situação de `vinculo` (CORES.md) |
-| `origem` | text | "ORIGEM" |
-| `origem_situacao` | text | Situação de `origem` (CORES.md) |
-| `destino` | text | "DESTINO" |
-| `destino_situacao` | text | Situação de `destino` (CORES.md) |
-| `chegada` | text | "CHEGADA" ou "CHEGADA DESTINO" |
-| `chegada_situacao` | text | Situação de `chegada` (CORES.md) |
-| `inicio_descarga` | text | "INÍCIO DESCARGA" ou "INÍCIO" |
-| `inicio_descarga_situacao` | text | Situação de `inicio_descarga` (CORES.md) |
-| `fim_descarga` | text | "FIM DESCARGA" ou "FIM" ou "TÉRMINO" |
-| `fim_descarga_situacao` | text | Situação de `fim_descarga` (CORES.md) |
-| `timer` | text | "TIMER" |
-| `timer_situacao` | text | Situação de `timer` (CORES.md) |
 | `status` | text | "STATUS" |
 | `status_situacao` | text | Situação de `status` (CORES.md) |
+| `bipagem` | text | "BIPAGEM" |
+| `bipagem_situacao` | text | Situação de `bipagem` (CORES.md) |
+| `cd_de_descarga` | text | "CD DE DESCARGA" |
+| `cd_de_descarga_situacao` | text | Situação de `cd_de_descarga` (CORES.md) |
+| `eta_destino` | text | "ETA DESTINO" |
+| `eta_destino_situacao` | text | Situação de `eta_destino` (CORES.md) |
+| `macro` | text | "MACRO" |
+| `macro_situacao` | text | Situação de `macro` (CORES.md) |
+| `tempo_de_espera` | text | "TEMPO DE ESPERA" |
+| `tempo_de_espera_situacao` | text | Situação de `tempo_de_espera` (CORES.md) |
 
 ### torre.v_enderecos
 
@@ -148,14 +152,16 @@ confundem.
 | `ordem` | int | Ordem de exibição (fase 1: número da linha na planilha) |
 | `nome` | text | "NOME" ou "LOCAL" ou "UNIDADE" ou "CD" ou "HUB" |
 | `endereco` | text | "ENDEREÇO" ou "ENDEREÇO COMPLETO" |
-| `cidade` | text | "CIDADE" ou "MUNICÍPIO" |
 | `uf` | text | "UF" ou "ESTADO" |
 | `cep` | text | "CEP" |
-| `contato` | text | "CONTATO" ou "TELEFONE" |
-| `horario` | text | "HORÁRIO" ou "HORÁRIO DE FUNCIONAMENTO" |
-| `mapa` | text | "MAPA" ou "LINK" ou "LOCALIZAÇÃO" ou "GOOGLE MAPS" |
-| `mapa_url` | text | Link de `mapa` (só http/https) |
-| `observacao` | text | "OBSERVAÇÃO" ou "OBSERVAÇÕES" ou "OBS" |
+| `cnpj` | text | "CNPJ" |
+| `cnpj_situacao` | text | Situação de `cnpj` (CORES.md) |
+| `id_station` | text | "ID STATION" |
+| `id_station_situacao` | text | Situação de `id_station` (CORES.md) |
+| `sigla` | text | "SIGLA" |
+| `sigla_situacao` | text | Situação de `sigla` (CORES.md) |
+| `tipo` | text | "TIPO" |
+| `tipo_situacao` | text | Situação de `tipo` (CORES.md) |
 
 ### torre.v_faturamento
 
@@ -176,18 +182,12 @@ confundem.
 | `origem_situacao` | text | Situação de `origem` (CORES.md) |
 | `destino` | text | "DESTINO" |
 | `destino_situacao` | text | Situação de `destino` (CORES.md) |
-| `data` | text | "DATA" ou "DATA VIAGEM" |
-| `data_situacao` | text | Situação de `data` (CORES.md) |
 | `valor` | text | "VALOR" ou "VALOR FRETE" ou "FRETE" |
 | `valor_situacao` | text | Situação de `valor` (CORES.md) |
-| `cte` | text | "CTE" ou "CT-E" |
-| `cte_situacao` | text | Situação de `cte` (CORES.md) |
 | `ciot_vpo` | text | "CIOT / VPO" ou "CIOT" ou "VPO" |
 | `ciot_vpo_situacao` | text | Situação de `ciot_vpo` (CORES.md) |
-| `status` | text | "STATUS" ou "FATURAMENTO" |
-| `status_situacao` | text | Situação de `status` (CORES.md) |
-| `observacao` | text | "OBSERVAÇÃO" ou "OBSERVAÇÕES" ou "OBS" |
-| `observacao_situacao` | text | Situação de `observacao` (CORES.md) |
+| `valor_da_carga` | text | "VALOR DA CARGA" |
+| `valor_da_carga_situacao` | text | Situação de `valor_da_carga` (CORES.md) |
 
 ### torre.v_links
 
@@ -208,12 +208,12 @@ confundem.
 | `etapa` | text | `origem`, `carregamento`, `transito` ou `descarga` (o bloco mais adiantado preenchido) |
 | `lh` | text | "LH" ou "LT" |
 | `lh_situacao` | text | Situação de `lh` (CORES.md) |
-| `motorista` | text | "MOTORISTA" |
-| `motorista_situacao` | text | Situação de `motorista` (CORES.md) |
 | `cavalo` | text | "CAVALO" ou "PLACA" ou "PLACA CAVALO" |
 | `cavalo_situacao` | text | Situação de `cavalo` (CORES.md) |
-| `carreta` | text | "CARRETA" ou "PLACA CARRETA" |
-| `carreta_situacao` | text | Situação de `carreta` (CORES.md) |
+| `rota` | text | "ROTA" |
+| `rota_situacao` | text | Situação de `rota` (CORES.md) |
+| `validador_origem` | text | "VALIDADOR ORIGEM" |
+| `validador_origem_situacao` | text | Situação de `validador_origem` (CORES.md) |
 | `origem_eta` | text | bloco ORIGEM → "ETA" ou "ETA ORIGEM" |
 | `origem_eta_situacao` | text | Situação de `origem_eta` (CORES.md) |
 | `origem_localizacao` | text | bloco ORIGEM → "LOCALIZAÇÃO" ou "POSIÇÃO ATUAL" ou "POSIÇÃO" |
@@ -243,6 +243,8 @@ confundem.
 | `transito_kh_situacao` | text | Situação de `transito_kh` (CORES.md) |
 | `transito_tt_restante` | text | bloco TRÂNSITO → "TT RESTANTE" ou "TEMPO RESTANTE" ou "TT" |
 | `transito_tt_restante_situacao` | text | Situação de `transito_tt_restante` (CORES.md) |
+| `transito_delta_tt` | text | bloco TRÂNSITO → "DELTA TT" |
+| `transito_delta_tt_situacao` | text | Situação de `transito_delta_tt` (CORES.md) |
 | `descarga_chegada` | text | bloco DESCARGAS / DESCARGA → "CHEGADA" |
 | `descarga_chegada_situacao` | text | Situação de `descarga_chegada` (CORES.md) |
 | `descarga_timer` | text | bloco DESCARGAS / DESCARGA → "TIMER" |
@@ -282,21 +284,33 @@ confundem.
 | `vinculo_situacao` | text | Situação de `vinculo` (CORES.md) |
 | `origem` | text | "ORIGEM" |
 | `origem_situacao` | text | Situação de `origem` (CORES.md) |
-| `destino` | text | "DESTINO" |
-| `destino_situacao` | text | Situação de `destino` (CORES.md) |
 | `posicao_atual` | text | "POSIÇÃO ATUAL" ou "LOCALIZAÇÃO" ou "POSIÇÃO" |
 | `posicao_atual_url` | text | Link de `posicao_atual` (só http/https) |
 | `posicao_atual_situacao` | text | Situação de `posicao_atual` (CORES.md) |
-| `km` | text | "KM" ou "KM RESTANTE" ou "DISTÂNCIA" |
-| `km_situacao` | text | Situação de `km` (CORES.md) |
 | `eta` | text | "ETA" ou "ETA ORIGEM" ou "PREVISÃO DE CHEGADA" |
 | `eta_situacao` | text | Situação de `eta` (CORES.md) |
-| `cpt` | text | "CPT" ou "CPT ORIGEM" |
-| `cpt_situacao` | text | Situação de `cpt` (CORES.md) |
-| `timer` | text | "TIMER" |
-| `timer_situacao` | text | Situação de `timer` (CORES.md) |
 | `status` | text | "STATUS" |
 | `status_situacao` | text | Situação de `status` (CORES.md) |
+| `checklist` | text | "CHECKLIST" |
+| `checklist_situacao` | text | Situação de `checklist` (CORES.md) |
+| `chega_a_tempo` | text | "CHEGA A TEMPO?" |
+| `chega_a_tempo_situacao` | text | Situação de `chega_a_tempo` (CORES.md) |
+| `espelhamento` | text | "ESPELHAMENTO" |
+| `espelhamento_situacao` | text | Situação de `espelhamento` (CORES.md) |
+| `km_faltante` | text | "KM FALTANTE" |
+| `km_faltante_situacao` | text | Situação de `km_faltante` (CORES.md) |
+| `km_h` | text | "KM/H" |
+| `km_h_situacao` | text | Situação de `km_h` (CORES.md) |
+| `macro` | text | "MACRO" |
+| `macro_situacao` | text | Situação de `macro` (CORES.md) |
+| `sm` | text | "SM" |
+| `sm_situacao` | text | Situação de `sm` (CORES.md) |
+| `tag` | text | "TAG" |
+| `tag_situacao` | text | Situação de `tag` (CORES.md) |
+| `tempo_para_bipagem` | text | "TEMPO PARA BIPAGEM" |
+| `tempo_para_bipagem_situacao` | text | Situação de `tempo_para_bipagem` (CORES.md) |
+| `ultima_atualizacao` | text | "ULTIMA ATUALIZAÇÃO" |
+| `ultima_atualizacao_situacao` | text | Situação de `ultima_atualizacao` (CORES.md) |
 
 ### torre.v_status
 
@@ -367,6 +381,10 @@ confundem.
 | `ciot_vpo_situacao` | text | Situação de `ciot_vpo` (CORES.md) |
 | `sm` | text | "SM" |
 | `sm_situacao` | text | Situação de `sm` (CORES.md) |
+| `diferenca_do_cpt` | text | "DIFERENÇA DO CPT" |
+| `diferenca_do_cpt_situacao` | text | Situação de `diferenca_do_cpt` (CORES.md) |
+| `limite_de_parada` | text | "LIMITE DE PARADA" |
+| `limite_de_parada_situacao` | text | Situação de `limite_de_parada` (CORES.md) |
 
 ### torre.v_validacoes
 
@@ -377,34 +395,22 @@ confundem.
 | `lh_situacao` | text | Situação de `lh` (CORES.md) |
 | `motorista` | text | "MOTORISTA" |
 | `motorista_situacao` | text | Situação de `motorista` (CORES.md) |
-| `contato` | text | "CONTATO DO MOTORISTA" ou "CONTATO" ou "TELEFONE" |
-| `contato_situacao` | text | Situação de `contato` (CORES.md) |
 | `cavalo` | text | "CAVALO" ou "PLACA" ou "PLACA CAVALO" |
 | `cavalo_situacao` | text | Situação de `cavalo` (CORES.md) |
-| `carreta` | text | "CARRETA" ou "PLACA CARRETA" |
-| `carreta_situacao` | text | Situação de `carreta` (CORES.md) |
-| `vinculo` | text | "VÍNCULO" |
-| `vinculo_situacao` | text | Situação de `vinculo` (CORES.md) |
-| `origem` | text | "ORIGEM" |
+| `origem` | text | "0RIGEM" ou "ORIGEM" |
 | `origem_situacao` | text | Situação de `origem` (CORES.md) |
-| `destino` | text | "DESTINO" |
-| `destino_situacao` | text | Situação de `destino` (CORES.md) |
-| `cpt` | text | "CPT" ou "CPT ORIGEM" |
-| `cpt_situacao` | text | Situação de `cpt` (CORES.md) |
 | `checklist` | text | "CHECKLIST" ou "CHECK LIST" |
 | `checklist_situacao` | text | Situação de `checklist` (CORES.md) |
-| `gr` | text | "GR" ou "GERENCIAMENTO DE RISCO" |
-| `gr_situacao` | text | Situação de `gr` (CORES.md) |
-| `rastreador` | text | "RASTREADOR" ou "ISCA" |
-| `rastreador_situacao` | text | Situação de `rastreador` (CORES.md) |
-| `ciot_vpo` | text | "CIOT / VPO" ou "CIOT" ou "VPO" |
-| `ciot_vpo_situacao` | text | Situação de `ciot_vpo` (CORES.md) |
 | `sm` | text | "SM" |
 | `sm_situacao` | text | Situação de `sm` (CORES.md) |
-| `status` | text | "STATUS" |
+| `status` | text | "STATUS ATUAL" ou "STATUS" |
 | `status_situacao` | text | Situação de `status` (CORES.md) |
-| `observacao` | text | "OBSERVAÇÃO" ou "OBSERVAÇÕES" ou "OBS" |
-| `observacao_situacao` | text | Situação de `observacao` (CORES.md) |
+| `espelhamento` | text | "ESPELHAMENTO" |
+| `espelhamento_situacao` | text | Situação de `espelhamento` (CORES.md) |
+| `etapa` | text | "ETAPA" |
+| `etapa_situacao` | text | Situação de `etapa` (CORES.md) |
+| `timer` | text | "TIMER" |
+| `timer_situacao` | text | Situação de `timer` (CORES.md) |
 
 ## Conferir os títulos depois da primeira cópia
 
