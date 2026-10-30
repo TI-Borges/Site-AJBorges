@@ -32,6 +32,82 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         document.querySelectorAll('[data-so-motorista]').forEach(el => el.remove());
     }
 
+    // Fretes e abastecimentos sem limite visível: o HTML traz 8 e 10 linhas e as outras (até
+    // MAX_LINHAS_BLOCO por bloco) são criadas quando precisa, copiando a linha 1 com o número
+    // novo nos name. Os loops vão até qtdFretes()/qtdAbast() (as linhas que existem na página).
+    const MAX_LINHAS_BLOCO = 100;
+    const SELETOR_TABELA_BLOCO = {
+        fretes: 'table.tabela-fretes-ml',
+        abastecimentos: 'table.tabela-abastecimento:not(.tabela-fretes-ml)'
+    };
+    // Quem liga eventos numa linha registra aqui (recebe o número da linha); vale para as linhas novas
+    const configuradoresLinha = { fretes: [], abastecimentos: [] };
+
+    // Campo da ficha pelo name. Com 100 + 100 linhas, procurar no documento inteiro a cada tecla
+    // (milhares de vezes) deixa a digitação lenta; o campo achado fica guardado (os name são únicos).
+    const camposPorNome = new Map();
+    function campoPorNome(nome) {
+        const guardado = camposPorNome.get(nome);
+        if (guardado && guardado.isConnected && guardado.name === nome) return guardado;
+        const el = document.querySelector(`[name="${nome}"]`);
+        if (el) camposPorNome.set(nome, el);
+        return el;
+    }
+
+    const tabelasDoBloco = {};
+    function tabelaDoBloco(tipo) {
+        if (!tabelasDoBloco[tipo] || !tabelasDoBloco[tipo].isConnected) tabelasDoBloco[tipo] = document.querySelector(SELETOR_TABELA_BLOCO[tipo]);
+        return tabelasDoBloco[tipo];
+    }
+    function linhasDoBloco(tipo) {
+        const tabela = tabelaDoBloco(tipo);
+        if (!tabela || !tabela.tBodies[0]) return [];
+        return Array.from(tabela.tBodies[0].rows).filter(tr => !tr.classList.contains('linha-adicionar-celular'));
+    }
+    // Quantas linhas o bloco tem (sem a do "+ Adicionar", que é a última); chamada a cada volta dos loops
+    function qtdLinhasDoBloco(tipo) {
+        const corpo = tabelaDoBloco(tipo)?.tBodies[0];
+        if (!corpo) return 0;
+        return corpo.rows.length - (corpo.lastElementChild?.classList.contains('linha-adicionar-celular') ? 1 : 0);
+    }
+    const qtdFretes = () => qtdLinhasDoBloco('fretes');
+    const qtdAbast = () => qtdLinhasDoBloco('abastecimentos');
+
+    function criarLinhaDoBloco(tipo, n) {
+        const linhas = linhasDoBloco(tipo);
+        const modelo = linhas[0];
+        if (!modelo) return;
+        const nova = modelo.cloneNode(true);
+        nova.classList.remove('linha-frete-sem-valor', 'linha-oculta-celular');
+        nova.querySelectorAll('.erro-campo-celular').forEach(el => el.remove());
+        nova.querySelectorAll('[name]').forEach(el => { el.name = el.name.replace(/_\d+$/, `_${n}`); });
+        nova.querySelectorAll('[data-linha]').forEach(el => el.setAttribute('data-linha', String(n)));
+        nova.querySelectorAll('[data-linha-abast]').forEach(el => el.setAttribute('data-linha-abast', String(n)));
+        nova.querySelectorAll('.btn-limpar-linha-inline').forEach(el => {
+            el.title = `Remover linha ${n}`;
+            el.setAttribute('aria-label', `Remover linha ${n}`);
+        });
+        const rotulo = nova.querySelector('.num-rotulo');
+        if (rotulo) rotulo.textContent = String(n);
+        nova.querySelectorAll('input, select').forEach(el => {
+            el.removeAttribute('aria-invalid');
+            el.classList.remove('comissao-a-calcular');
+            if ('editadoManual' in el.dataset) el.dataset.editadoManual = '';
+            if (el.tagName === 'SELECT') el.selectedIndex = 0;
+            else el.value = el.classList.contains('input-litros-abast-ml') ? LITROS_VAZIO : '';
+        });
+        linhas[linhas.length - 1].after(nova);
+        configuradoresLinha[tipo].forEach(configurar => configurar(n));
+    }
+
+    // Garante que o bloco tenha pelo menos n linhas (no máximo MAX_LINHAS_BLOCO); devolve quantas tem
+    function garantirLinhas(tipo, n) {
+        const alvo = Math.min(Number(n) || 0, MAX_LINHAS_BLOCO);
+        let total = linhasDoBloco(tipo).length;
+        while (total > 0 && total < alvo) criarLinhaDoBloco(tipo, ++total);
+        return total;
+    }
+
     // Elementos do Formulário
     const form = document.getElementById('form-relatorio');
     const inputMotorista = document.getElementById('motorista');
@@ -1145,22 +1221,22 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         // Mapeamento estrito dos campos solicitados:
         // - Destino Inicial (#destino-inicial)
         // - Destino Final (#destino-final)
-        // - Origem de cada linha de frete ("origem_frete_ml_1" a 8)
-        // - Destino de cada linha de frete ("destino_frete_ml_1" a 8)
+        // - Origem de cada linha de frete ("origem_frete_ml_1" em diante)
+        // - Destino de cada linha de frete ("destino_frete_ml_1" em diante)
+        function vincularCidadesDaLinhaFrete(i) {
+            vincularCampo(campoPorNome(`origem_frete_ml_${i}`));
+            vincularCampo(campoPorNome(`destino_frete_ml_${i}`));
+        }
+
         function vincularTodosOsCampos() {
             const campos = [
                 document.getElementById('destino-inicial'),
                 document.getElementById('destino-final')
             ];
 
-            for (let i = 1; i <= 8; i++) {
-                const origem = document.querySelector(`input[name="origem_frete_ml_${i}"]`);
-                const destino = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
-                if (origem) campos.push(origem);
-                if (destino) campos.push(destino);
-            }
-
             campos.filter(Boolean).forEach(vincularCampo);
+            for (let i = 1; i <= qtdFretes(); i++) vincularCidadesDaLinhaFrete(i);
+            configuradoresLinha.fretes.push(vincularCidadesDaLinhaFrete);
         }
 
         vincularTodosOsCampos();
@@ -1573,7 +1649,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     // Veículo da linha: motorista de carreta é sempre 'carreta'; o de rodotrem escolhe ('' = não escolheu)
     function veiculoDaLinhaFrete(i) {
         if (!motoristaEscolheVeiculo()) return 'carreta';
-        const v = document.querySelector(`select[name="veiculo_frete_ml_${i}"]`)?.value || '';
+        const v = campoPorNome(`veiculo_frete_ml_${i}`)?.value || '';
         return ROTULOS_VEICULO[v] ? v : '';
     }
 
@@ -1601,7 +1677,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         const tdTotais = document.getElementById('td-totais-label-fretes');
         if (tdTotais) tdTotais.colSpan = mostrar ? 6 : 5;
         if (recalcular) {
-            for (let i = 1; i <= 8; i++) atualizarLinhaFreteMl(i, false);
+            for (let i = 1; i <= qtdFretes(); i++) atualizarLinhaFreteMl(i, false);
         }
         calcularTotaisFreteMl();
         calcularIndicadoresViagemMl();
@@ -1633,10 +1709,10 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     }
 
     function atualizarLinhaFreteMl(index, acaoDisparadaPorSelect = false) {
-        const selectCli = document.querySelector(`select[name="cliente_frete_ml_${index}"]`);
-        const inputValFrete = document.querySelector(`input[name="valor_frete_ml_${index}"]`);
-        const inputComissao = document.querySelector(`input[name="comissao_frete_ml_${index}"]`);
-        const inputDestino = document.querySelector(`input[name="destino_frete_ml_${index}"]`);
+        const selectCli = campoPorNome(`cliente_frete_ml_${index}`);
+        const inputValFrete = campoPorNome(`valor_frete_ml_${index}`);
+        const inputComissao = campoPorNome(`comissao_frete_ml_${index}`);
+        const inputDestino = campoPorNome(`destino_frete_ml_${index}`);
 
         if (!selectCli || !inputValFrete || !inputComissao) return;
 
@@ -1678,14 +1754,15 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         }
     }
 
-    for (let i = 1; i <= 8; i++) {
-        const inputValFrete = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
-        const inputComissao = document.querySelector(`input[name="comissao_frete_ml_${i}"]`);
-        const inputDescarga = document.querySelector(`input[name="descarga_frete_ml_${i}"]`);
-        const selectCli = document.querySelector(`select[name="cliente_frete_ml_${i}"]`);
-        const inputDataFrete = document.querySelector(`input[name="data_frete_ml_${i}"]`);
-        const inputOrigemFrete = document.querySelector(`input[name="origem_frete_ml_${i}"]`);
-        const inputDestinoFrete = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
+    // Eventos de uma linha de frete (as do HTML agora; as criadas depois, ao criar)
+    function configurarLinhaFreteMl(i) {
+        const inputValFrete = campoPorNome(`valor_frete_ml_${i}`);
+        const inputComissao = campoPorNome(`comissao_frete_ml_${i}`);
+        const inputDescarga = campoPorNome(`descarga_frete_ml_${i}`);
+        const selectCli = campoPorNome(`cliente_frete_ml_${i}`);
+        const inputDataFrete = campoPorNome(`data_frete_ml_${i}`);
+        const inputOrigemFrete = campoPorNome(`origem_frete_ml_${i}`);
+        const inputDestinoFrete = campoPorNome(`destino_frete_ml_${i}`);
 
         if (selectCli) {
             selectsClienteFreteMl.push(selectCli);
@@ -1727,7 +1804,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         }
 
         // Veículo da linha (motorista de rodotrem): muda a comissão do Alimentício
-        const selectVeiculo = document.querySelector(`select[name="veiculo_frete_ml_${i}"]`);
+        const selectVeiculo = campoPorNome(`veiculo_frete_ml_${i}`);
         if (selectVeiculo) {
             selectVeiculo.addEventListener('change', () => {
                 atualizarLinhaFreteMl(i, true);
@@ -1795,6 +1872,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             });
         }
     }
+    for (let i = 1; i <= qtdFretes(); i++) configurarLinhaFreteMl(i);
+    configuradoresLinha.fretes.push(configurarLinhaFreteMl);
 
     function calcularTotaisFreteMl() {
         let somaFrete = 0;
@@ -1830,9 +1909,9 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         let semValor = 0;
         let comissaoACalcular = 0;
         const conferenciaGestao = modoGestaoNaFicha();
-        for (let i = 1; i <= 8; i++) {
-            const valorEl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
-            const comissaoEl = document.querySelector(`input[name="comissao_frete_ml_${i}"]`);
+        for (let i = 1; i <= qtdFretes(); i++) {
+            const valorEl = campoPorNome(`valor_frete_ml_${i}`);
+            const comissaoEl = campoPorNome(`comissao_frete_ml_${i}`);
             if (!valorEl || !comissaoEl) continue;
             const sem = freteSemValorMl(i);
             const aCalcular = sem && !comissaoEl.value.trim();
@@ -1853,14 +1932,14 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     // Frete que conta na ficha (passo 19): data, origem e destino. O valor é opcional para o
     // motorista (0,00 = a gestão preenche); os totais somam só os fretes com valor.
     function freteCompletoMl(i) {
-        const campo = (c) => document.querySelector(`[name="${c}_frete_ml_${i}"]`);
+        const campo = (c) => campoPorNome(`${c}_frete_ml_${i}`);
         const dt = campo('data');
         if (!dt || dt.closest('tr')?.classList.contains('linha-oculta-celular')) return false;
         return ['data', 'origem', 'destino'].every(c => (campo(c)?.value || '').trim() !== '');
     }
 
     function freteSemValorMl(i) {
-        return freteCompletoMl(i) && !(parseMoeda(document.querySelector(`input[name="valor_frete_ml_${i}"]`)?.value) > 0);
+        return freteCompletoMl(i) && !(parseMoeda(campoPorNome(`valor_frete_ml_${i}`)?.value) > 0);
     }
 
     // Mesmo critério de modo admin de atualizarLinhaFreteMl
@@ -1947,14 +2026,14 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     const AVISO_LITROS = 'Confira os litros: digite só os números, a vírgula entra sozinha (128501 = 128,501).';
 
     function litrosForaDoLimite(i) {
-        const comb = document.querySelector(`select[name="combustivel_ml_${i}"]`)?.value || '';
-        const litros = parseLitros(document.querySelector(`input[name="litros_ml_${i}"]`)?.value || '');
+        const comb = campoPorNome(`combustivel_ml_${i}`)?.value || '';
+        const litros = parseLitros(campoPorNome(`litros_ml_${i}`)?.value || '');
         return litros > (comb === 'arla' ? LIMITE_LITROS_ARLA : LIMITE_LITROS_DIESEL);
     }
 
     // Marca (ou desmarca) o campo de litros da linha; true = passou do limite (bloqueia o envio do motorista)
     function conferirLitrosDaLinha(i) {
-        const input = document.querySelector(`input[name="litros_ml_${i}"]`);
+        const input = campoPorNome(`litros_ml_${i}`);
         if (!input) return false;
         if (litrosForaDoLimite(i)) {
             marcarErroCampo(input, AVISO_LITROS);
@@ -1965,14 +2044,15 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         return false;
     }
 
-    for (let i = 1; i <= 10; i++) {
-        const inputPosto = document.querySelector(`[name="posto_ml_${i}"]`);
-        const inputNf = document.querySelector(`input[name="nf_ml_${i}"]`);
-        const inputKm = document.querySelector(`input[name="km_ml_${i}"]`);
-        const inputValor = document.querySelector(`input[name="valor_ml_${i}"]`);
-        const inputLitros = document.querySelector(`input[name="litros_ml_${i}"]`);
-        const selectCombustivel = document.querySelector(`select[name="combustivel_ml_${i}"]`);
-        const selectPlacaAbast = document.querySelector(`select[name="placa_abast_ml_${i}"]`);
+    // Eventos de uma linha de abastecimento (as do HTML agora; as criadas depois, ao criar)
+    function configurarLinhaAbastMl(i) {
+        const inputPosto = campoPorNome(`posto_ml_${i}`);
+        const inputNf = campoPorNome(`nf_ml_${i}`);
+        const inputKm = campoPorNome(`km_ml_${i}`);
+        const inputValor = campoPorNome(`valor_ml_${i}`);
+        const inputLitros = campoPorNome(`litros_ml_${i}`);
+        const selectCombustivel = campoPorNome(`combustivel_ml_${i}`);
+        const selectPlacaAbast = campoPorNome(`placa_abast_ml_${i}`);
 
         // Combustível (ARLA fica fora da média) e placa (média por placa) mudam os indicadores
         [selectCombustivel, selectPlacaAbast].forEach(sel => {
@@ -2058,6 +2138,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             });
         }
     }
+    for (let i = 1; i <= qtdAbast(); i++) configurarLinhaAbastMl(i);
+    configuradoresLinha.abastecimentos.push(configurarLinhaAbastMl);
 
     // TOTAL DIESEL = Diesel S10, Diesel S500 e linhas sem combustível escolhido; TOTAL ARLA = só ARLA.
     // valor/litros continuam sendo a soma dos dois (Despesa total e envio).
@@ -2065,11 +2147,11 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         const diesel = { valor: 0, litros: 0 };
         const arla = { valor: 0, litros: 0 };
 
-        for (let i = 1; i <= 10; i++) {
-            const comb = document.querySelector(`select[name="combustivel_ml_${i}"]`)?.value || '';
+        for (let i = 1; i <= qtdAbast(); i++) {
+            const comb = campoPorNome(`combustivel_ml_${i}`)?.value || '';
             const alvo = comb === 'arla' ? arla : diesel;
-            alvo.valor += parseMoeda(document.querySelector(`input[name="valor_ml_${i}"]`)?.value || '');
-            alvo.litros += parseLitros(document.querySelector(`input[name="litros_ml_${i}"]`)?.value || '');
+            alvo.valor += parseMoeda(campoPorNome(`valor_ml_${i}`)?.value || '');
+            alvo.litros += parseLitros(campoPorNome(`litros_ml_${i}`)?.value || '');
         }
 
         // Litros dos totais com 3 casas, no mesmo formato das linhas (50,000 / 0,000); só exibição
@@ -2086,21 +2168,21 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
     // Placa de uma linha: só existe 'secundaria' quando o 2º trecho está ativo
     function placaDaLinhaAbast(i) {
-        const sel = document.querySelector(`select[name="placa_abast_ml_${i}"]`);
+        const sel = campoPorNome(`placa_abast_ml_${i}`);
         return (segundoTrechoAtivo() && sel && sel.value === 'secundaria') ? 'secundaria' : 'principal';
     }
 
     function limparCamposNovosAbast(i) {
-        const comb = document.querySelector(`select[name="combustivel_ml_${i}"]`);
-        const placa = document.querySelector(`select[name="placa_abast_ml_${i}"]`);
+        const comb = campoPorNome(`combustivel_ml_${i}`);
+        const placa = campoPorNome(`placa_abast_ml_${i}`);
         if (comb) comb.value = '';
         if (placa) placa.value = 'principal';
     }
 
     // Ficha antiga sem combustível fica vazia (e conta como diesel); sem placa = principal
     function definirCamposNovosAbast(i, ab) {
-        const comb = document.querySelector(`select[name="combustivel_ml_${i}"]`);
-        const placa = document.querySelector(`select[name="placa_abast_ml_${i}"]`);
+        const comb = campoPorNome(`combustivel_ml_${i}`);
+        const placa = campoPorNome(`placa_abast_ml_${i}`);
         if (comb) comb.value = ROTULOS_COMBUSTIVEL[ab?.combustivel] ? ab.combustivel : '';
         if (placa) placa.value = ab?.placa === 'secundaria' ? 'secundaria' : 'principal';
     }
@@ -2117,10 +2199,10 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
     function litrosAbastPorPlaca(usarLinha) {
         const litros = { principal: 0, secundaria: 0, total: 0 };
-        for (let i = 1; i <= 10; i++) {
-            const comb = document.querySelector(`select[name="combustivel_ml_${i}"]`)?.value || '';
+        for (let i = 1; i <= qtdAbast(); i++) {
+            const comb = campoPorNome(`combustivel_ml_${i}`)?.value || '';
             if (!usarLinha(comb)) continue;
-            const l = parseLitros(document.querySelector(`input[name="litros_ml_${i}"]`)?.value || '');
+            const l = parseLitros(campoPorNome(`litros_ml_${i}`)?.value || '');
             litros[placaDaLinhaAbast(i)] += l;
             litros.total += l;
         }
@@ -2788,14 +2870,14 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     // Ações de Limpeza de Fretes (Individual e Coletiva)
     // ------------------------------------------
     function verificarLinhaFretePreenchida(i) {
-        const dt = document.querySelector(`input[name="data_frete_ml_${i}"]`);
-        const selCli = document.querySelector(`select[name="cliente_frete_ml_${i}"]`);
-        const selVeic = document.querySelector(`select[name="veiculo_frete_ml_${i}"]`);
-        const og = document.querySelector(`input[name="origem_frete_ml_${i}"]`);
-        const dst = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
-        const vl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
-        const com = document.querySelector(`input[name="comissao_frete_ml_${i}"]`);
-        const desc = document.querySelector(`input[name="descarga_frete_ml_${i}"]`);
+        const dt = campoPorNome(`data_frete_ml_${i}`);
+        const selCli = campoPorNome(`cliente_frete_ml_${i}`);
+        const selVeic = campoPorNome(`veiculo_frete_ml_${i}`);
+        const og = campoPorNome(`origem_frete_ml_${i}`);
+        const dst = campoPorNome(`destino_frete_ml_${i}`);
+        const vl = campoPorNome(`valor_frete_ml_${i}`);
+        const com = campoPorNome(`comissao_frete_ml_${i}`);
+        const desc = campoPorNome(`descarga_frete_ml_${i}`);
 
         return !!((dt && dt.value.trim() !== '') ||
             (selCli && selCli.value.trim() !== '') ||
@@ -2808,11 +2890,11 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     }
 
     function obterResumoLinhaFrete(i) {
-        const dt = document.querySelector(`input[name="data_frete_ml_${i}"]`);
-        const selCli = document.querySelector(`select[name="cliente_frete_ml_${i}"]`);
-        const dst = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
-        const vl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
-        const desc = document.querySelector(`input[name="descarga_frete_ml_${i}"]`);
+        const dt = campoPorNome(`data_frete_ml_${i}`);
+        const selCli = campoPorNome(`cliente_frete_ml_${i}`);
+        const dst = campoPorNome(`destino_frete_ml_${i}`);
+        const vl = campoPorNome(`valor_frete_ml_${i}`);
+        const desc = campoPorNome(`descarga_frete_ml_${i}`);
 
         const partes = [];
         if (selCli && selCli.value) {
@@ -2845,15 +2927,15 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     }
 
     function limparLinhaFrete(i) {
-        const dt = document.querySelector(`input[name="data_frete_ml_${i}"]`);
-        const selCli = document.querySelector(`select[name="cliente_frete_ml_${i}"]`);
-        const og = document.querySelector(`input[name="origem_frete_ml_${i}"]`);
-        const dst = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
-        const vl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
-        const com = document.querySelector(`input[name="comissao_frete_ml_${i}"]`);
-        const desc = document.querySelector(`input[name="descarga_frete_ml_${i}"]`);
+        const dt = campoPorNome(`data_frete_ml_${i}`);
+        const selCli = campoPorNome(`cliente_frete_ml_${i}`);
+        const og = campoPorNome(`origem_frete_ml_${i}`);
+        const dst = campoPorNome(`destino_frete_ml_${i}`);
+        const vl = campoPorNome(`valor_frete_ml_${i}`);
+        const com = campoPorNome(`comissao_frete_ml_${i}`);
+        const desc = campoPorNome(`descarga_frete_ml_${i}`);
         const pickerNativo = dt && dt.parentElement ? dt.parentElement.querySelector('.input-picker-data-nativo') : null;
-        const selVeic = document.querySelector(`select[name="veiculo_frete_ml_${i}"]`);
+        const selVeic = campoPorNome(`veiculo_frete_ml_${i}`);
 
         if (dt) dt.value = '';
         if (pickerNativo) pickerNativo.value = '';
@@ -2886,7 +2968,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         container.innerHTML = '';
         let totalPreenchidas = 0;
 
-        for (let i = 1; i <= 8; i++) {
+        for (let i = 1; i <= qtdFretes(); i++) {
             if (verificarLinhaFretePreenchida(i)) {
                 totalPreenchidas++;
                 const resumo = obterResumoLinhaFrete(i);
@@ -2923,16 +3005,16 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
     if (btnLimparFretesMlTodas) {
         btnLimparFretesMlTodas.addEventListener('click', () => {
-            for (let i = 1; i <= 8; i++) {
-                const dt = document.querySelector(`input[name="data_frete_ml_${i}"]`);
-                const selCli = document.querySelector(`select[name="cliente_frete_ml_${i}"]`);
-                const og = document.querySelector(`input[name="origem_frete_ml_${i}"]`);
-                const dst = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
-                const vl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
-                const com = document.querySelector(`input[name="comissao_frete_ml_${i}"]`);
-                const desc = document.querySelector(`input[name="descarga_frete_ml_${i}"]`);
+            for (let i = 1; i <= qtdFretes(); i++) {
+                const dt = campoPorNome(`data_frete_ml_${i}`);
+                const selCli = campoPorNome(`cliente_frete_ml_${i}`);
+                const og = campoPorNome(`origem_frete_ml_${i}`);
+                const dst = campoPorNome(`destino_frete_ml_${i}`);
+                const vl = campoPorNome(`valor_frete_ml_${i}`);
+                const com = campoPorNome(`comissao_frete_ml_${i}`);
+                const desc = campoPorNome(`descarga_frete_ml_${i}`);
                 const pickerNativo = dt && dt.parentElement ? dt.parentElement.querySelector('.input-picker-data-nativo') : null;
-                const selVeic = document.querySelector(`select[name="veiculo_frete_ml_${i}"]`);
+                const selVeic = campoPorNome(`veiculo_frete_ml_${i}`);
 
                 if (dt) dt.value = '';
                 if (pickerNativo) pickerNativo.value = '';
@@ -2963,12 +3045,12 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
     // Ações de Limpeza de Abastecimento ML
     function verificarLinhaAbastPreenchida(i) {
-        const posto = document.querySelector(`[name="posto_ml_${i}"]`);
-        const nf = document.querySelector(`input[name="nf_ml_${i}"]`);
-        const km = document.querySelector(`input[name="km_ml_${i}"]`);
-        const valor = document.querySelector(`input[name="valor_ml_${i}"]`);
-        const litros = document.querySelector(`input[name="litros_ml_${i}"]`);
-        const comb = document.querySelector(`select[name="combustivel_ml_${i}"]`);
+        const posto = campoPorNome(`posto_ml_${i}`);
+        const nf = campoPorNome(`nf_ml_${i}`);
+        const km = campoPorNome(`km_ml_${i}`);
+        const valor = campoPorNome(`valor_ml_${i}`);
+        const litros = campoPorNome(`litros_ml_${i}`);
+        const comb = campoPorNome(`combustivel_ml_${i}`);
 
         return !!((posto && posto.value.trim() !== '') ||
             (comb && comb.value !== '') ||
@@ -2979,12 +3061,12 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     }
 
     function obterResumoLinhaAbast(i) {
-        const posto = document.querySelector(`[name="posto_ml_${i}"]`);
-        const nf = document.querySelector(`input[name="nf_ml_${i}"]`);
-        const valor = document.querySelector(`input[name="valor_ml_${i}"]`);
-        const litros = document.querySelector(`input[name="litros_ml_${i}"]`);
+        const posto = campoPorNome(`posto_ml_${i}`);
+        const nf = campoPorNome(`nf_ml_${i}`);
+        const valor = campoPorNome(`valor_ml_${i}`);
+        const litros = campoPorNome(`litros_ml_${i}`);
 
-        const comb = document.querySelector(`select[name="combustivel_ml_${i}"]`);
+        const comb = campoPorNome(`combustivel_ml_${i}`);
 
         const partes = [];
         if (posto && posto.value.trim()) {
@@ -3010,11 +3092,11 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     }
 
     function limparLinhaAbast(i) {
-        const posto = document.querySelector(`[name="posto_ml_${i}"]`);
-        const nf = document.querySelector(`input[name="nf_ml_${i}"]`);
-        const km = document.querySelector(`input[name="km_ml_${i}"]`);
-        const valor = document.querySelector(`input[name="valor_ml_${i}"]`);
-        const litros = document.querySelector(`input[name="litros_ml_${i}"]`);
+        const posto = campoPorNome(`posto_ml_${i}`);
+        const nf = campoPorNome(`nf_ml_${i}`);
+        const km = campoPorNome(`km_ml_${i}`);
+        const valor = campoPorNome(`valor_ml_${i}`);
+        const litros = campoPorNome(`litros_ml_${i}`);
 
         if (posto) posto.value = '';
         if (nf) nf.value = '';
@@ -3037,7 +3119,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         container.innerHTML = '';
         let totalPreenchidas = 0;
 
-        for (let i = 1; i <= 10; i++) {
+        for (let i = 1; i <= qtdAbast(); i++) {
             if (verificarLinhaAbastPreenchida(i)) {
                 totalPreenchidas++;
                 const resumo = obterResumoLinhaAbast(i);
@@ -3074,12 +3156,12 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
     if (btnLimparAbastMlTodas) {
         btnLimparAbastMlTodas.addEventListener('click', () => {
-            for (let i = 1; i <= 10; i++) {
-                const posto = document.querySelector(`[name="posto_ml_${i}"]`);
-                const nf = document.querySelector(`input[name="nf_ml_${i}"]`);
-                const km = document.querySelector(`input[name="km_ml_${i}"]`);
-                const valor = document.querySelector(`input[name="valor_ml_${i}"]`);
-                const litros = document.querySelector(`input[name="litros_ml_${i}"]`);
+            for (let i = 1; i <= qtdAbast(); i++) {
+                const posto = campoPorNome(`posto_ml_${i}`);
+                const nf = campoPorNome(`nf_ml_${i}`);
+                const km = campoPorNome(`km_ml_${i}`);
+                const valor = campoPorNome(`valor_ml_${i}`);
+                const litros = campoPorNome(`litros_ml_${i}`);
 
                 if (posto) posto.value = '';
                 if (nf) nf.value = '';
@@ -3171,29 +3253,29 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             };
 
             const fretesMl = [];
-            for (let i = 1; i <= 8; i++) {
+            for (let i = 1; i <= qtdFretes(); i++) {
                 fretesMl.push({
-                    data: document.querySelector(`input[name="data_frete_ml_${i}"]`)?.value || '',
-                    cliente: document.querySelector(`select[name="cliente_frete_ml_${i}"]`)?.value || '',
-                    veiculo: document.querySelector(`select[name="veiculo_frete_ml_${i}"]`)?.value || '',
-                    origem: document.querySelector(`input[name="origem_frete_ml_${i}"]`)?.value || '',
-                    destino: document.querySelector(`input[name="destino_frete_ml_${i}"]`)?.value || '',
-                    valor: document.querySelector(`input[name="valor_frete_ml_${i}"]`)?.value || '',
-                    comissao: document.querySelector(`input[name="comissao_frete_ml_${i}"]`)?.value || '',
-                    descarga: document.querySelector(`input[name="descarga_frete_ml_${i}"]`)?.value || ''
+                    data: campoPorNome(`data_frete_ml_${i}`)?.value || '',
+                    cliente: campoPorNome(`cliente_frete_ml_${i}`)?.value || '',
+                    veiculo: campoPorNome(`veiculo_frete_ml_${i}`)?.value || '',
+                    origem: campoPorNome(`origem_frete_ml_${i}`)?.value || '',
+                    destino: campoPorNome(`destino_frete_ml_${i}`)?.value || '',
+                    valor: campoPorNome(`valor_frete_ml_${i}`)?.value || '',
+                    comissao: campoPorNome(`comissao_frete_ml_${i}`)?.value || '',
+                    descarga: campoPorNome(`descarga_frete_ml_${i}`)?.value || ''
                 });
             }
 
             const abastecimentosMl = [];
-            for (let i = 1; i <= 10; i++) {
+            for (let i = 1; i <= qtdAbast(); i++) {
                 abastecimentosMl.push({
-                    posto: document.querySelector(`[name="posto_ml_${i}"]`)?.value || '',
-                    nf: document.querySelector(`input[name="nf_ml_${i}"]`)?.value || '',
-                    km: document.querySelector(`input[name="km_ml_${i}"]`)?.value || '',
-                    valor: document.querySelector(`input[name="valor_ml_${i}"]`)?.value || '',
-                    litros: document.querySelector(`input[name="litros_ml_${i}"]`)?.value || '',
-                    combustivel: document.querySelector(`select[name="combustivel_ml_${i}"]`)?.value || '',
-                    placa: document.querySelector(`select[name="placa_abast_ml_${i}"]`)?.value || 'principal'
+                    posto: campoPorNome(`posto_ml_${i}`)?.value || '',
+                    nf: campoPorNome(`nf_ml_${i}`)?.value || '',
+                    km: campoPorNome(`km_ml_${i}`)?.value || '',
+                    valor: campoPorNome(`valor_ml_${i}`)?.value || '',
+                    litros: campoPorNome(`litros_ml_${i}`)?.value || '',
+                    combustivel: campoPorNome(`combustivel_ml_${i}`)?.value || '',
+                    placa: campoPorNome(`placa_abast_ml_${i}`)?.value || 'principal'
                 });
             }
 
@@ -3674,15 +3756,15 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         if (inputAdiantamento) inputAdiantamento.value = '';
 
         // Limpar as 8 linhas de frete
-        for (let i = 1; i <= 8; i++) {
-            const dt = document.querySelector(`input[name="data_frete_ml_${i}"]`);
-            const cli = document.querySelector(`select[name="cliente_frete_ml_${i}"]`);
-            const veic = document.querySelector(`select[name="veiculo_frete_ml_${i}"]`);
-            const og = document.querySelector(`input[name="origem_frete_ml_${i}"]`);
-            const dst = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
-            const vl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
-            const com = document.querySelector(`input[name="comissao_frete_ml_${i}"]`);
-            const desc = document.querySelector(`input[name="descarga_frete_ml_${i}"]`);
+        for (let i = 1; i <= qtdFretes(); i++) {
+            const dt = campoPorNome(`data_frete_ml_${i}`);
+            const cli = campoPorNome(`cliente_frete_ml_${i}`);
+            const veic = campoPorNome(`veiculo_frete_ml_${i}`);
+            const og = campoPorNome(`origem_frete_ml_${i}`);
+            const dst = campoPorNome(`destino_frete_ml_${i}`);
+            const vl = campoPorNome(`valor_frete_ml_${i}`);
+            const com = campoPorNome(`comissao_frete_ml_${i}`);
+            const desc = campoPorNome(`descarga_frete_ml_${i}`);
 
             if (dt) dt.value = '';
             if (cli) cli.value = '';
@@ -3698,12 +3780,12 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         }
 
         // Limpar 10 linhas de abastecimento
-        for (let i = 1; i <= 10; i++) {
-            const posto = document.querySelector(`[name="posto_ml_${i}"]`);
-            const nf = document.querySelector(`input[name="nf_ml_${i}"]`);
-            const km = document.querySelector(`input[name="km_ml_${i}"]`);
-            const vl = document.querySelector(`input[name="valor_ml_${i}"]`);
-            const lit = document.querySelector(`input[name="litros_ml_${i}"]`);
+        for (let i = 1; i <= qtdAbast(); i++) {
+            const posto = campoPorNome(`posto_ml_${i}`);
+            const nf = campoPorNome(`nf_ml_${i}`);
+            const km = campoPorNome(`km_ml_${i}`);
+            const vl = campoPorNome(`valor_ml_${i}`);
+            const lit = campoPorNome(`litros_ml_${i}`);
 
             if (posto) posto.value = '';
             if (nf) nf.value = '';
@@ -3816,16 +3898,17 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                 // Restaurar fretes
                 let temFretePreenchido = false;
                 if (Array.isArray(dados.fretes)) {
+                    garantirLinhas('fretes', dados.fretes.length);
                     dados.fretes.forEach((f, idx) => {
                         const i = idx + 1;
-                        const dt = document.querySelector(`input[name="data_frete_ml_${i}"]`);
-                        const selCli = document.querySelector(`select[name="cliente_frete_ml_${i}"]`);
-                        const selVeic = document.querySelector(`select[name="veiculo_frete_ml_${i}"]`);
-                        const og = document.querySelector(`input[name="origem_frete_ml_${i}"]`);
-                        const dst = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
-                        const vl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
-                        const com = document.querySelector(`input[name="comissao_frete_ml_${i}"]`);
-                        const desc = document.querySelector(`input[name="descarga_frete_ml_${i}"]`);
+                        const dt = campoPorNome(`data_frete_ml_${i}`);
+                        const selCli = campoPorNome(`cliente_frete_ml_${i}`);
+                        const selVeic = campoPorNome(`veiculo_frete_ml_${i}`);
+                        const og = campoPorNome(`origem_frete_ml_${i}`);
+                        const dst = campoPorNome(`destino_frete_ml_${i}`);
+                        const vl = campoPorNome(`valor_frete_ml_${i}`);
+                        const com = campoPorNome(`comissao_frete_ml_${i}`);
+                        const desc = campoPorNome(`descarga_frete_ml_${i}`);
 
                         if (dt && f.data) dt.value = normalizarDataExibicao(f.data);
                         if (selCli && f.cliente !== undefined) selCli.value = f.cliente;
@@ -3851,13 +3934,14 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                 // Restaurar abastecimento
                 let temAbastPreenchido = false;
                 if (Array.isArray(dados.abastecimentos)) {
+                    garantirLinhas('abastecimentos', dados.abastecimentos.length);
                     dados.abastecimentos.forEach((ab, idx) => {
                         const i = idx + 1;
-                        const posto = document.querySelector(`[name="posto_ml_${i}"]`);
-                        const nf = document.querySelector(`input[name="nf_ml_${i}"]`);
-                        const km = document.querySelector(`input[name="km_ml_${i}"]`);
-                        const valor = document.querySelector(`input[name="valor_ml_${i}"]`);
-                        const litros = document.querySelector(`input[name="litros_ml_${i}"]`);
+                        const posto = campoPorNome(`posto_ml_${i}`);
+                        const nf = campoPorNome(`nf_ml_${i}`);
+                        const km = campoPorNome(`km_ml_${i}`);
+                        const valor = campoPorNome(`valor_ml_${i}`);
+                        const litros = campoPorNome(`litros_ml_${i}`);
 
                         if (posto && ab.posto) {
                             if (!Array.from(posto.options).some(o => o.value === ab.posto)) {
@@ -3965,15 +4049,15 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
     function coletarFretesAtuais() {
         const fretes = [];
-        for (let i = 1; i <= 8; i++) {
-            if (!linhaEmUso(document.querySelector(`input[name="data_frete_ml_${i}"]`))) continue;
-            const dt = document.querySelector(`input[name="data_frete_ml_${i}"]`)?.value || '';
-            const cli = document.querySelector(`select[name="cliente_frete_ml_${i}"]`)?.value || '';
-            const og = document.querySelector(`input[name="origem_frete_ml_${i}"]`)?.value || '';
-            const dst = document.querySelector(`input[name="destino_frete_ml_${i}"]`)?.value || '';
-            const vl = document.querySelector(`input[name="valor_frete_ml_${i}"]`)?.value || '';
-            const com = document.querySelector(`input[name="comissao_frete_ml_${i}"]`)?.value || '';
-            const desc = document.querySelector(`input[name="descarga_frete_ml_${i}"]`)?.value || '';
+        for (let i = 1; i <= qtdFretes(); i++) {
+            if (!linhaEmUso(campoPorNome(`data_frete_ml_${i}`))) continue;
+            const dt = campoPorNome(`data_frete_ml_${i}`)?.value || '';
+            const cli = campoPorNome(`cliente_frete_ml_${i}`)?.value || '';
+            const og = campoPorNome(`origem_frete_ml_${i}`)?.value || '';
+            const dst = campoPorNome(`destino_frete_ml_${i}`)?.value || '';
+            const vl = campoPorNome(`valor_frete_ml_${i}`)?.value || '';
+            const com = campoPorNome(`comissao_frete_ml_${i}`)?.value || '';
+            const desc = campoPorNome(`descarga_frete_ml_${i}`)?.value || '';
             // 'carreta' | 'rodotrem'; '' = motorista de rodotrem que não escolheu (o banco grava null)
             const veiculo = veiculoDaLinhaFrete(i);
 
@@ -3986,16 +4070,16 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
     function coletarAbastecimentosAtuais() {
         const abasts = [];
-        for (let i = 1; i <= 10; i++) {
-            if (!linhaEmUso(document.querySelector(`[name="posto_ml_${i}"]`))) continue;
-            const posto = document.querySelector(`[name="posto_ml_${i}"]`)?.value || '';
-            const nf = document.querySelector(`input[name="nf_ml_${i}"]`)?.value || '';
-            const km = document.querySelector(`input[name="km_ml_${i}"]`)?.value || '';
-            const valor = document.querySelector(`input[name="valor_ml_${i}"]`)?.value || '';
+        for (let i = 1; i <= qtdAbast(); i++) {
+            if (!linhaEmUso(campoPorNome(`posto_ml_${i}`))) continue;
+            const posto = campoPorNome(`posto_ml_${i}`)?.value || '';
+            const nf = campoPorNome(`nf_ml_${i}`)?.value || '';
+            const km = campoPorNome(`km_ml_${i}`)?.value || '';
+            const valor = campoPorNome(`valor_ml_${i}`)?.value || '';
             // 0,00 = sem litros
-            const litrosCampo = document.querySelector(`input[name="litros_ml_${i}"]`)?.value || '';
+            const litrosCampo = campoPorNome(`litros_ml_${i}`)?.value || '';
             const litros = parseLitros(litrosCampo) > 0 ? litrosCampo : '';
-            const combustivel = document.querySelector(`select[name="combustivel_ml_${i}"]`)?.value || '';
+            const combustivel = campoPorNome(`combustivel_ml_${i}`)?.value || '';
             // 'principal' | 'secundaria' só quando há placa secundária (a principal pode ser definida depois)
             const placa = segundoTrechoAtivo() ? placaDaLinhaAbast(i) : '';
 
@@ -4108,16 +4192,17 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         // Fretes Operacionais
         const fretesLista = Array.isArray(ficha.fretes) ? ficha.fretes : (Array.isArray(ficha.dados_completos?.fretes) ? ficha.dados_completos.fretes : []);
         if (fretesLista.length > 0) {
+            garantirLinhas('fretes', fretesLista.length);
             fretesLista.forEach((f, idx) => {
                 const i = idx + 1;
-                const dt = document.querySelector(`input[name="data_frete_ml_${i}"]`);
-                const selCli = document.querySelector(`select[name="cliente_frete_ml_${i}"]`);
-                const selVeic = document.querySelector(`select[name="veiculo_frete_ml_${i}"]`);
-                const og = document.querySelector(`input[name="origem_frete_ml_${i}"]`);
-                const dst = document.querySelector(`input[name="destino_frete_ml_${i}"]`);
-                const vl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
-                const com = document.querySelector(`input[name="comissao_frete_ml_${i}"]`);
-                const desc = document.querySelector(`input[name="descarga_frete_ml_${i}"]`);
+                const dt = campoPorNome(`data_frete_ml_${i}`);
+                const selCli = campoPorNome(`cliente_frete_ml_${i}`);
+                const selVeic = campoPorNome(`veiculo_frete_ml_${i}`);
+                const og = campoPorNome(`origem_frete_ml_${i}`);
+                const dst = campoPorNome(`destino_frete_ml_${i}`);
+                const vl = campoPorNome(`valor_frete_ml_${i}`);
+                const com = campoPorNome(`comissao_frete_ml_${i}`);
+                const desc = campoPorNome(`descarga_frete_ml_${i}`);
 
                 if (dt && f.data) dt.value = normalizarDataExibicao(f.data);
                 if (selCli && f.cliente) selCli.value = f.cliente;
@@ -4132,16 +4217,17 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             if (typeof calcularTotaisFreteMl === 'function') calcularTotaisFreteMl();
         }
 
-        // Abastecimentos (Usa document.querySelector(`[name="posto_ml_${i}"]`) para contemplar <select> e <input>)
+        // Abastecimentos (Usa campoPorNome(`posto_ml_${i}`) para contemplar <select> e <input>)
         const abastLista = Array.isArray(ficha.abastecimentos) ? ficha.abastecimentos : (Array.isArray(ficha.dados_completos?.abastecimentos) ? ficha.dados_completos.abastecimentos : []);
         if (abastLista.length > 0) {
+            garantirLinhas('abastecimentos', abastLista.length);
             abastLista.forEach((ab, idx) => {
                 const i = idx + 1;
-                const posto = document.querySelector(`[name="posto_ml_${i}"]`);
-                const nf = document.querySelector(`input[name="nf_ml_${i}"]`);
-                const km = document.querySelector(`input[name="km_ml_${i}"]`);
-                const valor = document.querySelector(`input[name="valor_ml_${i}"]`);
-                const litros = document.querySelector(`input[name="litros_ml_${i}"]`);
+                const posto = campoPorNome(`posto_ml_${i}`);
+                const nf = campoPorNome(`nf_ml_${i}`);
+                const km = campoPorNome(`km_ml_${i}`);
+                const valor = campoPorNome(`valor_ml_${i}`);
+                const litros = campoPorNome(`litros_ml_${i}`);
 
                 if (posto && ab.posto) {
                     if (posto.tagName === 'SELECT') {
@@ -4219,7 +4305,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     // ------------------------------------------
     // Linhas em uso (fretes e abastecimentos), em todas as larguras
     // As 8 e 10 linhas do HTML continuam lá (mesmos name/id); só aparecem as
-    // que estão em uso (no mínimo 1). "+ Adicionar" mostra a próxima; "Remover"
+    // que estão em uso (no mínimo 1). "+ Adicionar" mostra a próxima (e cria a
+    // linha quando as do HTML acabam, até MAX_LINHAS_BLOCO); "Remover"
     // (da 2ª em diante) apaga a linha e sobe as de baixo, sem buraco no meio.
     // Até 900px cada linha vira um cartão (CSS) com o rótulo de cada campo.
     // ------------------------------------------
@@ -4247,10 +4334,10 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             const mostrar = Math.min(linhas.length, Math.max(1, ultimaPreenchida, Number(tabela.dataset.mostrar || 0)));
             tabela.dataset.mostrar = String(mostrar);
             linhas.forEach((tr, i) => tr.classList.toggle('linha-oculta-celular', i >= mostrar));
-            // No limite o botão some e aparece "Limite de 8 fretes" / "Limite de 10 abastecimentos"
+            // No teto (MAX_LINHAS_BLOCO) o botão some e aparece a mensagem do limite
             const linhaBotao = tabela.querySelector('.linha-adicionar-celular');
             if (!linhaBotao) return;
-            const noLimite = mostrar >= linhas.length;
+            const noLimite = mostrar >= MAX_LINHAS_BLOCO;
             const btn = linhaBotao.querySelector('.btn-adicionar-linha-celular');
             const limite = linhaBotao.querySelector('.texto-limite-linhas');
             if (btn) btn.hidden = noLimite;
@@ -4292,7 +4379,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
     function recalcularDepoisDeMexerNasLinhas(tipo) {
         if (tipo === 'fretes') {
-            for (let i = 1; i <= 8; i++) atualizarLinhaFreteMl(i, false);
+            for (let i = 1; i <= qtdFretes(); i++) atualizarLinhaFreteMl(i, false);
         }
         calcularTotaisFreteMl();
         calcularTotaisAbastecimentoMl();
@@ -4331,7 +4418,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     }
 
     function prepararListasCelular() {
-        TABELAS_CELULAR.forEach(({ seletor, item }) => {
+        TABELAS_CELULAR.forEach(({ tipo, seletor, item }) => {
             const tabela = document.querySelector(seletor);
             if (!tabela || !tabela.tBodies[0] || tabela.dataset.listaPronta) return;
             tabela.dataset.listaPronta = '1';
@@ -4346,9 +4433,17 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             tabela.querySelectorAll('tfoot .td-total-valor').forEach(td => td.setAttribute('data-rotulo', 'Total em R$'));
             tabela.querySelectorAll('tfoot .td-total-litros').forEach(td => td.setAttribute('data-rotulo', 'Total de litros'));
 
-            // "+ Adicionar": mostra a próxima linha guardada e já põe o foco nela
+            // "+ Adicionar": mostra a próxima linha (criada se ainda não existe) e já põe o foco nela.
+            // No teto não adiciona e avisa.
             tabela.querySelector('.btn-adicionar-linha-celular')?.addEventListener('click', () => {
-                tabela.dataset.mostrar = String(Number(tabela.dataset.mostrar || 1) + 1);
+                const mostrarAgora = Number(tabela.dataset.mostrar || 1);
+                if (mostrarAgora >= MAX_LINHAS_BLOCO) {
+                    exibirToast(`Limite de ${MAX_LINHAS_BLOCO} ${tipo} por ficha.`, 'info');
+                    atualizarListasCelular();
+                    return;
+                }
+                garantirLinhas(tipo, mostrarAgora + 1);
+                tabela.dataset.mostrar = String(mostrarAgora + 1);
                 atualizarListasCelular();
                 salvarProgressoMl();
                 const nova = linhasDaLista(tabela).filter(tr => !tr.classList.contains('linha-oculta-celular')).pop();
@@ -4770,9 +4865,9 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                     }
                     if (!validarKmCombustivelDespesas(true)) return;
                     // Frete sem valor (o motorista deixou para a gestão): preencher antes de aprovar
-                    for (let i = 1; i <= 8; i++) {
+                    for (let i = 1; i <= qtdFretes(); i++) {
                         if (freteSemValorMl(i)) {
-                            falharValidacao(document.querySelector(`input[name="valor_frete_ml_${i}"]`), 'Preencha o valor dos fretes antes de aprovar');
+                            falharValidacao(campoPorNome(`valor_frete_ml_${i}`), 'Preencha o valor dos fretes antes de aprovar');
                             return;
                         }
                     }
@@ -5084,11 +5179,11 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
         const rotulosCliente = { alimenticio: 'Alimentício', shopee: 'Shopee', mercado_livre: 'Mercado Livre' };
         const fretes = [];
-        for (let i = 1; i <= 8; i++) {
-            const valorEl = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
+        for (let i = 1; i <= qtdFretes(); i++) {
+            const valorEl = campoPorNome(`valor_frete_ml_${i}`);
             if (!linhaEmUso(valorEl) || !verificarLinhaFretePreenchida(i)) continue;
-            const cliente = document.querySelector(`select[name="cliente_frete_ml_${i}"]`)?.value || '';
-            const comissao = document.querySelector(`input[name="comissao_frete_ml_${i}"]`)?.value || '';
+            const cliente = campoPorNome(`cliente_frete_ml_${i}`)?.value || '';
+            const comissao = campoPorNome(`comissao_frete_ml_${i}`)?.value || '';
             const partes = [rotulosCliente[cliente] || 'Sem operação'];
             if (motoristaEscolheVeiculo()) partes.push(ROTULOS_VEICULO[veiculoDaLinhaFrete(i)] || 'Veículo não escolhido');
             const semValor = !(parseMoeda(valorEl.value) > 0);
@@ -5105,11 +5200,11 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         }
 
         const abasts = [];
-        for (let i = 1; i <= 10; i++) {
+        for (let i = 1; i <= qtdAbast(); i++) {
             if (!verificarLinhaAbastPreenchida(i)) continue;
-            const comb = document.querySelector(`select[name="combustivel_ml_${i}"]`)?.value || '';
-            const valor = document.querySelector(`input[name="valor_ml_${i}"]`)?.value || '';
-            const litros = document.querySelector(`input[name="litros_ml_${i}"]`)?.value || '';
+            const comb = campoPorNome(`combustivel_ml_${i}`)?.value || '';
+            const valor = campoPorNome(`valor_ml_${i}`)?.value || '';
+            const litros = campoPorNome(`litros_ml_${i}`)?.value || '';
             const partes = [ROTULOS_COMBUSTIVEL[comb] || 'Sem combustível'];
             if (secundaria) partes.push(rotuloPlacaAbast(placaDaLinhaAbast(i)));
             if (valor) partes.push(`R$ ${valor}`);
@@ -5228,16 +5323,16 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
             // Cada frete preenchido precisa de data, origem e destino (o valor é opcional: a gestão
             // completa); no Alimentício, o rodotrem escolhe o veículo
-            for (let i = 1; i <= 8; i++) {
-                const valor = document.querySelector(`input[name="valor_frete_ml_${i}"]`);
+            for (let i = 1; i <= qtdFretes(); i++) {
+                const valor = campoPorNome(`valor_frete_ml_${i}`);
                 if (!valor || !linhaEmUso(valor) || !verificarLinhaFretePreenchida(i)) continue;
                 const faltando = [['data', 'a data'], ['origem', 'a origem'], ['destino', 'o destino']]
-                    .find(([c]) => !(document.querySelector(`[name="${c}_frete_ml_${i}"]`)?.value || '').trim());
+                    .find(([c]) => !(campoPorNome(`${c}_frete_ml_${i}`)?.value || '').trim());
                 if (faltando) {
-                    return falharValidacao(document.querySelector(`[name="${faltando[0]}_frete_ml_${i}"]`), `Informe ${faltando[1]} do frete ${i}.`);
+                    return falharValidacao(campoPorNome(`${faltando[0]}_frete_ml_${i}`), `Informe ${faltando[1]} do frete ${i}.`);
                 }
-                const cliente = document.querySelector(`select[name="cliente_frete_ml_${i}"]`)?.value || '';
-                const veiculo = document.querySelector(`select[name="veiculo_frete_ml_${i}"]`);
+                const cliente = campoPorNome(`cliente_frete_ml_${i}`)?.value || '';
+                const veiculo = campoPorNome(`veiculo_frete_ml_${i}`);
                 if (cliente === 'alimenticio' && motoristaEscolheVeiculo() && !veiculoDaLinhaFrete(i)) {
                     return falharValidacao(veiculo, 'Escolha o veículo (carreta ou rodotrem) em cada frete do Alimentício.');
                 }
@@ -5245,16 +5340,16 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         }
 
         if (!modoAdmin) {
-            for (let i = 1; i <= 10; i++) {
-                const comb = document.querySelector(`select[name="combustivel_ml_${i}"]`);
-                const valor = document.querySelector(`input[name="valor_ml_${i}"]`)?.value || '';
-                const litros = document.querySelector(`input[name="litros_ml_${i}"]`)?.value || '';
+            for (let i = 1; i <= qtdAbast(); i++) {
+                const comb = campoPorNome(`combustivel_ml_${i}`);
+                const valor = campoPorNome(`valor_ml_${i}`)?.value || '';
+                const litros = campoPorNome(`litros_ml_${i}`)?.value || '';
                 const preenchida = parseMoeda(valor) > 0 || parseLitros(litros) > 0;
                 if (comb && linhaEmUso(comb) && !comb.value && preenchida) {
                     return falharValidacao(comb, 'Escolha o combustível');
                 }
                 // Com placa secundária, cada linha preenchida diz de qual placa é
-                const selPlaca = document.querySelector(`select[name="placa_abast_ml_${i}"]`);
+                const selPlaca = campoPorNome(`placa_abast_ml_${i}`);
                 if (secundaria && selPlaca && linhaEmUso(selPlaca) && preenchida && !['principal', 'secundaria'].includes(selPlaca.value)) {
                     return falharValidacao(selPlaca, 'Escolha a placa');
                 }
@@ -5263,8 +5358,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
 
         // Litros acima do limite da linha (provável número a mais): o motorista não envia;
         // a gestão só vê o aviso nos campos e pode salvar
-        for (let i = 1; i <= 10; i++) {
-            const litros = document.querySelector(`input[name="litros_ml_${i}"]`);
+        for (let i = 1; i <= qtdAbast(); i++) {
+            const litros = campoPorNome(`litros_ml_${i}`);
             if (!litros || !linhaEmUso(litros) || !litrosForaDoLimite(i)) continue;
             const mensagem = `Confira os litros do abastecimento ${i}: digite só os números, a vírgula entra sozinha (31292 = 312,92).`;
             if (!modoAdmin) return falharValidacao(litros, mensagem);

@@ -1242,7 +1242,7 @@ function abrirModalResumoFicha(fichaId) {
 
             <div>
                 <h4 style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 8px;">Relação de Fretes</h4>
-                <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow-x: auto;">
                     <table class="modal-tabela-resumo">
                         <thead>
                             <tr><th>Data</th><th>Cliente</th>${temVeiculo ? '<th>Veículo</th>' : ''}<th>Trecho</th><th>Valor</th><th>Comissão</th></tr>
@@ -1254,7 +1254,7 @@ function abrirModalResumoFicha(fichaId) {
 
             <div>
                 <h4 style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 8px;">Abastecimentos Lançados</h4>
-                <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow-x: auto;">
                     <table class="modal-tabela-resumo">
                         <thead>
                             <tr><th>Posto</th><th>Combustível</th>${placaSecModal ? '<th>Placa</th>' : ''}<th>Nota Fiscal</th><th>KM</th><th>Litros</th><th>Valor R$</th></tr>

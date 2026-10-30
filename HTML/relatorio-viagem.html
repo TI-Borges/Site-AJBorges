@@ -616,7 +616,7 @@
                                             </svg>
                                             <div>
                                                 <h3>Relação de Fretes</h3>
-                                                <p>Cada carregamento da viagem é um frete. Vá adicionando conforme acontece (até 8).</p>
+                                                <p>Cada carregamento da viagem é um frete. Vá adicionando conforme acontece.</p>
                                             </div>
                                         </div>
                                         <div class="subbloco-acoes-limpeza">
@@ -1561,11 +1561,11 @@
                                                         </div>
                                                     </td>
                                                 </tr>
-                                                    <!-- "+ Adicionar": mostra a próxima linha guardada (as linhas acima são fixas) -->
+                                                    <!-- "+ Adicionar": mostra a próxima linha (depois das do HTML, o relatorio.js cria até 100) -->
                                                     <tr class="linha-adicionar-celular">
                                                         <td colspan="9">
                                                             <button type="button" class="btn-adicionar-linha-celular" data-adicionar="fretes"><span aria-hidden="true">+</span> Adicionar frete</button>
-                                                            <small class="texto-limite-linhas" hidden>Limite de 8 fretes</small>
+                                                            <small class="texto-limite-linhas" hidden>Limite de 100 fretes atingido</small>
                                                         </td>
                                                     </tr>
                                             </tbody>
@@ -2228,11 +2228,11 @@
                                                         </div>
                                                     </td>
                                                 </tr>
-                                                    <!-- "+ Adicionar": mostra a próxima linha guardada (as linhas acima são fixas) -->
+                                                    <!-- "+ Adicionar": mostra a próxima linha (depois das do HTML, o relatorio.js cria até 100) -->
                                                     <tr class="linha-adicionar-celular">
                                                         <td colspan="8">
                                                             <button type="button" class="btn-adicionar-linha-celular" data-adicionar="abastecimentos"><span aria-hidden="true">+</span> Adicionar abastecimento</button>
-                                                            <small class="texto-limite-linhas" hidden>Limite de 10 abastecimentos</small>
+                                                            <small class="texto-limite-linhas" hidden>Limite de 100 abastecimentos atingido</small>
                                                         </td>
                                                     </tr>
                                             </tbody>
@@ -3030,7 +3030,7 @@
     <script src="../JavaScript/aviso-atualizacao.js?v=3" data-aviso-local="ficha"></script>
     <script src="../JavaScript/auth.js"></script>
     <script src="../JavaScript/celular.js"></script>
-    <script src="../JavaScript/relatorio.js?v=3.5"></script>
+    <script src="../JavaScript/relatorio.js?v=3.6"></script>
     <script>
         // Mede a altura real do header fixo e grava em --altura-header,
         // usada pela .barra-admin-operacional para grudar logo abaixo dele.
