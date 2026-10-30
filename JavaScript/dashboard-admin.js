@@ -2394,7 +2394,7 @@ function renderizarTabelaCombustivel() {
         const htmlOpcoes = ['<option value="">Todos os Motoristas</option>'];
         motoristasOrdenados.forEach(m => {
             const sel = (m === motoristaAtual) ? 'selected' : '';
-            htmlOpcoes.push(`<option value="${escapeHtmlAttr(m)}" ${sel}>${m}</option>`);
+            htmlOpcoes.push(`<option value="${escapeHtmlAttr(m)}" ${sel}>${escaparHtml(m)}</option>`);
         });
 
         const chaveSet = motoristasOrdenados.join('|');

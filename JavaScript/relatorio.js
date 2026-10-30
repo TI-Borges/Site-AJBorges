@@ -3073,6 +3073,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         for (let i = 1; i <= qtdFretes(); i++) {
             if (verificarLinhaFretePreenchida(i)) {
                 totalPreenchidas++;
+                // Escapado: origem e destino são digitados pelo motorista
                 const resumo = obterResumoLinhaFrete(i);
 
                 const itemBtn = document.createElement('button');
@@ -3081,7 +3082,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                 itemBtn.title = `Clique para apagar os dados da Linha ${i}`;
                 itemBtn.innerHTML = `
                     <span class="badge-num-linha">L${i}</span>
-                    <span class="detalhe-linha" title="${resumo}">${resumo}</span>
+                    <span class="detalhe-linha" title="${escapeHTMLAutocomplete(resumo)}">${escapeHTMLAutocomplete(resumo)}</span>
                     <span class="btn-apagar-icone-wrap">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="3 6 5 6 21 6"></polyline>
@@ -3141,7 +3142,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             calcularIndicadoresViagemMl();
             salvarProgressoMl();
             atualizarListaLinhasPreenchidasPopover();
-            exibirToast('Todas as 8 linhas de frete foram limpas!', 'sucesso');
+            exibirToast('Todas as linhas de frete foram limpas!', 'sucesso');
         });
     }
 
@@ -3279,7 +3280,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             calcularIndicadoresViagemMl();
             salvarProgressoMl();
             atualizarListaLinhasAbastPreenchidasPopover();
-            exibirToast('Todas as 10 linhas de abastecimento ML foram limpas!', 'sucesso');
+            exibirToast('Todas as linhas de abastecimento ML foram limpas!', 'sucesso');
         });
     }
 
