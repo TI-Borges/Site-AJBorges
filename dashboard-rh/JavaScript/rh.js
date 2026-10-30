@@ -45,7 +45,6 @@ ajbAoAutenticar(['admin', 'diretoria'], RH_LOGIN, (usuario) => {
     configurarEventosLogout();
     inicializarNavegacao();
     inicializarSidebarMobile();
-    inicializarRelogioData();
 });
 
 /**
@@ -57,11 +56,11 @@ function preencherDadosUsuario(usuario) {
     const avatarEl = document.getElementById('user-avatar-initials');
 
     if (usuario) {
-        const email = usuario.email || 'gestao@ajborges.com.br';
+        const email = usuario.email || '';
         const role = usuario.role === 'diretoria' ? 'Diretoria Executiva' : 'Administrador';
         const nome = usuario.nome || email.split('@')[0];
 
-        if (emailEl) emailEl.textContent = email;
+        if (emailEl && email) emailEl.textContent = email;
         if (roleEl) roleEl.textContent = role;
         if (avatarEl) {
             // Iniciais para o avatar circular
@@ -189,25 +188,6 @@ function inicializarSidebarMobile() {
 }
 
 /**
- * Exibe a data de hoje formatada no banner de contexto
- */
-function inicializarRelogioData() {
-    const dataEl = document.getElementById('data-hora-atual');
-    if (!dataEl) return;
-
-    try {
-        const hoje = new Date();
-        const opcoes = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        const dataFormatada = hoje.toLocaleDateString('pt-BR', opcoes);
-        // Deixa a primeira letra do dia da semana maiúscula
-        const formatadaFinal = dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1);
-        dataEl.textContent = formatadaFinal;
-    } catch (e) {
-        dataEl.textContent = 'Data atualizada';
-    }
-}
-
-/**
  * Exibe mensagens de feedback elegantes (toast flutuante)
  */
 let timerToast = null;
@@ -224,11 +204,3 @@ function exibirToast(mensagem, duracao = 3500) {
     }, duracao);
 }
 window.exibirToast = exibirToast;
-
-/**
- * Ação simulada para os botões de alertas e atalhos rápidos
- */
-function simularAcaoAlerta(rotulo) {
-    exibirToast(`Ação: "${rotulo}" registrada. Módulo integrado em fase de validação.`);
-}
-window.simularAcaoAlerta = simularAcaoAlerta;

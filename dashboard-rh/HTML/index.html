@@ -22,7 +22,7 @@
         rel="stylesheet">
 
     <!-- Folha de Estilos Exclusiva do Dashboard RH -->
-    <link rel="stylesheet" href="/dashboard-rh/CSS/rh.css">
+    <link rel="stylesheet" href="/dashboard-rh/CSS/rh.css?v=2">
 
     <!-- Verificação de Sessão Administrativa (Route Guard) -->
     <script>
@@ -270,17 +270,10 @@
                      ============================================================ -->
                 <section class="rh-view-section active" id="view-painel-inicial" aria-labelledby="topbar-titulo">
 
-                    <!-- Boas-vindas e Contexto -->
+                    <!-- Cabeçalho do painel -->
                     <div class="rh-banner-header">
                         <div class="banner-texts">
-                            <div class="banner-badge-wrapper">
-                                <span class="badge-rh-tag">Módulo RH • Ambiente Demonstrativo</span>
-                                <span class="badge-rh-data" id="data-hora-atual"></span>
-                            </div>
-                            <h2 class="banner-title">Visão Geral de Recursos Humanos</h2>
-                            <p class="banner-subtitle">
-                                Acompanhamento de admissões, exames de saúde ocupacional, prazos rescisórios e agenda de pessoas da AJBorges.
-                            </p>
+                            <h2 class="banner-title">Painel do RH (em construção)</h2>
                         </div>
                     </div>
 
@@ -297,101 +290,18 @@
                                     </svg>
                                 </div>
                                 <div>
-                                    <h3 class="alertas-titulo">Alertas e Pendências do RH</h3>
-                                    <span class="alertas-subtitulo">Ações imediatas que demandam atenção da equipe</span>
+                                    <h3 class="alertas-titulo">Alertas</h3>
                                 </div>
                             </div>
-                            <span class="alertas-contador-badge">3 pendências ativas</span>
                         </div>
 
                         <div class="alertas-lista">
-                            <!-- Alerta 1 (Requisito expressamente solicitado) -->
-                            <div class="alerta-item alerta-urgente">
-                                <div class="alerta-item-indicador" aria-hidden="true"></div>
-                                <div class="alerta-item-icone" aria-hidden="true">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <circle cx="12" cy="12" r="10"></circle>
-                                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                    </svg>
-                                </div>
-                                <div class="alerta-item-conteudo">
-                                    <div class="alerta-item-linha-superior">
-                                        <span class="alerta-tag alerta-tag-urgente">Exame Periódico</span>
-                                        <span class="alerta-prazo">Vence em 7 dias</span>
-                                    </div>
-                                    <p class="alerta-texto">
-                                        <strong>Exame periódico de Colaborador Exemplo 01 vence em 7 dias</strong>
-                                        <span class="alerta-detalhe">— Função: Motorista Carreteiro • ASO Periódico NR-07 com vencimento previsto para 06/11/2026.</span>
-                                    </p>
-                                </div>
-                                <button type="button" class="btn-alerta-acao" onclick="simularAcaoAlerta('Agendamento de Exame')" title="Visualizar agendamento">
-                                    Verificar
-                                </button>
-                            </div>
-
-                            <!-- Alerta 2 (Exemplo inventado adicional) -->
-                            <div class="alerta-item alerta-atencao">
-                                <div class="alerta-item-indicador" aria-hidden="true"></div>
-                                <div class="alerta-item-icone" aria-hidden="true">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                        <polyline points="14 2 14 8 20 8"></polyline>
-                                        <line x1="12" y1="18" x2="12" y2="12"></line>
-                                        <line x1="9" y1="15" x2="15" y2="15"></line>
-                                    </svg>
-                                </div>
-                                <div class="alerta-item-conteudo">
-                                    <div class="alerta-item-linha-superior">
-                                        <span class="alerta-tag alerta-tag-atencao">Contrato de Experiência</span>
-                                        <span class="alerta-prazo">Faltam 10 dias</span>
-                                    </div>
-                                    <p class="alerta-texto">
-                                        <strong>Avaliação de experiência (45 dias) de Colaborador Exemplo 02</strong>
-                                        <span class="alerta-detalhe">— Função: Assistente de Operações • Solicitar parecer da liderança direta.</span>
-                                    </p>
-                                </div>
-                                <button type="button" class="btn-alerta-acao" onclick="simularAcaoAlerta('Avaliação de Experiência')" title="Avaliar colaborador">
-                                    Verificar
-                                </button>
-                            </div>
-
-                            <!-- Alerta 3 (Exemplo inventado adicional) -->
-                            <div class="alerta-item alerta-info">
-                                <div class="alerta-item-indicador" aria-hidden="true"></div>
-                                <div class="alerta-item-icone" aria-hidden="true">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                                    </svg>
-                                </div>
-                                <div class="alerta-item-conteudo">
-                                    <div class="alerta-item-linha-superior">
-                                        <span class="alerta-tag alerta-tag-info">Habilitação Profissional</span>
-                                        <span class="alerta-prazo">A renovar em breve</span>
-                                    </div>
-                                    <p class="alerta-texto">
-                                        <strong>Renovação de CNH de Motorista Exemplo 03 em acompanhamento</strong>
-                                        <span class="alerta-detalhe">— Categoria E • Exame toxicológico e renovação agendados junto ao Detran.</span>
-                                    </p>
-                                </div>
-                                <button type="button" class="btn-alerta-acao" onclick="simularAcaoAlerta('Renovação de Habilitação')" title="Acompanhar documento">
-                                    Verificar
-                                </button>
-                            </div>
+                            <p class="alertas-vazio">Nenhum alerta ainda. Os alertas aparecem quando o sistema do RH estiver ligado.</p>
                         </div>
                     </div>
 
-                    <!-- OS 4 CARDS DE CONTADORES (SOLICITADOS) -->
-                    <div class="rh-kpis-grid" aria-label="Indicadores Principais do RH">
-
-                        <!-- Card 1: Admissões em andamento -->
+                    <!-- Cards de contadores (sem dados até o sistema do RH ser ligado) -->
+                    <div class="rh-kpis-grid" aria-label="Indicadores do RH">
                         <div class="rh-kpi-card" id="kpi-admissoes">
                             <div class="kpi-card-header">
                                 <div class="kpi-icon-container kpi-icon-violeta" aria-hidden="true">
@@ -404,22 +314,13 @@
                                         <line x1="23" y1="11" x2="17" y2="11"></line>
                                     </svg>
                                 </div>
-                                <span class="kpi-pill kpi-pill-violeta">Processo Ativo</span>
                             </div>
                             <div class="kpi-card-body">
-                                <span class="kpi-valor" id="contador-admissoes">4</span>
+                                <span class="kpi-valor">—</span>
                                 <h3 class="kpi-titulo">Admissões em andamento</h3>
-                                <p class="kpi-descricao">2 aguardando documentação e 2 em exame admissional</p>
-                            </div>
-                            <div class="kpi-card-footer">
-                                <span class="kpi-status-indicador">
-                                    <span class="kpi-dot dot-violeta"></span>
-                                    Previsão de integração nesta semana
-                                </span>
                             </div>
                         </div>
 
-                        <!-- Card 2: Rescisões próximas do prazo -->
                         <div class="rh-kpi-card" id="kpi-rescisoes">
                             <div class="kpi-card-header">
                                 <div class="kpi-icon-container kpi-icon-laranja" aria-hidden="true">
@@ -432,22 +333,13 @@
                                         <line x1="16" y1="17" x2="8" y2="17"></line>
                                     </svg>
                                 </div>
-                                <span class="kpi-pill kpi-pill-laranja">Atenção ao Prazo</span>
                             </div>
                             <div class="kpi-card-body">
-                                <span class="kpi-valor" id="contador-rescisoes">2</span>
-                                <h3 class="kpi-titulo">Rescisões próximas do prazo</h3>
-                                <p class="kpi-descricao">Cálculos rescisórios e prazos de quitação legal (Art. 477)</p>
-                            </div>
-                            <div class="kpi-card-footer">
-                                <span class="kpi-status-indicador">
-                                    <span class="kpi-dot dot-laranja"></span>
-                                    1 término de contrato e 1 aviso prévio
-                                </span>
+                                <span class="kpi-valor">—</span>
+                                <h3 class="kpi-titulo">Prazos de rescisão</h3>
                             </div>
                         </div>
 
-                        <!-- Card 3: Exames periódicos a vencer -->
                         <div class="rh-kpi-card" id="kpi-exames">
                             <div class="kpi-card-header">
                                 <div class="kpi-icon-container kpi-icon-vermelho" aria-hidden="true">
@@ -457,22 +349,13 @@
                                         <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
                                     </svg>
                                 </div>
-                                <span class="kpi-pill kpi-pill-vermelho">Saúde Ocupacional</span>
                             </div>
                             <div class="kpi-card-body">
-                                <span class="kpi-valor" id="contador-exames">5</span>
-                                <h3 class="kpi-titulo">Exames periódicos a vencer</h3>
-                                <p class="kpi-descricao">ASOs e renovações clínicas nos próximos 30 dias</p>
-                            </div>
-                            <div class="kpi-card-footer">
-                                <span class="kpi-status-indicador">
-                                    <span class="kpi-dot dot-vermelho"></span>
-                                    1 vencendo em menos de 10 dias
-                                </span>
+                                <span class="kpi-valor">—</span>
+                                <h3 class="kpi-titulo">Exames a vencer</h3>
                             </div>
                         </div>
 
-                        <!-- Card 4: Tarefas atrasadas -->
                         <div class="rh-kpi-card" id="kpi-tarefas">
                             <div class="kpi-card-header">
                                 <div class="kpi-icon-container kpi-icon-amarelo" aria-hidden="true">
@@ -483,244 +366,12 @@
                                         <polyline points="12 6 12 12 16 14"></polyline>
                                     </svg>
                                 </div>
-                                <span class="kpi-pill kpi-pill-amarelo">Pendente</span>
                             </div>
                             <div class="kpi-card-body">
-                                <span class="kpi-valor" id="contador-tarefas">1</span>
-                                <h3 class="kpi-titulo">Tarefas atrasadas</h3>
-                                <p class="kpi-descricao">Rotinas administrativas fora da data prevista de entrega</p>
-                            </div>
-                            <div class="kpi-card-footer">
-                                <span class="kpi-status-indicador">
-                                    <span class="kpi-dot dot-amarelo"></span>
-                                    Envio do relatório de vale-transporte
-                                </span>
+                                <span class="kpi-valor">—</span>
+                                <h3 class="kpi-titulo">Pendências</h3>
                             </div>
                         </div>
-
-                    </div>
-
-                    <!-- SEÇÃO EM GRID: AGENDA DO RH (SOLICITADA) + PAINEL COMPLEMENTAR -->
-                    <div class="rh-duo-grid">
-
-                        <!-- LISTA "AGENDA DO RH" COM OS 3 COMPROMISSOS (SOLICITADA) -->
-                        <div class="rh-bloco-card" id="bloco-agenda-rh">
-                            <div class="bloco-card-header">
-                                <div class="bloco-titulo-wrapper">
-                                    <div class="bloco-icone-box" aria-hidden="true">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                            stroke-linejoin="round">
-                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 class="bloco-titulo">Agenda do RH</h3>
-                                        <p class="bloco-subtitulo">3 compromissos prioritários agendados</p>
-                                    </div>
-                                </div>
-                                <span class="agenda-filtro-badge">Próximos dias</span>
-                            </div>
-
-                            <div class="agenda-lista" role="list">
-                                <!-- Compromisso 1 -->
-                                <div class="agenda-item" role="listitem">
-                                    <div class="agenda-tempo">
-                                        <span class="tempo-dia">Hoje</span>
-                                        <span class="tempo-hora">14:30</span>
-                                    </div>
-                                    <div class="agenda-detalhe">
-                                        <div class="agenda-cabecalho-linha">
-                                            <h4 class="agenda-evento-titulo">Entrevista técnica — Analista de Logística e Frota</h4>
-                                            <span class="agenda-tag tag-confirmado">Confirmado</span>
-                                        </div>
-                                        <p class="agenda-evento-desc">
-                                            Candidato selecionado na triagem preliminar para avaliação com RH e Coordenação Operacional.
-                                        </p>
-                                        <div class="agenda-meta">
-                                            <span class="meta-item">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <circle cx="12" cy="12" r="10"></circle>
-                                                    <polyline points="12 6 12 12 14 14"></polyline>
-                                                </svg>
-                                                Duração: 45 min
-                                            </span>
-                                            <span class="meta-item">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                                    <circle cx="12" cy="10" r="3"></circle>
-                                                </svg>
-                                                Sala de Reuniões 02 / Google Meet
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Compromisso 2 -->
-                                <div class="agenda-item" role="listitem">
-                                    <div class="agenda-tempo">
-                                        <span class="tempo-dia">Amanhã</span>
-                                        <span class="tempo-hora">09:00</span>
-                                    </div>
-                                    <div class="agenda-detalhe">
-                                        <div class="agenda-cabecalho-linha">
-                                            <h4 class="agenda-evento-titulo">Integração de Novos Colaboradores (3 admitidos)</h4>
-                                            <span class="agenda-tag tag-agendado">Agendado</span>
-                                        </div>
-                                        <p class="agenda-evento-desc">
-                                            Apresentação institucional, cultura de segurança, entrega do kit de EPIs, crachás e tour pelas bases.
-                                        </p>
-                                        <div class="agenda-meta">
-                                            <span class="meta-item">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <circle cx="12" cy="12" r="10"></circle>
-                                                    <polyline points="12 6 12 12 14 14"></polyline>
-                                                </svg>
-                                                Duração: 3h 30min
-                                            </span>
-                                            <span class="meta-item">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                                    <circle cx="12" cy="10" r="3"></circle>
-                                                </svg>
-                                                Auditório Principal da AJBorges
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Compromisso 3 -->
-                                <div class="agenda-item" role="listitem">
-                                    <div class="agenda-tempo">
-                                        <span class="tempo-dia">Sexta</span>
-                                        <span class="tempo-hora">16:00</span>
-                                    </div>
-                                    <div class="agenda-detalhe">
-                                        <div class="agenda-cabecalho-linha">
-                                            <h4 class="agenda-evento-titulo">Reunião de Alinhamento com Diretoria e DP</h4>
-                                            <span class="agenda-tag tag-pendente">A Confirmar</span>
-                                        </div>
-                                        <p class="agenda-evento-desc">
-                                            Fechamento preliminar de ponto eletrônico, horas extras da frota, benefícios e provisões do mês.
-                                        </p>
-                                        <div class="agenda-meta">
-                                            <span class="meta-item">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <circle cx="12" cy="12" r="10"></circle>
-                                                    <polyline points="12 6 12 12 14 14"></polyline>
-                                                </svg>
-                                                Duração: 1h 00min
-                                            </span>
-                                            <span class="meta-item">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                                                    viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                                    <circle cx="12" cy="10" r="3"></circle>
-                                                </svg>
-                                                Sala da Diretoria Executiva
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- BLOCO LATERAL COMPLEMENTAR: ATALHOS & STATUS RÁPIDO DO DP -->
-                        <div class="rh-bloco-card" id="bloco-atalhos-rh">
-                            <div class="bloco-card-header">
-                                <div class="bloco-titulo-wrapper">
-                                    <div class="bloco-icone-box icone-box-suave" aria-hidden="true">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                            stroke-linejoin="round">
-                                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 class="bloco-titulo">Ações Rápidas do RH</h3>
-                                        <p class="bloco-subtitulo">Rotinas de pessoas e departamento pessoal</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="rh-atalhos-lista">
-                                <button type="button" class="btn-atalho-acao" onclick="simularAcaoAlerta('Cadastrar Colaborador')">
-                                    <div class="atalho-icon atalho-icon-violeta" aria-hidden="true">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                            stroke-linejoin="round">
-                                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                            <circle cx="8.5" cy="7" r="4"></circle>
-                                            <line x1="20" y1="8" x2="20" y2="14"></line>
-                                            <line x1="23" y1="11" x2="17" y2="11"></line>
-                                        </svg>
-                                    </div>
-                                    <div class="atalho-info">
-                                        <span class="atalho-titulo">Nova Admissão / Ficha</span>
-                                        <span class="atalho-desc">Iniciar coleta de documentos para novo contratado</span>
-                                    </div>
-                                    <span class="atalho-seta" aria-hidden="true">&rarr;</span>
-                                </button>
-
-                                <button type="button" class="btn-atalho-acao" onclick="simularAcaoAlerta('Agendamento de Exame')">
-                                    <div class="atalho-icon atalho-icon-teal" aria-hidden="true">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                            stroke-linejoin="round">
-                                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="atalho-info">
-                                        <span class="atalho-titulo">Solicitar Exame ASO</span>
-                                        <span class="atalho-desc">Emitir encaminhamento para clínica credenciada</span>
-                                    </div>
-                                    <span class="atalho-seta" aria-hidden="true">&rarr;</span>
-                                </button>
-
-                                <button type="button" class="btn-atalho-acao" onclick="simularAcaoAlerta('Consultar Convenção Coletiva')">
-                                    <div class="atalho-icon atalho-icon-azul" aria-hidden="true">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                            stroke-linejoin="round">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                            <polyline points="14 2 14 8 20 8"></polyline>
-                                            <line x1="16" y1="13" x2="8" y2="13"></line>
-                                            <line x1="16" y1="17" x2="8" y2="17"></line>
-                                        </svg>
-                                    </div>
-                                    <div class="atalho-info">
-                                        <span class="atalho-titulo">CCT e Tabelas Salariais</span>
-                                        <span class="atalho-desc">Pisos salariais e benefícios da categoria transporte</span>
-                                    </div>
-                                    <span class="atalho-seta" aria-hidden="true">&rarr;</span>
-                                </button>
-                            </div>
-
-                            <div class="rh-nota-seguranca">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                </svg>
-                                <span>Ambiente protegido sob LGPD para gestão de dados sensíveis de colaboradores.</span>
-                            </div>
-                        </div>
-
                     </div>
 
                 </section>
@@ -774,7 +425,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/JavaScript/supabase-client.js"></script>
     <script src="/JavaScript/auth.js"></script>
-    <script src="/dashboard-rh/JavaScript/rh.js"></script>
+    <script src="/dashboard-rh/JavaScript/rh.js?v=2"></script>
 </body>
 
 </html>
