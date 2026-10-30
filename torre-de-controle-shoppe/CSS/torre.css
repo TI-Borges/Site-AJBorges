@@ -1,189 +1,1965 @@
 /* ==========================================================================
-   AJBorges Transportes - Torre de Controle - Shoppe (em construção)
-   Mesma base visual da Seleção de Painéis, com acento laranja Shopee
+   TORRE DE CONTROLE - SHOPPEE • AJBORGES
+   Fontes: Outfit (títulos e KPIs) e Inter (textos e tabelas)
+   Cores de marca: Azul AJBorges (#3d3d90) e Laranja Shopee (#EE4D2D)
    ========================================================================== */
 
 :root {
-    --aj-azul-primario: #3d3d90;
-    --aj-azul-suave: #eef2ff;
+    /* Cores Principais */
+    --ajb-blue: #3d3d90;
+    --ajb-blue-dark: #191a42;
+    --ajb-blue-deeper: #121332;
+    --ajb-blue-soft: #eef0ff;
+    --shopee-orange: #EE4D2D;
+    --shopee-orange-hover: #d73f20;
+    --shopee-orange-soft: #fff1ee;
 
-    --torre-laranja: #EE4D2D;
-    --torre-laranja-hover: #d63e20;
-    --torre-laranja-suave: #fff1ec;
-    --torre-laranja-borda: #fcc8b8;
-    --torre-laranja-glow: rgba(238, 77, 45, 0.18);
+    /* Superfícies (Tema Claro Padrão) */
+    --bg-page: #f3f5fa;
+    --bg-card: #ffffff;
+    --bg-card-subtle: #f8fafc;
+    --bg-row-even: #ffffff;
+    --bg-row-odd: #f9fbfd;
+    --bg-row-hover: #f1f5f9;
+    --border-color: #e2e8f0;
+    --border-strong: #cbd5e1;
 
-    --fundo-pagina: #ffffff;
-    --card-border: #e2e8f0;
+    /* Tipografia */
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-    --texto-titulo: #0f172a;
-    --texto-corpo: #475569;
-    --texto-mutado: #64748b;
+    /* Dimensões da Barra Lateral */
+    --sidebar-width: 240px;
+    --sidebar-collapsed-width: 68px;
+    --topbar-height: 58px;
 
-    --sombra-card: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.03);
-    --transicao: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Sombras */
+    --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.06);
+    --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
-*, *::before, *::after {
+/* ==========================================================================
+   TEMA ESCURO (MODO TV)
+   ========================================================================== */
+body.modo-tv {
+    --bg-page: #090d16;
+    --bg-card: #111827;
+    --bg-card-subtle: #1e293b;
+    --bg-row-even: #111827;
+    --bg-row-odd: #162032;
+    --bg-row-hover: #1e293b;
+    --border-color: #1f2937;
+    --border-strong: #334155;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #94a3b8;
+    --shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+/* ==========================================================================
+   RESET E ESTRUTURA BASE (SEM ROLAGEM LATERAL NA PÁGINA)
+   ========================================================================== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
 }
 
-html, body {
-    width: 100%;
-    min-height: 100vh;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: var(--fundo-pagina);
-    color: var(--texto-corpo);
-    -webkit-font-smoothing: antialiased;
-}
-
+html,
 body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 3rem 1.5rem;
-}
-
-.torre-container {
     width: 100%;
-    max-width: 560px;
+    max-width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
+    font-family: var(--font-body);
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    font-size: 13px;
+    line-height: 1.4;
 }
 
-.torre-card {
+.torre-app-layout {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100vh;
     position: relative;
+    overflow-x: hidden;
+}
+
+/* ==========================================================================
+   1. BARRA LATERAL À ESQUERDA
+   ========================================================================== */
+.torre-sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    background: linear-gradient(180deg, var(--ajb-blue-dark) 0%, var(--ajb-blue-deeper) 100%);
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 100;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+}
+
+.sidebar-header {
+    height: var(--topbar-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    transition: background-color 0.15s ease;
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar-brand:hover,
+.sidebar-brand:focus-visible {
+    background-color: rgba(255, 255, 255, 0.08);
+    outline: none;
+}
+
+.brand-logo-wrapper {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 8px;
+    background: var(--ajb-blue);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.brand-logo {
+    width: 22px;
+    height: auto;
+    display: block;
+    object-fit: contain;
+}
+
+.brand-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
     overflow: hidden;
-    background: #ffffff;
-    border: 1.5px solid var(--card-border);
-    border-radius: 20px;
-    padding: 2.75rem 2.25rem;
-    box-shadow: var(--sombra-card);
+    white-space: nowrap;
+}
+
+.brand-name {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    line-height: 1.15;
+}
+
+.brand-tag {
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--shopee-orange);
+}
+
+.btn-fechar-sidebar {
+    display: none;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.75);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+}
+
+.btn-fechar-sidebar:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Navegação da Sidebar */
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px 10px;
+}
+
+.nav-group-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    padding: 0 10px 8px;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.nav-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 11px;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.82);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 13px;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.09);
+    color: #ffffff;
+}
+
+.nav-link.active {
+    background-color: var(--shopee-orange);
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 3px 10px rgba(238, 77, 45, 0.35);
+}
+
+.nav-icon {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+}
+
+.nav-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.nav-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Rodapé da Sidebar (Hub e Sair) */
+.sidebar-footer {
+    padding: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+.sidebar-logout {
+    color: #fca5a5;
+}
+
+.sidebar-logout:hover {
+    background-color: rgba(239, 68, 68, 0.18);
+    color: #fecaca;
+}
+
+/* Estado Recolhido da Barra Lateral (Desktop) */
+.torre-sidebar.sidebar-recolhida {
+    width: var(--sidebar-collapsed-width);
+    min-width: var(--sidebar-collapsed-width);
+}
+
+.torre-sidebar.sidebar-recolhida .brand-info,
+.torre-sidebar.sidebar-recolhida .nav-group-label,
+.torre-sidebar.sidebar-recolhida .nav-text {
+    display: none;
+}
+
+.torre-sidebar.sidebar-recolhida .sidebar-header {
+    justify-content: center;
+    padding: 0 8px;
+}
+
+.torre-sidebar.sidebar-recolhida .sidebar-brand {
+    justify-content: center;
+    padding: 6px 0;
+}
+
+.torre-sidebar.sidebar-recolhida .nav-link {
+    justify-content: center;
+    padding: 10px 0;
+}
+
+/* Backdrop Mobile */
+.torre-sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(2px);
+    z-index: 95;
+}
+
+/* ==========================================================================
+   2. ÁREA PRINCIPAL E CABEÇALHO DE TOPO
+   ========================================================================== */
+.torre-main-wrapper {
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    margin-left: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    transition: margin-left 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.torre-sidebar.sidebar-recolhida ~ .torre-main-wrapper {
+    margin-left: var(--sidebar-collapsed-width);
+}
+
+.torre-topbar {
+    min-height: var(--topbar-height);
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: var(--shadow-xs);
+}
+
+.topbar-esquerda {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.btn-mobile-menu {
+    display: none;
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    border-radius: 7px;
+    padding: 6px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+}
+
+.topbar-titulos {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.torre-h1-marca {
+    font-family: var(--font-heading);
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ajb-blue);
+    line-height: 1.1;
+}
+
+body.modo-tv .torre-h1-marca {
+    color: #93c5fd;
+    font-size: 12px;
+}
+
+.topbar-aba-linha {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.topbar-aba-titulo {
+    font-family: var(--font-heading);
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+/* Pílula de status da sincronização ("Atualizado às hh:mm") */
+.torre-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    white-space: nowrap;
+}
+
+.torre-status-pill::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #94a3b8;
+    display: inline-block;
+}
+
+.torre-status-pill.status-ok {
+    background: #ecfdf5;
+    color: #047857;
+    border-color: #a7f3d0;
+}
+
+.torre-status-pill.status-ok::before {
+    background: #10b981;
+}
+
+.torre-status-pill.status-atrasado {
+    background: #fef2f2;
+    color: #b91c1c;
+    border-color: #fca5a5;
+    font-weight: 700;
+}
+
+.torre-status-pill.status-atrasado::before {
+    background: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+/* Controles à Direita no Topo */
+.topbar-direita {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.torre-busca-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 260px;
+    max-width: 100%;
+}
+
+.busca-icone {
+    position: absolute;
+    left: 10px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.torre-busca-input {
+    width: 100%;
+    height: 34px;
+    padding: 0 28px 0 32px;
+    border-radius: 7px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card-subtle);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.torre-busca-input:focus {
+    outline: none;
+    border-color: var(--ajb-blue);
+    background: var(--bg-card);
+    box-shadow: 0 0 0 3px rgba(61, 61, 144, 0.12);
+}
+
+.btn-limpar-busca {
+    position: absolute;
+    right: 6px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 5px;
+    border-radius: 4px;
+}
+
+.btn-limpar-busca:hover {
+    color: var(--text-primary);
+}
+
+.btn-topo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 7px;
+    font-family: var(--font-body);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.btn-topo:hover {
+    background: var(--bg-card-subtle);
+    border-color: var(--border-strong);
+}
+
+.btn-modo-tv {
+    background: var(--ajb-blue);
+    border-color: var(--ajb-blue);
+    color: #ffffff;
+}
+
+.btn-modo-tv:hover {
+    background: #313178;
+    border-color: #313178;
+    color: #ffffff;
+}
+
+.btn-atualizar.girando svg {
+    animation: torre-spin 0.8s linear infinite;
+}
+
+@keyframes torre-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Info do Modo TV no Canto */
+.tv-info-canto {
+    display: none;
+    align-items: center;
+    gap: 12px;
+}
+
+.tv-ciclo-badge {
+    font-size: 12px;
+    font-weight: 600;
+    color: #93c5fd;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    padding: 4px 10px;
+    border-radius: 999px;
+}
+
+.tv-relogio {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 800;
+    color: #f8fafc;
+    letter-spacing: 0.03em;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Aviso discreto de erro de rede */
+.torre-aviso-rede {
+    background: #fffbeb;
+    border-bottom: 1px solid #fde68a;
+    color: #92400e;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.torre-aviso-rede[hidden] {
+    display: none !important;
+}
+
+.aviso-rede-ponto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f59e0b;
+    flex-shrink: 0;
+}
+
+.btn-tentar-agora {
+    margin-left: auto;
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    color: #92400e;
+    border-radius: 5px;
+    padding: 2px 8px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* ==========================================================================
+   3. CONTEÚDO PRINCIPAL E CONTADORES (KPIs)
+   ========================================================================== */
+.torre-conteudo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 14px 14px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.torre-painel-contadores {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.torre-painel-contadores:empty {
+    display: none;
+}
+
+/* Grade de Cards KPI (MATRIZ e Abas Operacionais) */
+.kpi-grid-matriz {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.kpi-grid-padrao {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 8px;
+}
+
+.kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--ajb-blue);
+    border-radius: 8px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 2px;
+    cursor: pointer;
+    text-align: left;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+    box-shadow: var(--shadow-xs);
+    min-width: 0;
+}
+
+.kpi-card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+    border-color: var(--border-strong);
+}
+
+.kpi-card.ativo {
+    background: var(--shopee-orange-soft);
+    border-color: var(--shopee-orange);
+    border-left-color: var(--shopee-orange);
+    box-shadow: 0 0 0 2px rgba(238, 77, 45, 0.2);
+}
+
+body.modo-tv .kpi-card.ativo {
+    background: rgba(238, 77, 45, 0.18);
+}
+
+.kpi-card.kpi-critico {
+    border-left-color: #dc2626;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+}
+
+body.modo-tv .kpi-card.kpi-critico {
+    background: linear-gradient(135deg, rgba(220, 38, 38, 0.22) 0%, #111827 100%);
+    border-color: rgba(239, 68, 68, 0.45);
+    border-left-color: #ef4444;
+}
+
+.kpi-card.kpi-critico .kpi-valor {
+    color: #dc2626;
+}
+
+body.modo-tv .kpi-card.kpi-critico .kpi-valor {
+    color: #f87171;
+}
+
+.kpi-card.kpi-ok {
+    border-left-color: #16a34a;
+}
+
+.kpi-card.kpi-atencao {
+    border-left-color: #d97706;
+}
+
+.kpi-card.kpi-andamento {
+    border-left-color: var(--shopee-orange);
+}
+
+.kpi-card.kpi-info {
+    border-left-color: #0284c7;
+}
+
+.kpi-rotulo {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.kpi-valor {
+    font-family: var(--font-heading);
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.kpi-sub {
+    font-size: 10.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Grupos de Contadores do TRÂNSITO (Estilo eLog / Bigcore) */
+.transito-grupos-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.transito-grupo-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 7px 10px;
+    box-shadow: var(--shadow-xs);
+    min-width: 0;
+}
+
+.transito-grupo-titulo {
+    font-family: var(--font-heading);
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ajb-blue);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+body.modo-tv .transito-grupo-titulo {
+    color: #93c5fd;
+}
+
+.transito-chips-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+    gap: 5px;
+}
+
+.transito-chip-btn {
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 5px 7px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    text-align: left;
+    transition: all 0.14s ease;
+    min-width: 0;
+}
+
+.transito-chip-btn:hover {
+    border-color: var(--ajb-blue);
+    background: var(--ajb-blue-soft);
+}
+
+body.modo-tv .transito-chip-btn:hover {
+    background: #1e293b;
+}
+
+.transito-chip-btn.ativo {
+    background: var(--shopee-orange);
+    border-color: var(--shopee-orange);
+    color: #ffffff;
+}
+
+.transito-chip-btn.ativo .chip-nome,
+.transito-chip-btn.ativo .chip-num {
+    color: #ffffff !important;
+}
+
+.chip-nome {
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.chip-num {
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+
+.transito-chip-btn.chip-critico .chip-num {
+    color: #dc2626;
+}
+
+.transito-chip-btn.chip-ok .chip-num {
+    color: #15803d;
+}
+
+/* Barra de Subfiltros (Filtros rápidos por etapa na MATRIZ e chips de filtros ativos) */
+.torre-barra-subfiltros {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 6px 10px;
+}
+
+.torre-barra-subfiltros[hidden] {
+    display: none !important;
+}
+
+.subfiltros-etapas {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.subfiltros-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-right: 4px;
+}
+
+.btn-etapa-rapida {
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.14s ease;
+}
+
+.btn-etapa-rapida:hover {
+    border-color: var(--ajb-blue);
+    color: var(--ajb-blue);
+}
+
+.btn-etapa-rapida.ativo {
+    background: var(--ajb-blue);
+    border-color: var(--ajb-blue);
+    color: #ffffff;
+}
+
+.btn-limpar-todos-filtros {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    border-radius: 6px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: auto;
+}
+
+.btn-limpar-todos-filtros:hover {
+    background: #fee2e2;
+}
+
+/* ==========================================================================
+   4. TABELA DENSA (25 A 30 LINHAS EM 1080P, CABEÇALHO E COLUNA LH FIXOS)
+   ========================================================================== */
+.torre-area-principal {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.torre-card-tabela {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: var(--shadow-xs);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.torre-tabela-scroll {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(100vh - 195px);
+    position: relative;
+}
+
+.torre-tabela {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 11.5px;
+}
+
+/* Cabeçalho Fixo (Sticky Top) */
+.torre-tabela thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #f1f5f9;
+    color: #1e293b;
+    font-family: var(--font-heading);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 5px 8px;
+    height: 28px;
+    border-bottom: 1px solid var(--border-strong);
+    border-right: 1px solid var(--border-color);
+    white-space: nowrap;
+    text-align: left;
+    user-select: none;
+}
+
+body.modo-tv .torre-tabela thead th {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+/* Cabeçalho de 2 níveis da MATRIZ */
+.torre-tabela.tabela-matriz thead tr.matriz-header-grupos th {
+    top: 0;
+    height: 25px;
+    padding: 3px 8px;
+    text-align: center;
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    z-index: 12;
+}
+
+.torre-tabela.tabela-matriz thead tr.matriz-header-colunas th {
+    top: 25px;
+    z-index: 11;
+}
+
+/* Cores suaves distintas para os blocos da MATRIZ */
+.bloco-base-th {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+.bloco-origem-th {
+    background: #dbeafe !important;
+    color: #1e40af !important;
+    border-bottom-color: #93c5fd !important;
+}
+
+.bloco-origem-sub {
+    background: #eff6ff !important;
+    color: #1e3a8a !important;
+}
+
+.bloco-carregamento-th {
+    background: #fef3c7 !important;
+    color: #92400e !important;
+    border-bottom-color: #fcd34d !important;
+}
+
+.bloco-carregamento-sub {
+    background: #fffbeb !important;
+    color: #78350f !important;
+}
+
+.bloco-transito-th {
+    background: #e0e7ff !important;
+    color: #3730a3 !important;
+    border-bottom-color: #a5b4fc !important;
+}
+
+.bloco-transito-sub {
+    background: #eef2ff !important;
+    color: #312e81 !important;
+}
+
+.bloco-descarga-th {
+    background: #dcfce7 !important;
+    color: #166534 !important;
+    border-bottom-color: #86efac !important;
+}
+
+.bloco-descarga-sub {
+    background: #f0fdf4 !important;
+    color: #14532d !important;
+}
+
+body.modo-tv .bloco-base-th {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+}
+
+body.modo-tv .bloco-origem-th,
+body.modo-tv .bloco-origem-sub {
+    background: #172554 !important;
+    color: #93c5fd !important;
+}
+
+body.modo-tv .bloco-carregamento-th,
+body.modo-tv .bloco-carregamento-sub {
+    background: #451a03 !important;
+    color: #fcd34d !important;
+}
+
+body.modo-tv .bloco-transito-th,
+body.modo-tv .bloco-transito-sub {
+    background: #1e1b4b !important;
+    color: #c7d2fe !important;
+}
+
+body.modo-tv .bloco-descarga-th,
+body.modo-tv .bloco-descarga-sub {
+    background: #052e16 !important;
+    color: #86efac !important;
+}
+
+/* Conteúdo do TH (Ordenação + Botão de Filtro de Coluna) */
+.th-conteudo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+}
+
+.th-btn-ordenar {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    text-align: left;
+}
+
+.th-btn-ordenar:hover {
+    color: var(--shopee-orange);
+}
+
+.th-icone-ordem {
+    font-size: 10px;
+    opacity: 0.45;
+}
+
+.th-btn-ordenar.ordenado .th-icone-ordem {
+    opacity: 1;
+    color: var(--shopee-orange);
+}
+
+.th-btn-filtro {
+    background: transparent;
+    border: none;
+    color: inherit;
+    opacity: 0.45;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.th-btn-filtro:hover,
+.th-btn-filtro.filtro-ativo {
+    opacity: 1;
+    color: var(--shopee-orange);
+    background: rgba(238, 77, 45, 0.12);
+}
+
+/* Células do Corpo da Tabela Densa (25 a 30 linhas em 1080p) */
+.torre-tabela tbody tr {
+    background-color: var(--bg-row-even);
+}
+
+.torre-tabela tbody tr:nth-child(even) {
+    background-color: var(--bg-row-odd);
+}
+
+.torre-tabela tbody tr:hover {
+    background-color: var(--bg-row-hover);
+}
+
+.torre-tabela tbody td {
+    padding: 3px 8px;
+    height: 26px;
+    border-bottom: 1px solid var(--border-color);
+    border-right: 1px solid rgba(226, 232, 240, 0.55);
+    white-space: nowrap;
+    vertical-align: middle;
+    color: var(--text-primary);
+}
+
+body.modo-tv .torre-tabela tbody td {
+    border-right-color: rgba(51, 65, 85, 0.5);
+}
+
+/* 1ª Coluna (LH) Fixa ao Rolar para o Lado */
+.torre-tabela th.col-fixa-lh,
+.torre-tabela td.col-fixa-lh {
+    position: sticky;
+    left: 0;
+}
+
+.torre-tabela thead th.col-fixa-lh {
+    z-index: 16 !important;
+}
+
+.torre-tabela tbody td.col-fixa-lh {
+    z-index: 5;
+    background-color: var(--bg-row-even);
+    font-weight: 700;
+    color: var(--ajb-blue);
+    border-right: 2px solid var(--border-strong);
+}
+
+.torre-tabela tbody tr:nth-child(even) td.col-fixa-lh {
+    background-color: var(--bg-row-odd);
+}
+
+.torre-tabela tbody tr:hover td.col-fixa-lh {
+    background-color: var(--bg-row-hover);
+}
+
+body.modo-tv .torre-tabela tbody td.col-fixa-lh {
+    color: #93c5fd;
+}
+
+/* Linha Crítica: APENAS faixa vermelha fina na esquerda da linha (nunca pinta a linha inteira) */
+.torre-tabela tbody tr.linha-critica > td:first-child {
+    box-shadow: inset 4px 0 0 #dc2626;
+}
+
+/* ==========================================================================
+   5. PÍLULAS DE SITUAÇÃO E COMPONENTES DE CÉLULA
+   ========================================================================== */
+.torre-pilula {
+    display: inline-flex;
+    align-items: center;
+    padding: 1.5px 7px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+
+/* Situação: critico -> vermelho */
+.torre-pilula.situacao-critico {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    border-color: #fca5a5;
+}
+
+/* Situação: ok -> verde */
+.torre-pilula.situacao-ok {
+    background-color: #dcfce7;
+    color: #15803d;
+    border-color: #86efac;
+}
+
+/* Situação: atencao -> amarelo */
+.torre-pilula.situacao-atencao {
+    background-color: #fef3c7;
+    color: #b45309;
+    border-color: #fde68a;
+}
+
+/* Situação: andamento -> laranja */
+.torre-pilula.situacao-andamento {
+    background-color: #ffedd5;
+    color: #c2410c;
+    border-color: #fdba74;
+}
+
+/* Situação: info -> azul-claro */
+.torre-pilula.situacao-info {
+    background-color: #e0f2fe;
+    color: #0369a1;
+    border-color: #7dd3fc;
+}
+
+/* Situação: destaque -> cinza-escuro */
+.torre-pilula.situacao-destaque {
+    background-color: #e2e8f0;
+    color: #1e293b;
+    border-color: #cbd5e1;
+}
+
+/* Tempos e datas com situação: pinta SÓ o texto, sem pílula */
+.torre-tempo-situacao {
+    font-weight: 700;
+    background: transparent !important;
+    padding: 0 !important;
+    border: none !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.torre-tempo-situacao.texto-situacao-critico {
+    color: #dc2626;
+}
+
+.torre-tempo-situacao.texto-situacao-ok {
+    color: #15803d;
+}
+
+.torre-tempo-situacao.texto-situacao-atencao {
+    color: #b45309;
+}
+
+.torre-tempo-situacao.texto-situacao-andamento {
+    color: #c2410c;
+}
+
+.torre-tempo-situacao.texto-situacao-info {
+    color: #0369a1;
+}
+
+.torre-tempo-situacao.texto-situacao-destaque {
+    color: #334155;
+}
+
+body.modo-tv .torre-tempo-situacao.texto-situacao-critico {
+    color: #f87171;
+}
+
+body.modo-tv .torre-tempo-situacao.texto-situacao-ok {
+    color: #4ade80;
+}
+
+/* Indicador Visual de Etapa na MATRIZ (4 bolinhas + nome da etapa) */
+.etapa-indicador {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.etapa-bolinhas {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.etapa-bolinha {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    border: 1px solid #cbd5e1;
+    display: inline-block;
+}
+
+.etapa-bolinha.concluida {
+    background: #93c5fd;
+    border-color: #3b82f6;
+}
+
+.etapa-bolinha.atual {
+    background: var(--shopee-orange);
+    border-color: var(--shopee-orange);
+    box-shadow: 0 0 0 2px rgba(238, 77, 45, 0.25);
+    transform: scale(1.15);
+}
+
+.etapa-texto {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+/* Barra de Progressão da Viagem (TRÂNSITO) */
+.barra-progresso-celula {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 105px;
+}
+
+.barra-progresso-trilha {
+    flex: 1;
+    height: 7px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+    min-width: 56px;
+}
+
+body.modo-tv .barra-progresso-trilha {
+    background: #334155;
+}
+
+.barra-progresso-preenchimento {
+    height: 100%;
+    background: linear-gradient(90deg, var(--ajb-blue) 0%, #10b981 100%);
+    border-radius: 999px;
+}
+
+.barra-progresso-preenchimento.critico {
+    background: #dc2626;
+}
+
+.barra-progresso-label {
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    min-width: 32px;
+    text-align: right;
+}
+
+/* Barrinha Proporcional de Total Parada (TRÂNSITO) */
+.parada-proporcional-celula {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 78px;
+}
+
+.parada-proporcional-trilha {
+    width: 100%;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.parada-proporcional-fill {
+    height: 100%;
+    background: #f59e0b;
+    border-radius: 999px;
+}
+
+.parada-proporcional-fill.critico {
+    background: #dc2626;
+}
+
+.parada-proporcional-fill.ok {
+    background: #10b981;
+}
+
+/* Velocidade (km/h) com ponto verde (em movimento) ou vermelho (parado, 0) */
+.velocidade-celula {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.velocidade-ponto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.velocidade-ponto.em-movimento {
+    background-color: #16a34a;
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+}
+
+.velocidade-ponto.parado {
+    background-color: #dc2626;
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2);
+}
+
+/* Botões do WhatsApp (1 ou 2 números separados por "/") */
+.whatsapp-grupo {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-whatsapp {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background-color 0.14s ease, transform 0.1s ease;
+}
+
+.btn-whatsapp:hover {
+    background: #bbf7d0;
+    color: #166534;
+    transform: translateY(-1px);
+}
+
+.btn-whatsapp svg {
+    width: 11px;
+    height: 11px;
+    flex-shrink: 0;
+}
+
+/* Links externos dentro da tabela */
+.torre-link-celula,
+.btn-abrir-mapa {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--ajb-blue);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+body.modo-tv .torre-link-celula {
+    color: #93c5fd;
+}
+
+.torre-link-celula:hover,
+.btn-abrir-mapa:hover {
+    color: var(--shopee-orange);
+    text-decoration: underline;
+}
+
+.btn-abrir-mapa {
+    background: var(--ajb-blue-soft);
+    border: 1px solid #c7d2fe;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+}
+
+/* Rodapé de Paginação da Tabela */
+.torre-paginacao {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 7px 12px;
+    background: var(--bg-card-subtle);
+    border-top: 1px solid var(--border-color);
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.paginacao-esquerda,
+.paginacao-direita {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.select-por-pagina {
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-pagina {
+    height: 28px;
+    min-width: 28px;
+    padding: 0 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-pagina:hover:not(:disabled) {
+    border-color: var(--ajb-blue);
+    color: var(--ajb-blue);
+}
+
+.btn-pagina:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ==========================================================================
+   6. TELA DE LINKS (CARDS AGRUPADOS)
+   ========================================================================== */
+.links-grupos-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.links-grupo-secao {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow-xs);
+}
+
+.links-grupo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.links-grupo-titulo {
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--ajb-blue);
+}
+
+.links-grupo-badge {
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--ajb-blue-soft);
+    color: var(--ajb-blue);
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.links-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 10px;
+}
+
+.link-item-card {
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.link-item-card:hover {
+    border-color: var(--ajb-blue);
+    box-shadow: var(--shadow-sm);
+}
+
+.link-card-titulo {
+    font-family: var(--font-heading);
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.link-card-sub {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    word-break: break-word;
+}
+
+.link-card-acoes {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-abrir-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: var(--ajb-blue);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background-color 0.15s ease;
+}
+
+.btn-abrir-link:hover {
+    background: var(--shopee-orange);
+    color: #ffffff;
+}
+
+/* ==========================================================================
+   7. POPOVER DE FILTRO DE COLUNA E ESTADO VAZIO
+   ========================================================================== */
+.torre-filtro-popover {
+    position: fixed;
+    z-index: 200;
+    width: 240px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.torre-filtro-popover[hidden] {
+    display: none !important;
+}
+
+.popover-cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--font-heading);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.popover-busca {
+    width: 100%;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    font-size: 12px;
+}
+
+.popover-lista-valores {
+    max-height: 190px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    border-top: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 6px 0;
+}
+
+.popover-item-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: var(--text-primary);
+    padding: 3px 4px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.popover-item-label:hover {
+    background: var(--bg-card-subtle);
+}
+
+.popover-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.btn-popover {
+    flex: 1;
+    height: 28px;
+    border-radius: 5px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card-subtle);
+    color: var(--text-primary);
+}
+
+.btn-popover-primario {
+    background: var(--ajb-blue);
+    border-color: var(--ajb-blue);
+    color: #ffffff;
+}
+
+/* Estado Vazio */
+.torre-estado-vazio {
+    background: var(--bg-card);
+    border: 1px dashed var(--border-strong);
+    border-radius: 10px;
+    padding: 44px 20px;
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
-}
-
-/* Detalhe laranja no topo */
-.torre-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #EE4D2D, #ff7a45);
-}
-
-.torre-icone {
-    width: 64px;
-    height: 64px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
     justify-content: center;
-    background-color: var(--torre-laranja-suave);
-    color: var(--torre-laranja);
-    border: 1px solid var(--torre-laranja-borda);
-    margin-bottom: 1.25rem;
+    gap: 8px;
+    color: var(--text-secondary);
 }
 
-.torre-icone svg {
-    width: 30px;
-    height: 30px;
-}
-
-.torre-tag {
-    font-size: 0.74rem;
+.torre-estado-vazio h3 {
+    font-family: var(--font-heading);
+    font-size: 16px;
     font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 5px 12px;
-    border-radius: 9999px;
-    background-color: var(--torre-laranja-suave);
-    color: var(--torre-laranja);
-    border: 1px solid var(--torre-laranja-borda);
-    margin-bottom: 1rem;
+    color: var(--text-primary);
 }
 
-.torre-titulo {
-    font-family: 'Outfit', sans-serif;
-    font-size: 2rem;
-    font-weight: 800;
-    color: var(--texto-titulo);
-    line-height: 1.2;
-    letter-spacing: -0.03em;
-    margin-bottom: 0.85rem;
+/* ==========================================================================
+   8. MODO TV (TELA CHEIA, ESCURO, FONTE MAIOR, ESCONDE BARRA/BUSCA/FILTROS)
+   ========================================================================== */
+body.modo-tv .torre-sidebar,
+body.modo-tv .torre-sidebar-backdrop,
+body.modo-tv .btn-mobile-menu,
+body.modo-tv .torre-busca-wrapper,
+body.modo-tv .torre-barra-subfiltros,
+body.modo-tv .th-btn-filtro,
+body.modo-tv .torre-paginacao,
+body.modo-tv .torre-filtro-popover {
+    display: none !important;
 }
 
-.torre-texto {
-    font-size: 1rem;
-    line-height: 1.6;
-    color: var(--texto-mutado);
-    margin-bottom: 2rem;
+body.modo-tv .torre-main-wrapper {
+    margin-left: 0 !important;
 }
 
-.torre-acoes {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    width: 100%;
-}
-
-.torre-botao {
+body.modo-tv .tv-info-canto {
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    padding: 0.9rem 1.6rem;
-    border-radius: 12px;
-    background-color: var(--torre-laranja);
-    color: #ffffff;
-    font-size: 0.95rem;
-    font-weight: 600;
-    text-decoration: none;
-    box-shadow: 0 4px 12px var(--torre-laranja-glow);
-    transition: var(--transicao);
 }
 
-.torre-botao:hover,
-.torre-botao:focus-visible {
-    background-color: var(--torre-laranja-hover);
-    box-shadow: 0 6px 18px rgba(238, 77, 45, 0.35);
-    outline: none;
+body.modo-tv .topbar-aba-titulo {
+    font-size: 26px;
 }
 
-.torre-link-sair {
-    color: var(--texto-mutado);
-    text-decoration: none;
-    font-size: 0.88rem;
-    font-weight: 500;
-    padding: 6px 14px;
-    border-radius: 8px;
-    transition: var(--transicao);
+body.modo-tv .kpi-card {
+    padding: 12px 16px;
 }
 
-.torre-link-sair:hover {
-    color: var(--aj-azul-primario);
-    background-color: var(--aj-azul-suave);
+body.modo-tv .kpi-rotulo {
+    font-size: 13px;
 }
 
-@media (max-width: 480px) {
-    body {
-        padding: 2rem 1rem;
+body.modo-tv .kpi-valor {
+    font-size: 34px;
+}
+
+body.modo-tv .chip-nome {
+    font-size: 12px;
+}
+
+body.modo-tv .chip-num {
+    font-size: 24px;
+}
+
+body.modo-tv .torre-tabela {
+    font-size: 13.5px;
+}
+
+body.modo-tv .torre-tabela thead th {
+    font-size: 12.5px;
+    height: 32px;
+}
+
+body.modo-tv .torre-tabela tbody td {
+    height: 32px;
+    padding: 5px 10px;
+}
+
+body.modo-tv .torre-pilula {
+    font-size: 12px;
+    padding: 2px 9px;
+}
+
+body.modo-tv .torre-tabela-scroll {
+    max-height: calc(100vh - 180px);
+}
+
+/* ==========================================================================
+   9. RESPONSIVIDADE (1366px, 1920px, TABLET E CELULAR 390px / 360px)
+   ========================================================================== */
+@media (max-width: 1280px) {
+    .kpi-grid-matriz {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .torre-card {
-        padding: 2.25rem 1.5rem;
+    .transito-grupos-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .torre-sidebar {
+        transform: translateX(-105%);
+        width: 256px !important;
+        min-width: 256px !important;
     }
 
-    .torre-titulo {
-        font-size: 1.6rem;
+    .torre-sidebar.sidebar-aberta {
+        transform: translateX(0);
     }
 
-    .torre-botao {
+    .torre-sidebar.sidebar-aberta .brand-info,
+    .torre-sidebar.sidebar-aberta .nav-group-label,
+    .torre-sidebar.sidebar-aberta .nav-text {
+        display: flex !important;
+    }
+
+    .torre-sidebar.sidebar-aberta .nav-link {
+        justify-content: flex-start !important;
+        padding: 9px 11px !important;
+    }
+
+    .btn-fechar-sidebar {
+        display: inline-flex;
+    }
+
+    .torre-sidebar-backdrop.visivel {
+        display: block;
+    }
+
+    .torre-main-wrapper,
+    .torre-sidebar.sidebar-recolhida ~ .torre-main-wrapper {
+        margin-left: 0 !important;
+    }
+
+    .btn-mobile-menu {
+        display: inline-flex;
+    }
+
+    .torre-busca-wrapper {
         width: 100%;
+        order: 3;
+    }
+
+    .topbar-direita {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 600px) {
+    .torre-topbar {
+        padding: 8px 10px;
+    }
+
+    .torre-conteudo {
+        padding: 8px 10px 12px;
+    }
+
+    .kpi-grid-matriz,
+    .kpi-grid-padrao,
+    .transito-grupos-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .topbar-aba-titulo {
+        font-size: 16px;
+    }
+
+    .btn-topo span {
+        display: none;
+    }
+
+    .btn-modo-tv span {
+        display: inline;
     }
 }
