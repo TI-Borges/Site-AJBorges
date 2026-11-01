@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <meta name="description"
-        content="Dashboard de Recursos Humanos AJBorges Transportes - Gestão de Colaboradores, Admissões, Rescisões e Rotinas de Pessoas.">
+        content="Dashboard de Recursos Humanos AJBorges Transportes - Protótipo navegável de Gestão de Colaboradores, Processos, Modelos de Etapas e Agenda.">
     <title>AJBorges Gestão • Dashboard do RH</title>
 
     <!-- Favicon Oficial AJBorges -->
@@ -23,7 +23,7 @@
         rel="stylesheet">
 
     <!-- Folha de Estilos Exclusiva do Dashboard RH -->
-    <link rel="stylesheet" href="/dashboard-rh/CSS/rh.css?v=2">
+    <link rel="stylesheet" href="/dashboard-rh/CSS/rh.css?v=3">
 
     <!-- Verificação de Sessão Administrativa (Route Guard) -->
     <script>
@@ -33,19 +33,26 @@
 </head>
 
 <body class="rh-body">
+    <!-- FAIXA FIXA NO TOPO: AVISO DE PROTÓTIPO EM MEMÓRIA -->
+    <div class="rh-prototipo-faixa" id="rh-prototipo-faixa" role="region" aria-label="Aviso de protótipo">
+        <span class="prototipo-indicador" aria-hidden="true"></span>
+        <span class="prototipo-texto">Protótipo: nada é salvo. Não digite dados reais.</span>
+    </div>
+
     <!-- Layout do Aplicativo RH -->
-    <div class="rh-app-layout">
+    <div class="rh-app-layout" id="rh-app-layout">
 
         <!-- Backdrop para dispositivos móveis -->
         <div class="rh-sidebar-backdrop" id="rh-sidebar-backdrop" aria-hidden="true"></div>
 
         <!-- ====================================================================
-             1. SIDEBAR FIXA (TEMA ESCURO PREMIUM COM DESTAQUE VIOLETA RH)
+             1. SIDEBAR FIXA E RECOLHÍVEL (TEMA ESCURO PREMIUM COM VIOLETA #7c3aed)
              ==================================================================== -->
         <aside class="rh-sidebar" id="rh-sidebar" aria-label="Menu Principal do RH">
-            <!-- Topo da Barra Lateral / Identidade da Marca -->
+            <!-- Topo da Barra Lateral / Identidade da Marca (Clica para recolher) -->
             <div class="sidebar-header">
-                <a href="#painel-inicial" class="sidebar-brand" id="sidebar-brand" title="Painel de Recursos Humanos">
+                <div class="sidebar-brand" id="sidebar-brand" role="button" tabindex="0"
+                    aria-label="Recolher menu lateral" aria-expanded="true" title="Recolher menu lateral">
                     <div class="brand-logo-wrapper">
                         <img src="/Imagens/logo-brand-1x.png"
                             srcset="/Imagens/logo-brand-1x.png 1x, /Imagens/logo-brand-2x.png 2x" alt="AJBorges Logo"
@@ -55,8 +62,16 @@
                         <span class="brand-name">AJBorges</span>
                         <span class="brand-tag">Gestão de RH</span>
                     </div>
-                </a>
-                <button type="button" class="btn-fechar-sidebar" id="btn-fechar-sidebar" aria-label="Fechar menu lateral">
+                </div>
+                <button type="button" class="btn-toggle-sidebar-desktop" id="btn-toggle-sidebar"
+                    aria-label="Recolher ou expandir barra lateral" title="Recolher menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <button type="button" class="btn-fechar-sidebar" id="btn-fechar-sidebar"
+                    aria-label="Fechar menu lateral">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -68,11 +83,11 @@
             <!-- Navegação da Barra Lateral -->
             <nav class="sidebar-nav" aria-label="Navegação do Módulo de RH">
                 <div class="nav-group-label">GESTÃO DE PESSOAS</div>
-                <ul class="nav-list">
-                    <!-- 1. Painel Inicial (Ativo) -->
+                <ul class="nav-list" id="rh-nav-list">
+                    <!-- 1. Painel -->
                     <li class="nav-item">
-                        <a href="#painel-inicial" class="nav-link active" data-view="painel-inicial"
-                            id="nav-link-painel-inicial">
+                        <a href="#painel" class="nav-link active" data-view="painel" id="nav-link-painel"
+                            title="Painel">
                             <span class="nav-icon" aria-hidden="true">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -83,14 +98,15 @@
                                     <rect x="3" y="16" width="7" height="5" rx="1"></rect>
                                 </svg>
                             </span>
-                            <span class="nav-text">Painel inicial</span>
+                            <span class="nav-text">Painel</span>
                             <span class="nav-indicator" aria-hidden="true"></span>
                         </a>
                     </li>
 
                     <!-- 2. Colaboradores -->
                     <li class="nav-item">
-                        <a href="#colaboradores" class="nav-link" data-view="colaboradores" id="nav-link-colaboradores">
+                        <a href="#colaboradores" class="nav-link" data-view="colaboradores" id="nav-link-colaboradores"
+                            title="Colaboradores">
                             <span class="nav-icon" aria-hidden="true">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -102,48 +118,50 @@
                                 </svg>
                             </span>
                             <span class="nav-text">Colaboradores</span>
-                            <span class="badge-em-breve">Em breve</span>
+                            <span class="nav-badge-count" id="nav-count-colaboradores">0</span>
                         </a>
                     </li>
 
-                    <!-- 3. Admissões -->
+                    <!-- 3. Processos -->
                     <li class="nav-item">
-                        <a href="#admissoes" class="nav-link" data-view="admissoes" id="nav-link-admissoes">
+                        <a href="#processos" class="nav-link" data-view="processos" id="nav-link-processos"
+                            title="Processos (Admissões, Rescisões CLT, Distratos PJ)">
                             <span class="nav-icon" aria-hidden="true">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                     stroke-linejoin="round">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="8.5" cy="7" r="4"></circle>
-                                    <line x1="20" y1="8" x2="20" y2="14"></line>
-                                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                                    <path d="M9 11l3 3L22 4"></path>
+                                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
                                 </svg>
                             </span>
-                            <span class="nav-text">Admissões</span>
-                            <span class="badge-em-breve">Em breve</span>
+                            <span class="nav-text">Processos</span>
+                            <span class="nav-badge-count" id="nav-count-processos">0</span>
                         </a>
                     </li>
 
-                    <!-- 4. Rescisões e distratos -->
+                    <!-- 4. Modelos -->
                     <li class="nav-item">
-                        <a href="#rescisoes" class="nav-link" data-view="rescisoes" id="nav-link-rescisoes">
+                        <a href="#modelos" class="nav-link" data-view="modelos" id="nav-link-modelos"
+                            title="Modelos de etapas">
                             <span class="nav-icon" aria-hidden="true">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                     stroke-linejoin="round">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="8.5" cy="7" r="4"></circle>
-                                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                                    <line x1="8" y1="6" x2="21" y2="6"></line>
+                                    <line x1="8" y1="12" x2="21" y2="12"></line>
+                                    <line x1="8" y1="18" x2="21" y2="18"></line>
+                                    <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                    <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                    <line x1="3" y1="18" x2="3.01" y2="18"></line>
                                 </svg>
                             </span>
-                            <span class="nav-text">Rescisões e distratos</span>
-                            <span class="badge-em-breve">Em breve</span>
+                            <span class="nav-text">Modelos</span>
                         </a>
                     </li>
 
                     <!-- 5. Agenda -->
                     <li class="nav-item">
-                        <a href="#agenda" class="nav-link" data-view="agenda" id="nav-link-agenda">
+                        <a href="#agenda" class="nav-link" data-view="agenda" id="nav-link-agenda" title="Agenda">
                             <span class="nav-icon" aria-hidden="true">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -155,7 +173,7 @@
                                 </svg>
                             </span>
                             <span class="nav-text">Agenda</span>
-                            <span class="badge-em-breve">Em breve</span>
+                            <span class="nav-badge-count" id="nav-count-agenda">0</span>
                         </a>
                     </li>
                 </ul>
@@ -184,7 +202,7 @@
 
             <!-- Rodapé da Barra Lateral com Perfil & Logout -->
             <div class="sidebar-footer">
-                <div class="user-profile-badge">
+                <div class="user-profile-badge" title="Usuário autenticado">
                     <div class="user-avatar-circle" id="user-avatar-initials" aria-hidden="true">RH</div>
                     <div class="user-details">
                         <span class="user-email" id="sidebar-user-email">Carregando usuário...</span>
@@ -209,14 +227,15 @@
         </aside>
 
         <!-- ====================================================================
-             2. CONTEÚDO PRINCIPAL (TOPBAR + ÁREA DE VISUALIZAÇÃO)
+             2. CONTEÚDO PRINCIPAL (TOPBAR + 5 TELAS DO PROTÓTIPO)
              ==================================================================== -->
-        <div class="rh-main-wrapper">
+        <div class="rh-main-wrapper" id="rh-main-wrapper">
 
             <!-- Barra Superior (Topbar) -->
             <header class="rh-topbar">
                 <div class="topbar-left">
-                    <button type="button" class="btn-mobile-menu" id="btn-mobile-menu" aria-label="Abrir menu de navegação">
+                    <button type="button" class="btn-mobile-menu" id="btn-mobile-menu"
+                        aria-label="Abrir menu de navegação">
                         <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -231,11 +250,29 @@
                             <span class="breadcrumb-separator">/</span>
                             <span class="breadcrumb-destaque">Recursos Humanos</span>
                         </div>
-                        <h1 class="topbar-title" id="topbar-titulo">Painel Inicial</h1>
+                        <h1 class="topbar-title" id="topbar-titulo">Painel</h1>
                     </div>
                 </div>
 
                 <div class="topbar-actions">
+                    <button type="button" class="topbar-btn topbar-btn-primario" id="topbar-btn-novo-colab">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        <span>Novo colaborador</span>
+                    </button>
+
+                    <button type="button" class="topbar-btn topbar-btn-secundario" id="topbar-btn-novo-proc">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 11l3 3L22 4"></path>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        </svg>
+                        <span>Novo processo</span>
+                    </button>
+
                     <!-- Botão Hub -->
                     <a href="/HTML/escolhaDashboard.html" class="topbar-btn topbar-btn-hub" id="topbar-hub"
                         title="Ir para a Central de Seleção de Painéis">
@@ -267,43 +304,14 @@
             <main class="rh-content-container">
 
                 <!-- ============================================================
-                     VIEW 1: PAINEL INICIAL (VISÃO GERAL)
+                     TELA 1: PAINEL (CARDS + PRÓXIMAS AÇÕES + ALERTAS)
                      ============================================================ -->
-                <section class="rh-view-section active" id="view-painel-inicial" aria-labelledby="topbar-titulo">
+                <section class="rh-view-section active" id="view-painel" aria-labelledby="topbar-titulo">
 
-                    <!-- Cabeçalho do painel -->
-                    <div class="rh-banner-header">
-                        <div class="banner-texts">
-                            <h2 class="banner-title">Painel do RH (em construção)</h2>
-                        </div>
-                    </div>
-
-                    <!-- QUADRO DE ALERTAS NO TOPO (SOLICITADO) -->
-                    <div class="rh-alertas-quadro" role="region" aria-label="Quadro de Alertas do RH">
-                        <div class="alertas-header">
-                            <div class="alertas-header-left">
-                                <div class="alertas-icone-pulso" aria-hidden="true">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                        stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
-                                        stroke-linejoin="round">
-                                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-                                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h3 class="alertas-titulo">Alertas</h3>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="alertas-lista">
-                            <p class="alertas-vazio">Nenhum alerta ainda. Os alertas aparecem quando o sistema do RH estiver ligado.</p>
-                        </div>
-                    </div>
-
-                    <!-- Cards de contadores (sem dados até o sistema do RH ser ligado) -->
-                    <div class="rh-kpis-grid" aria-label="Indicadores do RH">
-                        <div class="rh-kpi-card" id="kpi-admissoes">
+                    <!-- 4 Cards de Contadores (Contados do que foi cadastrado na sessão) -->
+                    <div class="rh-kpis-grid" aria-label="Indicadores da sessão do RH">
+                        <div class="rh-kpi-card kpi-clicavel" id="kpi-admissoes" data-ir-view="processos"
+                            data-filtro-proc="admissao_clt" role="button" tabindex="0">
                             <div class="kpi-card-header">
                                 <div class="kpi-icon-container kpi-icon-violeta" aria-hidden="true">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -315,14 +323,16 @@
                                         <line x1="23" y1="11" x2="17" y2="11"></line>
                                     </svg>
                                 </div>
+                                <span class="kpi-pill kpi-pill-violeta">Sessão atual</span>
                             </div>
                             <div class="kpi-card-body">
-                                <span class="kpi-valor">—</span>
-                                <h3 class="kpi-titulo">Admissões em andamento</h3>
+                                <span class="kpi-valor" id="kpi-valor-admissoes">0</span>
+                                <h2 class="kpi-titulo">Admissões em andamento</h2>
                             </div>
                         </div>
 
-                        <div class="rh-kpi-card" id="kpi-rescisoes">
+                        <div class="rh-kpi-card kpi-clicavel" id="kpi-rescisoes" data-ir-view="processos"
+                            data-filtro-proc="desligamentos" role="button" tabindex="0">
                             <div class="kpi-card-header">
                                 <div class="kpi-icon-container kpi-icon-laranja" aria-hidden="true">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -334,32 +344,36 @@
                                         <line x1="16" y1="17" x2="8" y2="17"></line>
                                     </svg>
                                 </div>
+                                <span class="kpi-pill kpi-pill-laranja">CLT &amp; PJ</span>
                             </div>
                             <div class="kpi-card-body">
-                                <span class="kpi-valor">—</span>
-                                <h3 class="kpi-titulo">Prazos de rescisão</h3>
+                                <span class="kpi-valor" id="kpi-valor-rescisoes">0</span>
+                                <h2 class="kpi-titulo">Rescisões/distratos</h2>
                             </div>
                         </div>
 
-                        <div class="rh-kpi-card" id="kpi-exames">
+                        <div class="rh-kpi-card kpi-clicavel" id="kpi-exames" data-ir-view="agenda"
+                            role="button" tabindex="0">
                             <div class="kpi-card-header">
-                                <div class="kpi-icon-container kpi-icon-vermelho" aria-hidden="true">
+                                <div class="kpi-icon-container kpi-icon-amarelo" aria-hidden="true">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                         stroke-linejoin="round">
                                         <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
                                     </svg>
                                 </div>
+                                <span class="kpi-pill kpi-pill-amarelo">Até 30 dias</span>
                             </div>
                             <div class="kpi-card-body">
-                                <span class="kpi-valor">—</span>
-                                <h3 class="kpi-titulo">Exames a vencer</h3>
+                                <span class="kpi-valor" id="kpi-valor-exames">0</span>
+                                <h2 class="kpi-titulo">Exames a vencer</h2>
                             </div>
                         </div>
 
-                        <div class="rh-kpi-card" id="kpi-tarefas">
+                        <div class="rh-kpi-card kpi-clicavel" id="kpi-tarefas" data-ir-view="agenda"
+                            role="button" tabindex="0">
                             <div class="kpi-card-header">
-                                <div class="kpi-icon-container kpi-icon-amarelo" aria-hidden="true">
+                                <div class="kpi-icon-container kpi-icon-vermelho" aria-hidden="true">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                         stroke-linejoin="round">
@@ -367,10 +381,62 @@
                                         <polyline points="12 6 12 12 16 14"></polyline>
                                     </svg>
                                 </div>
+                                <span class="kpi-pill kpi-pill-vermelho">Prazo vencido</span>
                             </div>
                             <div class="kpi-card-body">
-                                <span class="kpi-valor">—</span>
-                                <h3 class="kpi-titulo">Pendências</h3>
+                                <span class="kpi-valor" id="kpi-valor-tarefas">0</span>
+                                <h2 class="kpi-titulo">Tarefas atrasadas</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grade Dupla: Próximas ações & Alertas -->
+                    <div class="rh-duo-grid">
+                        <!-- Lista "Próximas ações" -->
+                        <div class="rh-bloco-card" role="region" aria-label="Próximas ações">
+                            <div class="bloco-card-header">
+                                <div class="bloco-titulo-wrapper">
+                                    <div class="bloco-icone-box" aria-hidden="true">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <polyline points="9 11 12 14 22 4"></polyline>
+                                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="bloco-titulo">Próximas ações</h3>
+                                        <p class="bloco-subtitulo">Etapa atual pendente de cada processo em andamento</p>
+                                    </div>
+                                </div>
+                                <span class="agenda-filtro-badge" id="badge-count-proximas">0</span>
+                            </div>
+                            <div class="painel-lista-corpo" id="painel-proximas-acoes-lista">
+                                <p class="rh-vazio-msg">Nenhum registro ainda</p>
+                            </div>
+                        </div>
+
+                        <!-- Lista "Alertas" (Exame vencendo em 30/15/7 dias, prazo de etapa vencido) -->
+                        <div class="rh-bloco-card" role="region" aria-label="Alertas">
+                            <div class="bloco-card-header">
+                                <div class="bloco-titulo-wrapper">
+                                    <div class="alertas-icone-pulso" aria-hidden="true">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2.3" stroke-linecap="round"
+                                            stroke-linejoin="round">
+                                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 class="bloco-titulo">Alertas</h3>
+                                        <p class="bloco-subtitulo">Exames em 30/15/7 dias e prazos de etapa vencidos</p>
+                                    </div>
+                                </div>
+                                <span class="alertas-contador-badge" id="badge-count-alertas">0</span>
+                            </div>
+                            <div class="painel-lista-corpo" id="painel-alertas-lista">
+                                <p class="rh-vazio-msg">Nenhum registro ainda</p>
                             </div>
                         </div>
                     </div>
@@ -378,37 +444,153 @@
                 </section>
 
                 <!-- ============================================================
-                     VIEW 2: MÓDULO EM BREVE (PARA ITENS NÃO IMPLEMENTADOS)
+                     TELA 2: COLABORADORES (LISTA, BUSCA, FILTROS E FICHA)
                      ============================================================ -->
-                <section class="rh-view-section" id="view-em-breve" style="display: none;" aria-live="polite">
-                    <div class="rh-em-breve-card">
-                        <div class="em-breve-icon-box" aria-hidden="true">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                stroke-linejoin="round" id="em-breve-svg">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="8" x2="12" y2="12"></line>
-                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                            </svg>
+                <section class="rh-view-section" id="view-colaboradores" style="display: none;" aria-live="polite">
+                    <div class="rh-toolbar-card">
+                        <div class="toolbar-filtros">
+                            <div class="campo-busca-box">
+                                <input type="search" id="colab-busca" class="rh-input"
+                                    placeholder="Buscar colaborador por nome, cargo ou setor..."
+                                    aria-label="Buscar colaborador">
+                            </div>
+                            <select id="colab-filtro-vinculo" class="rh-select" aria-label="Filtrar por vínculo">
+                                <option value="">Todos os vínculos (CLT/PJ/Estagiário)</option>
+                                <option value="CLT">CLT</option>
+                                <option value="PJ">PJ</option>
+                                <option value="Estagiário">Estagiário</option>
+                            </select>
+                            <select id="colab-filtro-situacao" class="rh-select" aria-label="Filtrar por situação">
+                                <option value="">Todas as situações</option>
+                                <option value="Ativo">Ativo</option>
+                                <option value="Em admissão">Em admissão</option>
+                                <option value="Em desligamento">Em desligamento</option>
+                                <option value="Inativo">Inativo</option>
+                            </select>
                         </div>
-                        <span class="em-breve-badge" id="em-breve-tag">Em desenvolvimento</span>
-                        <h2 class="em-breve-titulo" id="em-breve-titulo">Módulo em breve</h2>
-                        <p class="em-breve-texto" id="em-breve-descricao">
-                            Esta funcionalidade faz parte do planejamento do Dashboard do RH da AJBorges e estará disponível em breve.
-                        </p>
-                        <div class="em-breve-acoes">
-                            <button type="button" class="btn-retornar-painel" id="btn-retornar-painel">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                                    <polyline points="12 19 5 12 12 5"></polyline>
-                                </svg>
-                                <span>Voltar ao Painel inicial</span>
-                            </button>
-                            <a href="/HTML/escolhaDashboard.html" class="btn-link-hub-em-breve">
-                                Voltar para a Central de Painéis
-                            </a>
+                        <button type="button" class="rh-btn rh-btn-primario" id="btn-novo-colaborador">
+                            + Novo colaborador
+                        </button>
+                    </div>
+
+                    <div class="rh-colaboradores-layout">
+                        <!-- Lista de colaboradores -->
+                        <div class="rh-bloco-card">
+                            <div class="bloco-card-header">
+                                <h3 class="bloco-titulo">Lista de colaboradores</h3>
+                                <span class="agenda-filtro-badge" id="colab-total-badge">0</span>
+                            </div>
+                            <div id="colaboradores-lista-container" class="painel-lista-corpo">
+                                <p class="rh-vazio-msg">Nenhum registro ainda</p>
+                            </div>
+                        </div>
+
+                        <!-- Ficha do colaborador selecionado -->
+                        <div class="rh-bloco-card" id="colaborador-ficha-card">
+                            <div class="bloco-card-header">
+                                <h3 class="bloco-titulo">Ficha do colaborador</h3>
+                            </div>
+                            <div id="colaborador-ficha-container" class="painel-lista-corpo">
+                                <p class="rh-vazio-msg">Nenhum registro ainda</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================================
+                     TELA 3: PROCESSOS (ADMISSÕES, RESCISÕES CLT, DISTRATOS PJ)
+                     ============================================================ -->
+                <section class="rh-view-section" id="view-processos" style="display: none;" aria-live="polite">
+                    <div class="rh-toolbar-card">
+                        <div class="toolbar-filtros" role="group" aria-label="Filtrar processos por tipo">
+                            <button type="button" class="rh-tab-btn ativo" data-filtro-tipo-proc="">Todos</button>
+                            <button type="button" class="rh-tab-btn" data-filtro-tipo-proc="admissao_clt">Admissões</button>
+                            <button type="button" class="rh-tab-btn" data-filtro-tipo-proc="rescisao_clt">Rescisões CLT</button>
+                            <button type="button" class="rh-tab-btn" data-filtro-tipo-proc="distrato_pj">Distratos PJ</button>
+                            <button type="button" class="rh-tab-btn" data-filtro-tipo-proc="exame_periodico">Exame periódico</button>
+                        </div>
+                        <button type="button" class="rh-btn rh-btn-primario" id="btn-novo-processo">
+                            + Novo processo
+                        </button>
+                    </div>
+
+                    <div class="rh-processos-layout">
+                        <!-- Coluna esquerda: lista de processos -->
+                        <div class="rh-bloco-card">
+                            <div class="bloco-card-header">
+                                <h3 class="bloco-titulo">Processos na sessão</h3>
+                                <span class="agenda-filtro-badge" id="proc-total-badge">0</span>
+                            </div>
+                            <div id="processos-lista-container" class="painel-lista-corpo">
+                                <p class="rh-vazio-msg">Nenhum registro ainda</p>
+                            </div>
+                        </div>
+
+                        <!-- Coluna direita: checklist completo do processo selecionado -->
+                        <div class="rh-bloco-card" id="processo-checklist-card">
+                            <div class="bloco-card-header">
+                                <h3 class="bloco-titulo">Checklist do processo</h3>
+                            </div>
+                            <div id="processo-detalhe-container" class="painel-lista-corpo">
+                                <p class="rh-vazio-msg">Nenhum registro ainda</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================================
+                     TELA 4: MODELOS DE ETAPAS (EDITÁVEIS NA TELA)
+                     ============================================================ -->
+                <section class="rh-view-section" id="view-modelos" style="display: none;" aria-live="polite">
+                    <div class="rh-toolbar-card">
+                        <div class="toolbar-filtros" role="tablist" aria-label="Escolher modelo de etapas">
+                            <button type="button" class="rh-tab-btn ativo" data-modelo-id="rescisao_clt">Rescisão CLT</button>
+                            <button type="button" class="rh-tab-btn" data-modelo-id="distrato_pj">Distrato PJ</button>
+                            <button type="button" class="rh-tab-btn" data-modelo-id="exame_periodico">Exame periódico</button>
+                            <button type="button" class="rh-tab-btn" data-modelo-id="admissao_clt">Admissão CLT</button>
+                        </div>
+                    </div>
+
+                    <div class="rh-bloco-card">
+                        <div class="bloco-card-header">
+                            <div>
+                                <h3 class="bloco-titulo" id="modelo-editor-titulo">Modelo: Rescisão CLT</h3>
+                                <p class="bloco-subtitulo">Adicione, renomeie, reordene ou remova etapas deste modelo</p>
+                            </div>
+                            <span class="agenda-filtro-badge" id="modelo-editor-contagem">0 etapas</span>
+                        </div>
+                        <div class="modelo-editor-corpo" id="modelo-editor-container"></div>
+                    </div>
+                </section>
+
+                <!-- ============================================================
+                     TELA 5: AGENDA (LISTA POR DATA COM FILTRO POR MÊS)
+                     ============================================================ -->
+                <section class="rh-view-section" id="view-agenda" style="display: none;" aria-live="polite">
+                    <div class="rh-toolbar-card">
+                        <div class="toolbar-filtros">
+                            <label for="agenda-filtro-mes" class="toolbar-label">Filtrar por mês:</label>
+                            <select id="agenda-filtro-mes" class="rh-select" aria-label="Filtrar agenda por mês">
+                                <option value="">Todos os meses</option>
+                            </select>
+                            <select id="agenda-filtro-origem" class="rh-select" aria-label="Filtrar por tipo de prazo">
+                                <option value="">Todos (Etapas e Exames)</option>
+                                <option value="etapa">Etapas de processos</option>
+                                <option value="exame">Exames periódicos</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="rh-bloco-card">
+                        <div class="bloco-card-header">
+                            <div>
+                                <h3 class="bloco-titulo">Agenda de prazos e exames</h3>
+                                <p class="bloco-subtitulo">Tudo que possui data de prazo nas etapas e exames periódicos</p>
+                            </div>
+                            <span class="agenda-filtro-badge" id="agenda-total-badge">0</span>
+                        </div>
+                        <div id="agenda-lista-container" class="painel-lista-corpo">
+                            <p class="rh-vazio-msg">Nenhum registro ainda</p>
                         </div>
                     </div>
                 </section>
@@ -419,14 +601,120 @@
 
     </div>
 
+    <!-- ====================================================================
+         MODAL 1: NOVO COLABORADOR
+         ==================================================================== -->
+    <div class="rh-modal-backdrop" id="modal-colaborador" role="dialog" aria-modal="true"
+        aria-labelledby="modal-colab-titulo" hidden>
+        <div class="rh-modal-card">
+            <div class="rh-modal-header">
+                <h2 class="rh-modal-titulo" id="modal-colab-titulo">Novo colaborador</h2>
+                <button type="button" class="rh-modal-fechar" data-fechar-modal="modal-colaborador"
+                    aria-label="Fechar janela">&times;</button>
+            </div>
+            <form id="form-novo-colaborador" class="rh-modal-form" autocomplete="off">
+                <div class="rh-form-grid">
+                    <div class="rh-form-grupo rh-col-2">
+                        <label for="colab-nome">Nome completo *</label>
+                        <input type="text" id="colab-nome" class="rh-input" required
+                            placeholder="Digite o nome (fictício para teste)">
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="colab-cargo">Cargo *</label>
+                        <input type="text" id="colab-cargo" class="rh-input" required placeholder="Ex.: Analista, Motorista">
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="colab-setor">Setor *</label>
+                        <input type="text" id="colab-setor" class="rh-input" required placeholder="Ex.: Operações, Frota, RH">
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="colab-vinculo">Vínculo *</label>
+                        <select id="colab-vinculo" class="rh-select" required>
+                            <option value="CLT">CLT</option>
+                            <option value="PJ">PJ</option>
+                            <option value="Estagiário">Estagiário</option>
+                        </select>
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="colab-situacao">Situação *</label>
+                        <select id="colab-situacao" class="rh-select" required>
+                            <option value="Ativo">Ativo</option>
+                            <option value="Em admissão">Em admissão</option>
+                            <option value="Em desligamento">Em desligamento</option>
+                            <option value="Inativo">Inativo</option>
+                        </select>
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="colab-data-admissao">Data de admissão *</label>
+                        <input type="date" id="colab-data-admissao" class="rh-input" required>
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="colab-data-exame">Data do próximo exame periódico</label>
+                        <input type="date" id="colab-data-exame" class="rh-input">
+                    </div>
+                </div>
+                <div class="rh-modal-footer">
+                    <button type="button" class="rh-btn rh-btn-neutro" data-fechar-modal="modal-colaborador">Cancelar</button>
+                    <button type="submit" class="rh-btn rh-btn-primario">Salvar colaborador</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL 2: NOVO PROCESSO
+         ==================================================================== -->
+    <div class="rh-modal-backdrop" id="modal-processo" role="dialog" aria-modal="true"
+        aria-labelledby="modal-proc-titulo" hidden>
+        <div class="rh-modal-card">
+            <div class="rh-modal-header">
+                <h2 class="rh-modal-titulo" id="modal-proc-titulo">Novo processo</h2>
+                <button type="button" class="rh-modal-fechar" data-fechar-modal="modal-processo"
+                    aria-label="Fechar janela">&times;</button>
+            </div>
+            <form id="form-novo-processo" class="rh-modal-form" autocomplete="off">
+                <div class="rh-form-grid">
+                    <div class="rh-form-grupo rh-col-2">
+                        <label for="proc-colaborador">Colaborador *</label>
+                        <select id="proc-colaborador" class="rh-select" required>
+                            <option value="">Selecione um colaborador...</option>
+                        </select>
+                    </div>
+                    <div class="rh-form-grupo rh-col-2">
+                        <label for="proc-modelo">Modelo de etapas *</label>
+                        <select id="proc-modelo" class="rh-select" required>
+                            <option value="admissao_clt">Admissão CLT</option>
+                            <option value="rescisao_clt">Rescisão CLT</option>
+                            <option value="distrato_pj">Distrato PJ</option>
+                            <option value="exame_periodico">Exame periódico</option>
+                        </select>
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="proc-responsavel-padrao">Responsável inicial (opcional)</label>
+                        <input type="text" id="proc-responsavel-padrao" class="rh-input"
+                            placeholder="Ex.: DP, RH, Segurança do Trabalho">
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="proc-prazo-inicial">Prazo base (opcional)</label>
+                        <input type="date" id="proc-prazo-inicial" class="rh-input">
+                    </div>
+                </div>
+                <div class="rh-modal-footer">
+                    <button type="button" class="rh-btn rh-btn-neutro" data-fechar-modal="modal-processo">Cancelar</button>
+                    <button type="submit" class="rh-btn rh-btn-primario">Criar processo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Feedback Toast Flutuante -->
     <div class="rh-toast" id="rh-toast" role="status" aria-live="polite"></div>
 
-    <!-- Scripts de Autenticação Supabase e Lógica do RH (Caminhos Absolutos) -->
+    <!-- Scripts de Autenticação e Lógica do RH (Caminhos Absolutos) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/JavaScript/supabase-client.js"></script>
     <script src="/JavaScript/auth.js"></script>
-    <script src="/dashboard-rh/JavaScript/rh.js?v=2"></script>
+    <script src="/dashboard-rh/JavaScript/rh.js?v=3"></script>
 </body>
 
 </html>
