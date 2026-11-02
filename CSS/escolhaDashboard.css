@@ -506,6 +506,11 @@ body {
     border: 1px solid var(--aj-violeta-borda);
 }
 
+.card-rh .feature-check {
+    background-color: var(--aj-violeta-suave);
+    color: var(--aj-violeta-primario);
+}
+
 .card-rh .card-button {
     background-color: var(--aj-violeta-primario);
     color: #ffffff;

@@ -67,7 +67,15 @@ function servidorReal() {
         rhHref: cards[3].getAttribute('href'),
         rhAtivo: !cards[3].hasAttribute('aria-disabled') && !cards[3].querySelector('.card-button').disabled,
         rhTexto: cards[3].textContent.replace(/\s+/g, ' ').trim(),
-        rhTag: cards[3].querySelectorAll('.card-tag').length,
+        rhTag: Array.from(cards[3].querySelectorAll('.card-tag')).map(t => t.textContent.trim()),
+        rhItens: Array.from(cards[3].querySelectorAll('.card-features-list .feature-row')).map(li => li.textContent.trim()),
+        rhChecks: Array.from(cards[3].querySelectorAll('.feature-check')).map(c => getComputedStyle(c).color),
+        // Selo e itens com o mesmo estilo da Torre (só a cor muda)
+        mesmoSelo: ['fontSize', 'fontWeight', 'borderRadius', 'paddingTop', 'textTransform']
+          .filter(p => getComputedStyle(cards[2].querySelector('.card-tag'))[p] !== getComputedStyle(cards[3].querySelector('.card-tag'))[p]),
+        mesmoItem: ['width', 'height', 'borderRadius']
+          .filter(p => getComputedStyle(cards[2].querySelector('.feature-check'))[p] !== getComputedStyle(cards[3].querySelector('.feature-check'))[p]),
+        alturaIgual: Math.abs(cards[2].getBoundingClientRect().height - cards[3].getBoundingClientRect().height) < 1,
         rhBotao: getComputedStyle(cards[3].querySelector('.card-button')).backgroundColor,
         rhFaixa: getComputedStyle(cards[3], '::before').backgroundImage,
         rhIcone: getComputedStyle(cards[3].querySelector('.card-icon-container')).color,
@@ -89,7 +97,12 @@ function servidorReal() {
     ok(m.tags[3] === 'A' && m.rhHref === RH && m.rhAtivo, `${w}px: RH é link ativo para ${RH}`);
     ok(m.rhBotao === 'rgb(124, 58, 237)' && m.rhIcone === 'rgb(124, 58, 237)', `${w}px: botão e ícone do RH violeta #7c3aed`);
     ok(m.rhFaixa.includes('rgb(124, 58, 237)'), `${w}px: faixa de cor violeta no topo do RH`);
-    ok(!/em breve|em desenvolvimento/i.test(m.rhTexto) && m.rhTag === 0, `${w}px: sem selo/botão "Em breve" nem "Em desenvolvimento"`);
+    ok(!/em breve|em desenvolvimento/i.test(m.rhTexto), `${w}px: sem "Em breve" nem "Em desenvolvimento"`);
+    ok(m.rhTag.join() === 'Gestão de Pessoas', `${w}px: selo "Gestão de Pessoas" (${m.rhTag.join()})`);
+    ok(m.rhItens.join('|') === 'Admissões e rescisões com checklist|Alertas de exames periódicos|Férias e contratos PJ'
+      && m.rhChecks.length === 3 && m.rhChecks.every(c => c === 'rgb(124, 58, 237)'), `${w}px: 3 itens com ✓ violeta`);
+    ok(m.mesmoSelo.length === 0 && m.mesmoItem.length === 0, `${w}px: selo e ✓ no mesmo estilo da Torre ${JSON.stringify([m.mesmoSelo, m.mesmoItem])}`);
+    if (w > 860) ok(m.alturaIgual, `${w}px: card RH com a mesma altura do card da Torre (mesma linha)`);
     ok(m.rhTexto.includes('Gestão de pessoas, admissões, rescisões, exames e férias.') && m.rhTexto.includes('Acessar Dashboard do RH') && m.rhSeta,
       `${w}px: descrição nova e botão "Acessar" com seta`);
     ok(m.mesmoEstilo.length === 0 && m.mesmoBotao.length === 0, `${w}px: mesmo estilo do card da Torre ${JSON.stringify([m.mesmoEstilo, m.mesmoBotao])}`);
