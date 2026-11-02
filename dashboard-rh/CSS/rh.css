@@ -89,7 +89,9 @@ html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     max-width: 100%;
+    /* clip (e não hidden) para o topo sticky não ficar preso ao body com padding da faixa */
     overflow-x: hidden;
+    overflow-x: clip;
 }
 
 body.rh-body {
@@ -99,6 +101,7 @@ body.rh-body {
     min-height: 100vh;
     max-width: 100%;
     overflow-x: hidden;
+    overflow-x: clip;
     line-height: 1.5;
     padding-top: var(--prototipo-altura);
 }

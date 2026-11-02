@@ -282,13 +282,34 @@ function processoEmAndamento(proc) {
     return proc.etapas.some((e) => !e.concluida);
 }
 
+// Junta o próximo exame do cadastro e os vencimentos da tela Exames (SST):
+// um item por colaborador, valendo o vencimento mais próximo
+function coletarVencimentosExame() {
+    return estadoRh.colaboradores.map((colab) => {
+        const candidatos = [];
+        if (colab.dataProximoExame) {
+            candidatos.push({ data: colab.dataProximoExame, rotulo: 'Exame periódico', origem: 'cadastro' });
+        }
+        estadoRh.exames.forEach((exame) => {
+            if (exame.colaboradorId !== colab.id || !exame.vencimento) return;
+            candidatos.push({
+                data: exame.vencimento,
+                rotulo: `Exame ${(TIPOS_EXAME[exame.tipo] || exame.tipo).toLowerCase()}`,
+                origem: 'sst'
+            });
+        });
+        if (candidatos.length === 0) return null;
+        candidatos.sort((a, b) => a.data.localeCompare(b.data));
+        return { colab, ...candidatos[0] };
+    }).filter(Boolean);
+}
+
 function coletarAlertasSessao() {
     const alertas = [];
 
-    // 1. Exames periódicos dos colaboradores vencendo em 30 / 15 / 7 dias (ou vencidos)
-    estadoRh.colaboradores.forEach((colab) => {
-        if (!colab.dataProximoExame) return;
-        const dias = diferencaDiasParaHoje(colab.dataProximoExame);
+    // 1. Exames (cadastro + SST, sem duplicar colaborador) vencendo em 30 / 15 / 7 dias (ou vencidos)
+    coletarVencimentosExame().forEach(({ colab, data, rotulo, origem }) => {
+        const dias = diferencaDiasParaHoje(data);
         if (dias === null || dias > 30) return;
 
         let faixa = '30 dias';
@@ -318,9 +339,10 @@ function coletarAlertasSessao() {
             dias,
             faixa,
             badgeClasse,
-            titulo: `Exame periódico (${faixa}): ${colab.nome}`,
-            subtitulo: `${detalheDias} • Data: ${formatarDataBr(colab.dataProximoExame)} • Setor: ${colab.setor}`,
-            colabId: colab.id
+            titulo: `${rotulo} (${faixa}): ${colab.nome}`,
+            subtitulo: `${detalheDias} • Data: ${formatarDataBr(data)} • Setor: ${colab.setor}`,
+            colabId: colab.id,
+            view: origem === 'sst' ? 'exames' : ''
         });
     });
 
@@ -475,9 +497,8 @@ function renderizarPainel() {
         (p) => (p.modeloId === 'rescisao_clt' || p.modeloId === 'distrato_pj') && processoEmAndamento(p)
     ).length;
 
-    const examesAVencer = estadoRh.colaboradores.filter((c) => {
-        if (!c.dataProximoExame) return false;
-        const dias = diferencaDiasParaHoje(c.dataProximoExame);
+    const examesAVencer = coletarVencimentosExame().filter(({ data }) => {
+        const dias = diferencaDiasParaHoje(data);
         return dias !== null && dias <= 30;
     }).length;
 
