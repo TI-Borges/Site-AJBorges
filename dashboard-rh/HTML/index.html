@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <meta name="description"
-        content="Dashboard de Recursos Humanos AJBorges Transportes - Protótipo navegável de Gestão de Colaboradores, Processos, Modelos de Etapas e Agenda.">
+        content="Dashboard de Recursos Humanos AJBorges Transportes - Protótipo navegável de Gestão de Colaboradores, Processos, Prestadores PJ, Exames (SST), Férias, Modelos de Etapas e Agenda.">
     <title>AJBorges Gestão • Dashboard do RH</title>
 
     <!-- Favicon Oficial AJBorges -->
@@ -23,7 +23,7 @@
         rel="stylesheet">
 
     <!-- Folha de Estilos Exclusiva do Dashboard RH -->
-    <link rel="stylesheet" href="/dashboard-rh/CSS/rh.css?v=3">
+    <link rel="stylesheet" href="/dashboard-rh/CSS/rh.css?v=4">
 
     <!-- Verificação de Sessão Administrativa (Route Guard) -->
     <script>
@@ -136,6 +136,63 @@
                             </span>
                             <span class="nav-text">Processos</span>
                             <span class="nav-badge-count" id="nav-count-processos">0</span>
+                        </a>
+                    </li>
+
+                    <!-- Prestadores PJ -->
+                    <li class="nav-item">
+                        <a href="#prestadores" class="nav-link" data-view="prestadores" id="nav-link-prestadores"
+                            title="Prestadores PJ (contratos e distratos)">
+                            <span class="nav-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                </svg>
+                            </span>
+                            <span class="nav-text">Prestadores PJ</span>
+                            <span class="nav-badge-count" id="nav-count-prestadores">0</span>
+                        </a>
+                    </li>
+
+                    <!-- Exames (SST) -->
+                    <li class="nav-item">
+                        <a href="#exames" class="nav-link" data-view="exames" id="nav-link-exames"
+                            title="Exames de saúde ocupacional (SST)">
+                            <span class="nav-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                                </svg>
+                            </span>
+                            <span class="nav-text">Exames (SST)</span>
+                            <span class="nav-badge-count" id="nav-count-exames">0</span>
+                        </a>
+                    </li>
+
+                    <!-- Férias -->
+                    <li class="nav-item">
+                        <a href="#ferias" class="nav-link" data-view="ferias" id="nav-link-ferias"
+                            title="Férias dos colaboradores CLT">
+                            <span class="nav-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="5"></circle>
+                                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                                </svg>
+                            </span>
+                            <span class="nav-text">Férias</span>
+                            <span class="nav-badge-count" id="nav-count-ferias">0</span>
                         </a>
                     </li>
 
@@ -430,7 +487,7 @@
                                     </div>
                                     <div>
                                         <h3 class="bloco-titulo">Alertas</h3>
-                                        <p class="bloco-subtitulo">Exames em 30/15/7 dias e prazos de etapa vencidos</p>
+                                        <p class="bloco-subtitulo">Exames e contratos PJ em 30/15/7 dias, férias a 60 dias e prazos vencidos</p>
                                     </div>
                                 </div>
                                 <span class="alertas-contador-badge" id="badge-count-alertas">0</span>
@@ -534,6 +591,96 @@
                             <div id="processo-detalhe-container" class="painel-lista-corpo">
                                 <p class="rh-vazio-msg">Nenhum registro ainda</p>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================================
+                     PRESTADORES PJ (CONTRATO, VALOR, AVISO E DISTRATO)
+                     ============================================================ -->
+                <section class="rh-view-section" id="view-prestadores" style="display: none;" aria-live="polite">
+                    <div class="rh-toolbar-card">
+                        <p class="toolbar-label">Colaboradores com vínculo PJ. O Painel alerta a 30, 15 e 7 dias do fim do contrato.</p>
+                        <button type="button" class="rh-btn rh-btn-primario" id="btn-cadastrar-contrato-pj">
+                            + Cadastrar contrato
+                        </button>
+                    </div>
+
+                    <div class="rh-bloco-card">
+                        <div class="bloco-card-header">
+                            <div>
+                                <h3 class="bloco-titulo">Prestadores PJ</h3>
+                                <p class="bloco-subtitulo">Início e fim do contrato, valor e aviso contratual (dias)</p>
+                            </div>
+                            <span class="agenda-filtro-badge" id="pj-total-badge">0</span>
+                        </div>
+                        <div id="prestadores-lista-container" class="painel-lista-corpo">
+                            <p class="rh-vazio-msg">Nenhum registro ainda</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================================
+                     EXAMES (SST) DE TODOS OS COLABORADORES
+                     ============================================================ -->
+                <section class="rh-view-section" id="view-exames" style="display: none;" aria-live="polite">
+                    <div class="rh-toolbar-card">
+                        <div class="toolbar-filtros">
+                            <select id="exame-filtro-situacao" class="rh-select" aria-label="Filtrar exames por situação">
+                                <option value="">Todas as situações</option>
+                                <option value="em_dia">Em dia</option>
+                                <option value="a_vencer">Vence em 30 dias</option>
+                                <option value="vencido">Vencido</option>
+                                <option value="sem_vencimento">Sem vencimento</option>
+                            </select>
+                            <select id="exame-filtro-tipo" class="rh-select" aria-label="Filtrar exames por tipo">
+                                <option value="">Todos os tipos</option>
+                                <option value="admissional">Admissional</option>
+                                <option value="periodico">Periódico</option>
+                                <option value="retorno">Retorno ao trabalho</option>
+                                <option value="demissional">Demissional</option>
+                            </select>
+                        </div>
+                        <button type="button" class="rh-btn rh-btn-primario" id="btn-registrar-exame">
+                            + Registrar exame
+                        </button>
+                    </div>
+
+                    <div class="rh-bloco-card">
+                        <div class="bloco-card-header">
+                            <div>
+                                <h3 class="bloco-titulo">Exames dos colaboradores</h3>
+                                <p class="bloco-subtitulo">Em dia (verde), vence em 30 dias (amarelo), vencido (vermelho)</p>
+                            </div>
+                            <span class="agenda-filtro-badge" id="exames-total-badge">0</span>
+                        </div>
+                        <div id="exames-lista-container" class="painel-lista-corpo">
+                            <p class="rh-vazio-msg">Nenhum registro ainda</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ============================================================
+                     FÉRIAS DOS COLABORADORES CLT
+                     ============================================================ -->
+                <section class="rh-view-section" id="view-ferias" style="display: none;" aria-live="polite">
+                    <div class="rh-toolbar-card">
+                        <p class="toolbar-label">Colaboradores CLT. O Painel alerta quando o período concessivo estiver a 60 dias de vencer.</p>
+                        <button type="button" class="rh-btn rh-btn-primario" id="btn-informar-ferias">
+                            + Informar férias
+                        </button>
+                    </div>
+
+                    <div class="rh-bloco-card">
+                        <div class="bloco-card-header">
+                            <div>
+                                <h3 class="bloco-titulo">Férias</h3>
+                                <p class="bloco-subtitulo">Período aquisitivo, período concessivo, saldo de dias e programação</p>
+                            </div>
+                            <span class="agenda-filtro-badge" id="ferias-total-badge">0</span>
+                        </div>
+                        <div id="ferias-lista-container" class="painel-lista-corpo">
+                            <p class="rh-vazio-msg">Nenhum registro ainda</p>
                         </div>
                     </div>
                 </section>
@@ -707,6 +854,143 @@
         </div>
     </div>
 
+    <!-- ====================================================================
+         MODAL 3: CONTRATO PJ
+         ==================================================================== -->
+    <div class="rh-modal-backdrop" id="modal-contrato-pj" role="dialog" aria-modal="true"
+        aria-labelledby="modal-pj-titulo" hidden>
+        <div class="rh-modal-card">
+            <div class="rh-modal-header">
+                <h2 class="rh-modal-titulo" id="modal-pj-titulo">Contrato PJ</h2>
+                <button type="button" class="rh-modal-fechar" data-fechar-modal="modal-contrato-pj"
+                    aria-label="Fechar janela">&times;</button>
+            </div>
+            <form id="form-contrato-pj" class="rh-modal-form" autocomplete="off">
+                <div class="rh-form-grid">
+                    <div class="rh-form-grupo rh-col-2">
+                        <label for="pj-colaborador">Prestador *</label>
+                        <select id="pj-colaborador" class="rh-select" required></select>
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="pj-inicio">Início do contrato *</label>
+                        <input type="date" id="pj-inicio" class="rh-input" required>
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="pj-fim">Fim do contrato *</label>
+                        <input type="date" id="pj-fim" class="rh-input" required>
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="pj-valor">Valor (R$) *</label>
+                        <input type="number" id="pj-valor" class="rh-input" required min="0" step="0.01"
+                            inputmode="decimal" placeholder="0,00">
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="pj-aviso">Aviso contratual (dias) *</label>
+                        <input type="number" id="pj-aviso" class="rh-input" required min="0" step="1"
+                            inputmode="numeric">
+                    </div>
+                </div>
+                <div class="rh-modal-footer">
+                    <button type="button" class="rh-btn rh-btn-neutro" data-fechar-modal="modal-contrato-pj">Cancelar</button>
+                    <button type="submit" class="rh-btn rh-btn-primario">Salvar contrato</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL 4: REGISTRAR EXAME (SST)
+         ==================================================================== -->
+    <div class="rh-modal-backdrop" id="modal-exame" role="dialog" aria-modal="true"
+        aria-labelledby="modal-exame-titulo" hidden>
+        <div class="rh-modal-card">
+            <div class="rh-modal-header">
+                <h2 class="rh-modal-titulo" id="modal-exame-titulo">Registrar exame</h2>
+                <button type="button" class="rh-modal-fechar" data-fechar-modal="modal-exame"
+                    aria-label="Fechar janela">&times;</button>
+            </div>
+            <form id="form-exame" class="rh-modal-form" autocomplete="off">
+                <div class="rh-form-grid">
+                    <div class="rh-form-grupo rh-col-2">
+                        <label for="exame-colaborador">Colaborador *</label>
+                        <select id="exame-colaborador" class="rh-select" required></select>
+                    </div>
+                    <div class="rh-form-grupo rh-col-2">
+                        <label for="exame-tipo">Tipo *</label>
+                        <select id="exame-tipo" class="rh-select" required>
+                            <option value="admissional">Admissional</option>
+                            <option value="periodico">Periódico</option>
+                            <option value="retorno">Retorno ao trabalho</option>
+                            <option value="demissional">Demissional</option>
+                        </select>
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="exame-data-realizacao">Data de realização *</label>
+                        <input type="date" id="exame-data-realizacao" class="rh-input" required>
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="exame-vencimento">Vencimento</label>
+                        <input type="date" id="exame-vencimento" class="rh-input">
+                    </div>
+                </div>
+                <div class="rh-modal-footer">
+                    <button type="button" class="rh-btn rh-btn-neutro" data-fechar-modal="modal-exame">Cancelar</button>
+                    <button type="submit" class="rh-btn rh-btn-primario">Salvar exame</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL 5: FÉRIAS
+         ==================================================================== -->
+    <div class="rh-modal-backdrop" id="modal-ferias" role="dialog" aria-modal="true"
+        aria-labelledby="modal-ferias-titulo" hidden>
+        <div class="rh-modal-card">
+            <div class="rh-modal-header">
+                <h2 class="rh-modal-titulo" id="modal-ferias-titulo">Férias</h2>
+                <button type="button" class="rh-modal-fechar" data-fechar-modal="modal-ferias"
+                    aria-label="Fechar janela">&times;</button>
+            </div>
+            <form id="form-ferias" class="rh-modal-form" autocomplete="off">
+                <div class="rh-form-grid">
+                    <div class="rh-form-grupo rh-col-2">
+                        <label for="ferias-colaborador">Colaborador CLT *</label>
+                        <select id="ferias-colaborador" class="rh-select" required></select>
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="ferias-aquisitivo-inicio">Início do período aquisitivo *</label>
+                        <input type="date" id="ferias-aquisitivo-inicio" class="rh-input" required>
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="ferias-saldo">Saldo de dias *</label>
+                        <input type="number" id="ferias-saldo" class="rh-input" required min="0" max="30" step="1"
+                            inputmode="numeric">
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="ferias-prog-inicio">Programação: início</label>
+                        <input type="date" id="ferias-prog-inicio" class="rh-input">
+                    </div>
+                    <div class="rh-form-grupo">
+                        <label for="ferias-prog-fim">Programação: fim</label>
+                        <input type="date" id="ferias-prog-fim" class="rh-input">
+                    </div>
+                    <p class="rh-form-nota rh-col-2">
+                        O fim do aquisitivo e o período concessivo são calculados a partir do início
+                        (12 meses cada, CLT art. 134).
+                    </p>
+                </div>
+                <div class="rh-modal-footer">
+                    <button type="button" class="rh-btn rh-btn-neutro" data-fechar-modal="modal-ferias">Cancelar</button>
+                    <button type="submit" class="rh-btn rh-btn-primario">Salvar férias</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Área usada só na impressão do checklist de um processo -->
+    <div class="rh-area-impressao" id="rh-area-impressao"></div>
+
     <!-- Feedback Toast Flutuante -->
     <div class="rh-toast" id="rh-toast" role="status" aria-live="polite"></div>
 
@@ -714,7 +998,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/JavaScript/supabase-client.js"></script>
     <script src="/JavaScript/auth.js"></script>
-    <script src="/dashboard-rh/JavaScript/rh.js?v=3"></script>
+    <script src="/dashboard-rh/JavaScript/rh.js?v=4"></script>
 </body>
 
 </html>

@@ -1192,6 +1192,12 @@ body.rh-body {
     flex-wrap: wrap;
 }
 
+.progresso-acoes {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .progresso-texto-forte {
     font-family: 'Outfit', sans-serif;
     font-size: 1.05rem;
@@ -1458,6 +1464,88 @@ body.rh-body {
 }
 
 /* ==========================================================================
+   8b. Tabelas (Prestadores PJ, Exames SST e Férias)
+   ========================================================================== */
+.rh-toolbar-card > .toolbar-label {
+    flex: 1;
+    min-width: 0;
+    font-weight: 500;
+    color: var(--texto-mutado);
+}
+
+.rh-tabela-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.rh-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+}
+
+.rh-tabela th {
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--texto-mutado);
+    background: #f8fafc;
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--card-borda);
+    white-space: nowrap;
+}
+
+.rh-tabela td {
+    padding: 0.7rem 0.75rem;
+    border-bottom: 1px solid var(--card-borda);
+    vertical-align: middle;
+    color: var(--texto-corpo);
+}
+
+.rh-tabela tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.rh-tabela tbody tr:hover {
+    background: #fcfaff;
+}
+
+.rh-tabela .th-acoes {
+    text-align: right;
+}
+
+.rh-tabela .td-curta {
+    white-space: nowrap;
+}
+
+.td-principal {
+    display: block;
+    font-weight: 700;
+    color: var(--texto-titulo);
+    word-break: break-word;
+}
+
+.td-sub {
+    display: block;
+    font-size: 0.74rem;
+    color: var(--texto-mutado);
+}
+
+.tabela-acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Área de impressão: invisível na tela, só aparece no @media print */
+.rh-area-impressao {
+    display: none;
+}
+
+/* ==========================================================================
    9. Modais
    ========================================================================== */
 .rh-modal-backdrop {
@@ -1539,6 +1627,11 @@ body.rh-body {
     font-size: 0.78rem;
     font-weight: 600;
     color: var(--texto-corpo);
+}
+
+.rh-form-nota {
+    font-size: 0.76rem;
+    color: var(--texto-mutado);
 }
 
 .rh-modal-footer {
@@ -1670,5 +1763,151 @@ body.rh-body {
     .toolbar-filtros > .rh-select {
         width: 100%;
         min-width: 0;
+    }
+
+    .rh-toolbar-card > .rh-btn {
+        width: 100%;
+    }
+
+    /* Tabelas viram cartões empilhados, sem rolagem lateral */
+    .rh-tabela thead {
+        display: none;
+    }
+
+    .rh-tabela,
+    .rh-tabela tbody,
+    .rh-tabela tr,
+    .rh-tabela td {
+        display: block;
+        width: 100%;
+    }
+
+    .rh-tabela tr {
+        border: 1px solid var(--card-borda);
+        border-radius: 12px;
+        padding: 0.4rem 0.85rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .rh-tabela tbody tr:last-child {
+        margin-bottom: 0;
+    }
+
+    .rh-tabela td,
+    .rh-tabela tbody tr:last-child td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0.45rem 0;
+        border-bottom: 1px dashed var(--card-borda);
+        text-align: right;
+    }
+
+    .rh-tabela td:last-child,
+    .rh-tabela tbody tr:last-child td:last-child {
+        border-bottom: none;
+    }
+
+    .rh-tabela td::before {
+        content: attr(data-label);
+        flex-shrink: 0;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--texto-mutado);
+        text-align: left;
+    }
+
+    .td-conteudo {
+        text-align: right;
+        min-width: 0;
+    }
+}
+
+/* ==========================================================================
+   11. Impressão do Checklist (sem barra lateral, topo, faixa nem botões)
+   ========================================================================== */
+@media print {
+    @page {
+        margin: 14mm;
+    }
+
+    body.rh-body.rh-imprimindo {
+        padding-top: 0;
+        background: #ffffff;
+        color: #000000;
+        font-size: 11pt;
+    }
+
+    body.rh-imprimindo > *:not(#rh-area-impressao) {
+        display: none !important;
+    }
+
+    body.rh-imprimindo .rh-area-impressao {
+        display: block;
+    }
+
+    .impressao-cabecalho {
+        border-bottom: 2px solid #000000;
+        padding-bottom: 8px;
+        margin-bottom: 14px;
+    }
+
+    .impressao-marca {
+        font-size: 9pt;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .impressao-titulo {
+        font-family: 'Outfit', sans-serif;
+        font-size: 16pt;
+        margin: 2px 0 4px;
+    }
+
+    .impressao-meta {
+        font-size: 9pt;
+    }
+
+    .impressao-tabela {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10pt;
+    }
+
+    .impressao-tabela th,
+    .impressao-tabela td {
+        border: 1px solid #555555;
+        padding: 5px 7px;
+        text-align: left;
+        vertical-align: top;
+    }
+
+    .impressao-tabela th {
+        background: #eeeeee;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .impressao-tabela tr {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    .impressao-obs + .impressao-obs {
+        margin-top: 4px;
+    }
+
+    .impressao-obs-meta {
+        display: block;
+        font-size: 8pt;
+        color: #444444;
+    }
+
+    .impressao-rodape {
+        margin-top: 12px;
+        font-size: 8pt;
+        color: #444444;
     }
 }

@@ -19,11 +19,14 @@ const estadoRh = {
     // Tudo começa vazio, sem dados nem alertas inventados
     colaboradores: [],
     processos: [],
+    exames: [],
 
     // Seleções e filtros ativos na sessão
     colaboradorSelecionadoId: null,
     processoSelecionadoId: null,
     filtroTipoProcesso: '',
+    filtroExameSituacao: '',
+    filtroExameTipo: '',
     modeloSelecionadoId: 'rescisao_clt',
     etapaEditandoNomeId: null,
     modeloIndexEditando: null,
@@ -142,6 +145,105 @@ function nomeMesAno(ym) {
     return `${nomes[mes - 1] || mes}/${ano}`;
 }
 
+function isoParaData(dataIso) {
+    if (!dataIso || !/^\d{4}-\d{2}-\d{2}$/.test(dataIso)) return null;
+    const [ano, mes, dia] = dataIso.split('-').map(Number);
+    return new Date(ano, mes - 1, dia);
+}
+
+function dataParaIso(data) {
+    const yyyy = data.getFullYear();
+    const mm = String(data.getMonth() + 1).padStart(2, '0');
+    const dd = String(data.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+// Desloca uma data ISO em anos e dias (usado nos períodos de férias)
+function deslocarDataIso(dataIso, anos, dias) {
+    const base = isoParaData(dataIso);
+    if (!base) return '';
+    base.setFullYear(base.getFullYear() + anos);
+    base.setDate(base.getDate() + dias);
+    return dataParaIso(base);
+}
+
+function formatarMoedaBr(valor) {
+    if (valor === null || valor === undefined || valor === '' || Number.isNaN(Number(valor))) return '—';
+    return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+/* ============================================================================
+   SITUAÇÃO DE CONTRATOS PJ, EXAMES (SST) E FÉRIAS
+   ============================================================================ */
+const TIPOS_EXAME = {
+    admissional: 'Admissional',
+    periodico: 'Periódico',
+    retorno: 'Retorno ao trabalho',
+    demissional: 'Demissional'
+};
+
+function situacaoContratoPj(colab) {
+    const contrato = colab.contratoPj;
+    if (!contrato || !contrato.fim) {
+        return { dias: null, rotulo: 'Sem contrato', badgeClasse: 'badge-neutro', faixa: '' };
+    }
+    const dias = diferencaDiasParaHoje(contrato.fim);
+    if (dias === null) return { dias: null, rotulo: '—', badgeClasse: 'badge-neutro', faixa: '' };
+    if (dias < 0) {
+        return { dias, rotulo: `Encerrado há ${Math.abs(dias)}d`, badgeClasse: 'badge-vermelho', faixa: 'Vencido' };
+    }
+    if (dias <= 7) {
+        return { dias, rotulo: dias === 0 ? 'Termina hoje' : `Faltam ${dias}d`, badgeClasse: 'badge-vermelho', faixa: '7 dias' };
+    }
+    if (dias <= 15) return { dias, rotulo: `Faltam ${dias}d`, badgeClasse: 'badge-laranja', faixa: '15 dias' };
+    if (dias <= 30) return { dias, rotulo: `Faltam ${dias}d`, badgeClasse: 'badge-amarelo', faixa: '30 dias' };
+    return { dias, rotulo: 'Vigente', badgeClasse: 'badge-verde', faixa: '' };
+}
+
+function situacaoExame(exame) {
+    if (!exame.vencimento) {
+        return { chave: 'sem_vencimento', dias: null, rotulo: 'Sem vencimento', badgeClasse: 'badge-neutro' };
+    }
+    const dias = diferencaDiasParaHoje(exame.vencimento);
+    if (dias !== null && dias < 0) {
+        return { chave: 'vencido', dias, rotulo: `Vencido há ${Math.abs(dias)}d`, badgeClasse: 'badge-vermelho' };
+    }
+    if (dias !== null && dias <= 30) {
+        return { chave: 'a_vencer', dias, rotulo: dias === 0 ? 'Vence hoje' : `Vence em ${dias}d`, badgeClasse: 'badge-amarelo' };
+    }
+    return { chave: 'em_dia', dias, rotulo: 'Em dia', badgeClasse: 'badge-verde' };
+}
+
+// Aquisitivo = 12 meses a partir do início; concessivo = 12 meses seguintes (CLT art. 134)
+function calcularPeriodosFerias(aquisitivoInicio) {
+    if (!isoParaData(aquisitivoInicio)) return null;
+    return {
+        aquisitivoInicio,
+        aquisitivoFim: deslocarDataIso(aquisitivoInicio, 1, -1),
+        concessivoInicio: deslocarDataIso(aquisitivoInicio, 1, 0),
+        concessivoFim: deslocarDataIso(aquisitivoInicio, 2, -1)
+    };
+}
+
+function situacaoFerias(colab) {
+    const ferias = colab.ferias;
+    const periodos = ferias ? calcularPeriodosFerias(ferias.aquisitivoInicio) : null;
+    if (!ferias || !periodos) {
+        return { periodos: null, dias: null, rotulo: 'Não informado', badgeClasse: 'badge-neutro' };
+    }
+    const dias = diferencaDiasParaHoje(periodos.concessivoFim);
+    if (ferias.saldoDias === 0) {
+        return { periodos, dias, rotulo: 'Sem saldo', badgeClasse: 'badge-verde' };
+    }
+    if (dias !== null && dias < 0) {
+        return { periodos, dias, rotulo: `Concessivo vencido há ${Math.abs(dias)}d`, badgeClasse: 'badge-vermelho' };
+    }
+    if (dias !== null && dias <= 60) {
+        return { periodos, dias, rotulo: `Concessivo vence em ${dias}d`, badgeClasse: 'badge-amarelo' };
+    }
+    return { periodos, dias, rotulo: 'Em dia', badgeClasse: 'badge-verde' };
+}
+
 /* ============================================================================
    CÁLCULO DE PROGRESSO, PRÓXIMA AÇÃO E ALERTAS
    ============================================================================ */
@@ -244,6 +346,42 @@ function coletarAlertasSessao() {
         });
     });
 
+    // 3. Fim de contrato PJ em 30 / 15 / 7 dias (ou já vencido)
+    estadoRh.colaboradores.forEach((colab) => {
+        if (colab.vinculo !== 'PJ') return;
+        const sit = situacaoContratoPj(colab);
+        if (sit.dias === null || sit.dias > 30) return;
+
+        const aviso = colab.contratoPj.avisoDias;
+        alertas.push({
+            tipo: 'contrato_pj',
+            dias: sit.dias,
+            faixa: sit.faixa,
+            badgeClasse: sit.badgeClasse,
+            titulo: `Fim de contrato PJ (${sit.faixa}): ${colab.nome}`,
+            subtitulo: `${sit.rotulo} • Fim: ${formatarDataBr(colab.contratoPj.fim)} • Aviso contratual: ${aviso === null || aviso === undefined ? '—' : `${aviso} dia(s)`}`,
+            view: 'prestadores'
+        });
+    });
+
+    // 4. Período concessivo de férias a 60 dias de vencer (ou já vencido)
+    estadoRh.colaboradores.forEach((colab) => {
+        if (colab.vinculo !== 'CLT' || !colab.ferias) return;
+        const sit = situacaoFerias(colab);
+        if (!sit.periodos || sit.dias === null || sit.dias > 60 || colab.ferias.saldoDias === 0) return;
+
+        const vencido = sit.dias < 0;
+        alertas.push({
+            tipo: 'ferias',
+            dias: sit.dias,
+            faixa: vencido ? 'Vencido' : '60 dias',
+            badgeClasse: vencido ? 'badge-vermelho' : 'badge-amarelo',
+            titulo: `Férias: concessivo ${vencido ? 'vencido' : 'a vencer'} — ${colab.nome}`,
+            subtitulo: `${sit.rotulo} • Fim do concessivo: ${formatarDataBr(sit.periodos.concessivoFim)} • Saldo: ${colab.ferias.saldoDias} dia(s)`,
+            view: 'ferias'
+        });
+    });
+
     return alertas.sort((a, b) => a.dias - b.dias);
 }
 
@@ -304,16 +442,25 @@ function atualizarTudo() {
     renderizarProcessos();
     renderizarModelos();
     renderizarAgenda();
+    renderizarPrestadoresPj();
+    renderizarExames();
+    renderizarFerias();
 }
 
 function atualizarBadgesSidebar() {
     const elColab = document.getElementById('nav-count-colaboradores');
     const elProc = document.getElementById('nav-count-processos');
     const elAgenda = document.getElementById('nav-count-agenda');
+    const elPj = document.getElementById('nav-count-prestadores');
+    const elExames = document.getElementById('nav-count-exames');
+    const elFerias = document.getElementById('nav-count-ferias');
 
     if (elColab) elColab.textContent = String(estadoRh.colaboradores.length);
     if (elProc) elProc.textContent = String(estadoRh.processos.length);
     if (elAgenda) elAgenda.textContent = String(coletarItensAgenda().length);
+    if (elPj) elPj.textContent = String(estadoRh.colaboradores.filter((c) => c.vinculo === 'PJ').length);
+    if (elExames) elExames.textContent = String(estadoRh.exames.length);
+    if (elFerias) elFerias.textContent = String(estadoRh.colaboradores.filter((c) => c.vinculo === 'CLT').length);
 }
 
 /* ============================================================================
@@ -412,9 +559,10 @@ function renderizarPainel() {
         } else {
             alertasContainer.innerHTML = alertas.map((al) => `
                 <div class="rh-item-lista"
-                     data-acao="${al.processoId ? 'abrir-processo-painel' : 'abrir-colab-painel'}"
+                     data-acao="${al.processoId ? 'abrir-processo-painel' : (al.view ? 'ir-tela' : 'abrir-colab-painel')}"
                      data-proc-id="${escapeHtml(al.processoId || '')}"
-                     data-colab-id="${escapeHtml(al.colabId || '')}">
+                     data-colab-id="${escapeHtml(al.colabId || '')}"
+                     data-view="${escapeHtml(al.view || '')}">
                     <div class="item-info-principal">
                         <span class="item-titulo">${escapeHtml(al.titulo)}</span>
                         <span class="item-sub">${escapeHtml(al.subtitulo)}</span>
@@ -637,7 +785,15 @@ function renderizarProcessos() {
                     </h4>
                     <span class="item-sub">Vínculo: ${escapeHtml(colab ? colab.vinculo : '—')}</span>
                 </div>
-                <span class="progresso-texto-forte" id="processo-progresso-texto">${escapeHtml(prog.texto)}</span>
+                <div class="progresso-acoes">
+                    <span class="progresso-texto-forte" id="processo-progresso-texto">${escapeHtml(prog.texto)}</span>
+                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro"
+                            data-acao="imprimir-processo"
+                            data-proc-id="${escapeHtml(procAtivo.id)}"
+                            title="Imprimir checklist deste processo">
+                        Imprimir
+                    </button>
+                </div>
             </div>
 
             <div class="progresso-trilha" role="progressbar"
@@ -1006,8 +1162,418 @@ function renderizarAgenda() {
 }
 
 /* ============================================================================
-   MODAIS DE CADASTRO (COLABORADOR E PROCESSO)
+   TELA 6: PRESTADORES PJ (CONTRATO, VALOR E AVISO CONTRATUAL)
    ============================================================================ */
+function renderizarPrestadoresPj() {
+    const container = document.getElementById('prestadores-lista-container');
+    const badgeTotal = document.getElementById('pj-total-badge');
+    const prestadores = estadoRh.colaboradores.filter((c) => c.vinculo === 'PJ');
+
+    if (badgeTotal) badgeTotal.textContent = String(prestadores.length);
+    if (!container) return;
+
+    if (prestadores.length === 0) {
+        container.innerHTML = '<p class="rh-vazio-msg">Nenhum registro ainda</p>';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="rh-tabela-wrapper">
+            <table class="rh-tabela">
+                <thead>
+                    <tr>
+                        <th>Prestador</th>
+                        <th>Início</th>
+                        <th>Fim</th>
+                        <th>Valor</th>
+                        <th>Aviso</th>
+                        <th>Situação</th>
+                        <th class="th-acoes">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${prestadores.map((colab) => {
+                        const contrato = colab.contratoPj || null;
+                        const sit = situacaoContratoPj(colab);
+                        return `
+                            <tr>
+                                <td data-label="Prestador">
+                                    <div class="td-conteudo"><span class="td-principal">${escapeHtml(colab.nome)}</span>
+                                    <span class="td-sub">${escapeHtml(colab.cargo)} • ${escapeHtml(colab.setor)}</span></div>
+                                </td>
+                                <td data-label="Início" class="td-curta">${escapeHtml(formatarDataBr(contrato ? contrato.inicio : ''))}</td>
+                                <td data-label="Fim" class="td-curta">${escapeHtml(formatarDataBr(contrato ? contrato.fim : ''))}</td>
+                                <td data-label="Valor" class="td-curta">${escapeHtml(formatarMoedaBr(contrato ? contrato.valor : ''))}</td>
+                                <td data-label="Aviso" class="td-curta">${contrato && contrato.avisoDias !== null ? `${escapeHtml(contrato.avisoDias)} dia(s)` : '—'}</td>
+                                <td data-label="Situação" class="td-curta"><span class="rh-badge ${sit.badgeClasse}">${escapeHtml(sit.rotulo)}</span></td>
+                                <td data-label="Ações">
+                                    <div class="tabela-acoes">
+                                        <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro"
+                                                data-acao="editar-contrato-pj"
+                                                data-colab-id="${escapeHtml(colab.id)}">
+                                            ${contrato ? 'Editar contrato' : 'Cadastrar contrato'}
+                                        </button>
+                                        <button type="button" class="rh-btn rh-btn-pequeno rh-btn-perigo"
+                                                data-acao="abrir-distrato-pj"
+                                                data-colab-id="${escapeHtml(colab.id)}">
+                                            Abrir distrato
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+/* ============================================================================
+   TELA 7: EXAMES (SST) DE TODOS OS COLABORADORES
+   ============================================================================ */
+function renderizarExames() {
+    const container = document.getElementById('exames-lista-container');
+    const badgeTotal = document.getElementById('exames-total-badge');
+    const filtroSituacao = estadoRh.filtroExameSituacao;
+    const filtroTipo = estadoRh.filtroExameTipo;
+
+    const filtrados = estadoRh.exames
+        .map((exame) => ({
+            exame,
+            sit: situacaoExame(exame),
+            colab: estadoRh.colaboradores.find((c) => c.id === exame.colaboradorId) || null
+        }))
+        .filter(({ exame, sit }) => {
+            if (filtroSituacao && sit.chave !== filtroSituacao) return false;
+            if (filtroTipo && exame.tipo !== filtroTipo) return false;
+            return true;
+        })
+        .sort((a, b) => (a.exame.vencimento || '9999').localeCompare(b.exame.vencimento || '9999'));
+
+    if (badgeTotal) badgeTotal.textContent = String(filtrados.length);
+    if (!container) return;
+
+    if (filtrados.length === 0) {
+        container.innerHTML = '<p class="rh-vazio-msg">Nenhum registro ainda</p>';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="rh-tabela-wrapper">
+            <table class="rh-tabela">
+                <thead>
+                    <tr>
+                        <th>Colaborador</th>
+                        <th>Tipo</th>
+                        <th>Realização</th>
+                        <th>Vencimento</th>
+                        <th>Situação</th>
+                        <th class="th-acoes">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filtrados.map(({ exame, sit, colab }) => `
+                        <tr>
+                            <td data-label="Colaborador">
+                                <div class="td-conteudo"><span class="td-principal">${escapeHtml(colab ? colab.nome : 'Colaborador')}</span>
+                                <span class="td-sub">${escapeHtml(colab ? `${colab.cargo} • ${colab.vinculo}` : '')}</span></div>
+                            </td>
+                            <td data-label="Tipo">${escapeHtml(TIPOS_EXAME[exame.tipo] || exame.tipo)}</td>
+                            <td data-label="Realização" class="td-curta">${escapeHtml(formatarDataBr(exame.dataRealizacao))}</td>
+                            <td data-label="Vencimento" class="td-curta">${escapeHtml(formatarDataBr(exame.vencimento))}</td>
+                            <td data-label="Situação" class="td-curta"><span class="rh-badge ${sit.badgeClasse}">${escapeHtml(sit.rotulo)}</span></td>
+                            <td data-label="Ações">
+                                <div class="tabela-acoes">
+                                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-suave"
+                                            data-acao="agendar-exame"
+                                            data-colab-id="${escapeHtml(exame.colaboradorId)}">
+                                        Agendar
+                                    </button>
+                                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-perigo"
+                                            data-acao="remover-exame"
+                                            data-exame-id="${escapeHtml(exame.id)}">
+                                        Remover
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+/* ============================================================================
+   TELA 8: FÉRIAS DOS COLABORADORES CLT
+   ============================================================================ */
+function renderizarFerias() {
+    const container = document.getElementById('ferias-lista-container');
+    const badgeTotal = document.getElementById('ferias-total-badge');
+    const clts = estadoRh.colaboradores.filter((c) => c.vinculo === 'CLT');
+
+    if (badgeTotal) badgeTotal.textContent = String(clts.length);
+    if (!container) return;
+
+    if (clts.length === 0) {
+        container.innerHTML = '<p class="rh-vazio-msg">Nenhum registro ainda</p>';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="rh-tabela-wrapper">
+            <table class="rh-tabela">
+                <thead>
+                    <tr>
+                        <th>Colaborador</th>
+                        <th>Período aquisitivo</th>
+                        <th>Período concessivo</th>
+                        <th>Saldo</th>
+                        <th>Programação</th>
+                        <th>Situação</th>
+                        <th class="th-acoes">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${clts.map((colab) => {
+                        const ferias = colab.ferias || null;
+                        const sit = situacaoFerias(colab);
+                        const per = sit.periodos;
+                        const programacao = ferias && ferias.programacaoInicio
+                            ? `${formatarDataBr(ferias.programacaoInicio)} a ${formatarDataBr(ferias.programacaoFim)}`
+                            : '—';
+                        return `
+                            <tr>
+                                <td data-label="Colaborador">
+                                    <div class="td-conteudo"><span class="td-principal">${escapeHtml(colab.nome)}</span>
+                                    <span class="td-sub">${escapeHtml(colab.cargo)} • Admissão: ${escapeHtml(formatarDataBr(colab.dataAdmissao))}</span></div>
+                                </td>
+                                <td data-label="Aquisitivo">
+                                    ${per ? `${escapeHtml(formatarDataBr(per.aquisitivoInicio))} a ${escapeHtml(formatarDataBr(per.aquisitivoFim))}` : '—'}
+                                </td>
+                                <td data-label="Concessivo">
+                                    ${per ? `${escapeHtml(formatarDataBr(per.concessivoInicio))} a ${escapeHtml(formatarDataBr(per.concessivoFim))}` : '—'}
+                                </td>
+                                <td data-label="Saldo" class="td-curta">${ferias ? `${escapeHtml(ferias.saldoDias)} dia(s)` : '—'}</td>
+                                <td data-label="Programação">${escapeHtml(programacao)}</td>
+                                <td data-label="Situação" class="td-curta"><span class="rh-badge ${sit.badgeClasse}">${escapeHtml(sit.rotulo)}</span></td>
+                                <td data-label="Ações">
+                                    <div class="tabela-acoes">
+                                        <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro"
+                                                data-acao="editar-ferias"
+                                                data-colab-id="${escapeHtml(colab.id)}">
+                                            ${ferias ? 'Editar' : 'Informar férias'}
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+/* ============================================================================
+   IMPRESSÃO DO CHECKLIST DE UM PROCESSO (SEM BARRA LATERAL NEM BOTÕES)
+   ============================================================================ */
+function imprimirChecklistProcesso(procId) {
+    const proc = estadoRh.processos.find((p) => p.id === procId);
+    const area = document.getElementById('rh-area-impressao');
+    if (!proc || !area) return;
+
+    const colab = estadoRh.colaboradores.find((c) => c.id === proc.colaboradorId);
+    const prog = calcularProgressoProcesso(proc);
+
+    area.innerHTML = `
+        <header class="impressao-cabecalho">
+            <span class="impressao-marca">AJBorges Transportes • Recursos Humanos</span>
+            <h1 class="impressao-titulo">${escapeHtml(proc.modeloNome)} — ${escapeHtml(colab ? colab.nome : 'Colaborador')}</h1>
+            <p class="impressao-meta">
+                Vínculo: ${escapeHtml(colab ? colab.vinculo : '—')} •
+                Progresso: ${escapeHtml(prog.texto)} •
+                Impresso em ${escapeHtml(formatarDataHoraAtual())} por ${escapeHtml(estadoRh.usuarioEmail)}
+            </p>
+        </header>
+        <table class="impressao-tabela">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Etapa</th>
+                    <th>Situação</th>
+                    <th>Responsável</th>
+                    <th>Prazo</th>
+                    <th>Observações</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${proc.etapas.length === 0 ? `
+                    <tr><td colspan="6">Nenhuma etapa cadastrada</td></tr>
+                ` : proc.etapas.map((etapa, idx) => {
+                    const dias = etapa.prazo ? diferencaDiasParaHoje(etapa.prazo) : null;
+                    let situacao = 'Pendente';
+                    if (etapa.concluida) situacao = 'Concluída';
+                    else if (dias !== null && dias < 0) situacao = 'Prazo vencido';
+                    return `
+                        <tr>
+                            <td>${idx + 1}</td>
+                            <td>${escapeHtml(etapa.nome)}</td>
+                            <td>${escapeHtml(situacao)}</td>
+                            <td>${escapeHtml(etapa.responsavel || 'A definir')}</td>
+                            <td>${escapeHtml(formatarDataBr(etapa.prazo))}</td>
+                            <td>
+                                ${(etapa.observacoes || []).length === 0 ? '—' : etapa.observacoes.map((obs) => `
+                                    <div class="impressao-obs">
+                                        <span class="impressao-obs-meta">${escapeHtml(obs.autor)} • ${escapeHtml(obs.dataHora)}</span>
+                                        ${escapeHtml(obs.texto)}
+                                    </div>
+                                `).join('')}
+                            </td>
+                        </tr>
+                    `;
+                }).join('')}
+            </tbody>
+        </table>
+        <p class="impressao-rodape">Protótipo: nada é salvo. Documento gerado a partir da sessão atual.</p>
+    `;
+
+    document.body.classList.add('rh-imprimindo');
+    window.print();
+}
+
+function limparImpressao() {
+    document.body.classList.remove('rh-imprimindo');
+    const area = document.getElementById('rh-area-impressao');
+    if (area) area.innerHTML = '';
+}
+
+/* ============================================================================
+   CRIAÇÃO DE PROCESSOS (MODAL, DISTRATO PJ E AGENDAMENTO DE EXAME)
+   ============================================================================ */
+function criarProcessoNaSessao(colaboradorId, modeloId, respPadrao = '', prazoBase = '') {
+    const modelo = estadoRh.modelos[modeloId];
+    if (!colaboradorId || !modelo) return null;
+
+    const novoProc = {
+        id: gerarId('proc'),
+        colaboradorId,
+        modeloId,
+        modeloNome: modelo.nome,
+        etapas: modelo.etapas.map((nomeEtapa) => ({
+            id: gerarId('etapa'),
+            nome: nomeEtapa,
+            concluida: false,
+            responsavel: respPadrao,
+            prazo: prazoBase,
+            observacoes: [],
+            anexos: []
+        }))
+    };
+
+    estadoRh.processos.push(novoProc);
+    return novoProc;
+}
+
+function abrirProcessoNaTela(procId) {
+    estadoRh.processoSelecionadoId = procId;
+    estadoRh.filtroTipoProcesso = '';
+    document.querySelectorAll('[data-filtro-tipo-proc]').forEach((b) => {
+        b.classList.toggle('ativo', b.getAttribute('data-filtro-tipo-proc') === '');
+    });
+    alternarTelaRh('processos');
+}
+
+// Evita duplicar: se já houver processo do mesmo modelo em andamento, abre o existente
+function abrirOuCriarProcesso(colaboradorId, modeloId) {
+    const existente = estadoRh.processos.find(
+        (p) => p.colaboradorId === colaboradorId && p.modeloId === modeloId && processoEmAndamento(p)
+    );
+    if (existente) {
+        abrirProcessoNaTela(existente.id);
+        exibirToast(`Já existe um processo "${existente.modeloNome}" em andamento para este colaborador.`);
+        return;
+    }
+    const novo = criarProcessoNaSessao(colaboradorId, modeloId);
+    if (!novo) return;
+    abrirProcessoNaTela(novo.id);
+    exibirToast(`Processo "${novo.modeloNome}" criado na sessão.`);
+}
+
+/* ============================================================================
+   MODAIS DE CADASTRO (COLABORADOR, PROCESSO, CONTRATO PJ, EXAME E FÉRIAS)
+   ============================================================================ */
+function preencherSelectColaboradores(selectId, lista, alvoId) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    select.innerHTML = lista.map((c) => (
+        `<option value="${escapeHtml(c.id)}" ${c.id === alvoId ? 'selected' : ''}>${escapeHtml(c.nome)} (${escapeHtml(c.vinculo)})</option>`
+    )).join('');
+}
+
+function definirValorCampo(id, valor) {
+    const el = document.getElementById(id);
+    if (el) el.value = valor === null || valor === undefined ? '' : String(valor);
+}
+
+function preencherCamposContratoPj(colabId) {
+    const colab = estadoRh.colaboradores.find((c) => c.id === colabId);
+    const contrato = colab && colab.contratoPj ? colab.contratoPj : {};
+    definirValorCampo('pj-inicio', contrato.inicio);
+    definirValorCampo('pj-fim', contrato.fim);
+    definirValorCampo('pj-valor', contrato.valor);
+    definirValorCampo('pj-aviso', contrato.avisoDias);
+}
+
+function abrirModalContratoPj(colabId = '') {
+    const prestadores = estadoRh.colaboradores.filter((c) => c.vinculo === 'PJ');
+    if (prestadores.length === 0) {
+        exibirToast('Cadastre primeiro um colaborador com vínculo PJ.');
+        return;
+    }
+    const alvoId = prestadores.some((c) => c.id === colabId) ? colabId : prestadores[0].id;
+    preencherSelectColaboradores('pj-colaborador', prestadores, alvoId);
+    preencherCamposContratoPj(alvoId);
+    const modal = document.getElementById('modal-contrato-pj');
+    if (modal) modal.hidden = false;
+}
+
+function abrirModalExame() {
+    if (estadoRh.colaboradores.length === 0) {
+        exibirToast('Cadastre primeiro um colaborador para registrar o exame.');
+        abrirModalColaborador();
+        return;
+    }
+    const form = document.getElementById('form-exame');
+    if (form) form.reset();
+    preencherSelectColaboradores('exame-colaborador', estadoRh.colaboradores, estadoRh.colaboradorSelecionadoId);
+    const modal = document.getElementById('modal-exame');
+    if (modal) modal.hidden = false;
+}
+
+function preencherCamposFerias(colabId) {
+    const colab = estadoRh.colaboradores.find((c) => c.id === colabId);
+    const ferias = colab && colab.ferias ? colab.ferias : {};
+    definirValorCampo('ferias-aquisitivo-inicio', ferias.aquisitivoInicio);
+    definirValorCampo('ferias-saldo', ferias.saldoDias);
+    definirValorCampo('ferias-prog-inicio', ferias.programacaoInicio);
+    definirValorCampo('ferias-prog-fim', ferias.programacaoFim);
+}
+
+function abrirModalFerias(colabId = '') {
+    const clts = estadoRh.colaboradores.filter((c) => c.vinculo === 'CLT');
+    if (clts.length === 0) {
+        exibirToast('Cadastre primeiro um colaborador com vínculo CLT.');
+        return;
+    }
+    const alvoId = clts.some((c) => c.id === colabId) ? colabId : clts[0].id;
+    preencherSelectColaboradores('ferias-colaborador', clts, alvoId);
+    preencherCamposFerias(alvoId);
+    const modal = document.getElementById('modal-ferias');
+    if (modal) modal.hidden = false;
+}
+
 function abrirModalColaborador() {
     const modal = document.getElementById('modal-colaborador');
     const form = document.getElementById('form-novo-colaborador');
@@ -1048,6 +1614,9 @@ const TITULOS_TELAS = {
     painel: 'Painel',
     colaboradores: 'Colaboradores',
     processos: 'Processos',
+    prestadores: 'Prestadores PJ',
+    exames: 'Exames (SST)',
+    ferias: 'Férias',
     modelos: 'Modelos de Etapas',
     agenda: 'Agenda'
 };
@@ -1061,7 +1630,7 @@ function alternarTelaRh(viewId) {
         link.classList.toggle('active', link.getAttribute('data-view') === destino);
     });
 
-    ['painel', 'colaboradores', 'processos', 'modelos', 'agenda'].forEach((id) => {
+    Object.keys(TITULOS_TELAS).forEach((id) => {
         const sec = document.getElementById(`view-${id}`);
         if (sec) {
             sec.style.display = id === destino ? 'flex' : 'none';
@@ -1218,39 +1787,103 @@ function registrarEventosPrototipo() {
             const respPadrao = (document.getElementById('proc-responsavel-padrao')?.value || '').trim();
             const prazoBase = document.getElementById('proc-prazo-inicial')?.value || '';
 
-            const modelo = estadoRh.modelos[modeloId];
-            if (!colaboradorId || !modelo) return;
-
-            const etapasCopiadas = modelo.etapas.map((nomeEtapa) => ({
-                id: gerarId('etapa'),
-                nome: nomeEtapa,
-                concluida: false,
-                responsavel: respPadrao,
-                prazo: prazoBase,
-                observacoes: [],
-                anexos: []
-            }));
-
-            const novoProc = {
-                id: gerarId('proc'),
-                colaboradorId,
-                modeloId,
-                modeloNome: modelo.nome,
-                etapas: etapasCopiadas
-            };
-
-            estadoRh.processos.push(novoProc);
-            estadoRh.processoSelecionadoId = novoProc.id;
-            estadoRh.filtroTipoProcesso = '';
-            document.querySelectorAll('[data-filtro-tipo-proc]').forEach((b) => {
-                b.classList.toggle('ativo', b.getAttribute('data-filtro-tipo-proc') === '');
-            });
+            const novoProc = criarProcessoNaSessao(colaboradorId, modeloId, respPadrao, prazoBase);
+            if (!novoProc) return;
 
             fecharModalPorId('modal-processo');
-            alternarTelaRh('processos');
-            exibirToast(`Processo "${modelo.nome}" criado na sessão.`);
+            abrirProcessoNaTela(novoProc.id);
+            exibirToast(`Processo "${novoProc.modeloNome}" criado na sessão.`);
         });
     }
+
+    // Prestadores PJ, Exames (SST) e Férias: botões das telas
+    document.getElementById('btn-cadastrar-contrato-pj')?.addEventListener('click', () => abrirModalContratoPj());
+    document.getElementById('btn-registrar-exame')?.addEventListener('click', abrirModalExame);
+    document.getElementById('btn-informar-ferias')?.addEventListener('click', () => abrirModalFerias());
+    document.getElementById('pj-colaborador')?.addEventListener('change', (e) => preencherCamposContratoPj(e.target.value));
+    document.getElementById('ferias-colaborador')?.addEventListener('change', (e) => preencherCamposFerias(e.target.value));
+
+    // Submissão: Contrato PJ
+    document.getElementById('form-contrato-pj')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const colab = estadoRh.colaboradores.find((c) => c.id === document.getElementById('pj-colaborador')?.value);
+        const inicio = document.getElementById('pj-inicio')?.value || '';
+        const fim = document.getElementById('pj-fim')?.value || '';
+        const valor = parseFloat(document.getElementById('pj-valor')?.value || '');
+        const avisoDias = parseInt(document.getElementById('pj-aviso')?.value || '', 10);
+
+        if (!colab || !inicio || !fim || Number.isNaN(valor) || Number.isNaN(avisoDias)) return;
+        if (fim < inicio) {
+            exibirToast('O fim do contrato não pode ser anterior ao início.');
+            return;
+        }
+
+        colab.contratoPj = { inicio, fim, valor, avisoDias };
+        fecharModalPorId('modal-contrato-pj');
+        atualizarTudo();
+        exibirToast('Contrato PJ salvo na sessão.');
+    });
+
+    // Submissão: Exame (SST)
+    document.getElementById('form-exame')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const colaboradorId = document.getElementById('exame-colaborador')?.value || '';
+        const tipo = document.getElementById('exame-tipo')?.value || '';
+        const dataRealizacao = document.getElementById('exame-data-realizacao')?.value || '';
+        const vencimento = document.getElementById('exame-vencimento')?.value || '';
+
+        if (!colaboradorId || !TIPOS_EXAME[tipo] || !dataRealizacao) return;
+        if (vencimento && vencimento < dataRealizacao) {
+            exibirToast('O vencimento não pode ser anterior à data de realização.');
+            return;
+        }
+
+        estadoRh.exames.push({ id: gerarId('exame'), colaboradorId, tipo, dataRealizacao, vencimento });
+        fecharModalPorId('modal-exame');
+        atualizarTudo();
+        exibirToast('Exame registrado na sessão.');
+    });
+
+    // Submissão: Férias
+    document.getElementById('form-ferias')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const colab = estadoRh.colaboradores.find((c) => c.id === document.getElementById('ferias-colaborador')?.value);
+        const aquisitivoInicio = document.getElementById('ferias-aquisitivo-inicio')?.value || '';
+        const saldoDias = parseInt(document.getElementById('ferias-saldo')?.value || '', 10);
+        const programacaoInicio = document.getElementById('ferias-prog-inicio')?.value || '';
+        const programacaoFim = document.getElementById('ferias-prog-fim')?.value || '';
+
+        if (!colab || !aquisitivoInicio || Number.isNaN(saldoDias)) return;
+        if (saldoDias < 0 || saldoDias > 30) {
+            exibirToast('O saldo de dias deve ficar entre 0 e 30.');
+            return;
+        }
+        if ((programacaoInicio && !programacaoFim) || (!programacaoInicio && programacaoFim)) {
+            exibirToast('Informe o início e o fim da programação (ou deixe os dois vazios).');
+            return;
+        }
+        if (programacaoFim && programacaoFim < programacaoInicio) {
+            exibirToast('O fim da programação não pode ser anterior ao início.');
+            return;
+        }
+
+        colab.ferias = { aquisitivoInicio, saldoDias, programacaoInicio, programacaoFim };
+        fecharModalPorId('modal-ferias');
+        atualizarTudo();
+        exibirToast('Férias salvas na sessão.');
+    });
+
+    // Filtros da tela Exames (SST)
+    document.getElementById('exame-filtro-situacao')?.addEventListener('change', (e) => {
+        estadoRh.filtroExameSituacao = e.target.value;
+        renderizarExames();
+    });
+    document.getElementById('exame-filtro-tipo')?.addEventListener('change', (e) => {
+        estadoRh.filtroExameTipo = e.target.value;
+        renderizarExames();
+    });
+
+    window.addEventListener('afterprint', limparImpressao);
 
     // Busca e filtros de Colaboradores
     ['colab-busca', 'colab-filtro-vinculo', 'colab-filtro-situacao'].forEach((id) => {
@@ -1315,6 +1948,23 @@ function registrarEventosPrototipo() {
                 estadoRh.colaboradorSelecionadoId = colabId;
                 alternarTelaRh('colaboradores');
             }
+        } else if (acao === 'ir-tela') {
+            const view = btnAcao.getAttribute('data-view');
+            if (view) alternarTelaRh(view);
+        } else if (acao === 'editar-contrato-pj') {
+            abrirModalContratoPj(btnAcao.getAttribute('data-colab-id') || '');
+        } else if (acao === 'abrir-distrato-pj') {
+            abrirOuCriarProcesso(btnAcao.getAttribute('data-colab-id') || '', 'distrato_pj');
+        } else if (acao === 'agendar-exame') {
+            abrirOuCriarProcesso(btnAcao.getAttribute('data-colab-id') || '', 'exame_periodico');
+        } else if (acao === 'remover-exame') {
+            const exameId = btnAcao.getAttribute('data-exame-id');
+            estadoRh.exames = estadoRh.exames.filter((ex) => ex.id !== exameId);
+            atualizarTudo();
+        } else if (acao === 'editar-ferias') {
+            abrirModalFerias(btnAcao.getAttribute('data-colab-id') || '');
+        } else if (acao === 'imprimir-processo') {
+            imprimirChecklistProcesso(btnAcao.getAttribute('data-proc-id') || '');
         } else if (acao === 'alternar-conclusao-etapa') {
             const procId = btnAcao.getAttribute('data-proc-id');
             const etapaId = btnAcao.getAttribute('data-etapa-id');
