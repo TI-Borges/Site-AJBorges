@@ -200,7 +200,23 @@ function situacaoContratoPj(colab) {
     return { dias, rotulo: 'Vigente', badgeClasse: 'badge-verde', faixa: '' };
 }
 
+// Por colaborador e tipo, só vale o exame com a realização mais recente (empate: o registrado por último);
+// os anteriores ficam como histórico
+function exameSubstituido(exame) {
+    const posicao = estadoRh.exames.indexOf(exame);
+    return estadoRh.exames.some((outro, idx) => (
+        outro !== exame &&
+        outro.colaboradorId === exame.colaboradorId &&
+        outro.tipo === exame.tipo &&
+        (outro.dataRealizacao > exame.dataRealizacao ||
+            (outro.dataRealizacao === exame.dataRealizacao && idx > posicao))
+    ));
+}
+
 function situacaoExame(exame) {
+    if (exameSubstituido(exame)) {
+        return { chave: 'substituido', dias: null, rotulo: 'Substituído', badgeClasse: 'badge-neutro' };
+    }
     if (!exame.vencimento) {
         return { chave: 'sem_vencimento', dias: null, rotulo: 'Sem vencimento', badgeClasse: 'badge-neutro' };
     }
@@ -282,7 +298,7 @@ function processoEmAndamento(proc) {
     return proc.etapas.some((e) => !e.concluida);
 }
 
-// Junta o próximo exame do cadastro e os vencimentos da tela Exames (SST):
+// Junta o próximo exame do cadastro e os vencimentos da tela Exames (SST), sem os substituídos:
 // um item por colaborador, valendo o vencimento mais próximo
 function coletarVencimentosExame() {
     return estadoRh.colaboradores.map((colab) => {
@@ -291,7 +307,7 @@ function coletarVencimentosExame() {
             candidatos.push({ data: colab.dataProximoExame, rotulo: 'Exame periódico', origem: 'cadastro' });
         }
         estadoRh.exames.forEach((exame) => {
-            if (exame.colaboradorId !== colab.id || !exame.vencimento) return;
+            if (exame.colaboradorId !== colab.id || !exame.vencimento || exameSubstituido(exame)) return;
             candidatos.push({
                 data: exame.vencimento,
                 rotulo: `Exame ${(TIPOS_EXAME[exame.tipo] || exame.tipo).toLowerCase()}`,
