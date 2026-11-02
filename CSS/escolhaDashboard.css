@@ -442,10 +442,12 @@ body {
     --aj-laranja-borda: #fcc8b8;
     --aj-laranja-glow: rgba(238, 77, 45, 0.14);
 
-    /* Acento Card RH (Neutro provisório) */
-    --aj-neutro-primario: #64748b;
-    --aj-neutro-suave: #f1f5f9;
-    --aj-neutro-borda: #cbd5e1;
+    /* Acento Card RH (Violeta do Dashboard RH) */
+    --aj-violeta-primario: #7c3aed;
+    --aj-violeta-hover: #6d28d9;
+    --aj-violeta-suave: #f5f3ff;
+    --aj-violeta-borda: #ddd6fe;
+    --aj-violeta-glow: rgba(124, 58, 237, 0.14);
 }
 
 /* Card Torre de Controle - Shoppe */
@@ -484,41 +486,35 @@ body {
     box-shadow: 0 6px 18px rgba(238, 77, 45, 0.35);
 }
 
-/* Card Dashboard - RH (em breve: apagado e sem interação) */
-.card-rh {
-    cursor: default;
-    opacity: 0.7;
+/* Card Dashboard - RH */
+.card-rh::before {
+    background: linear-gradient(90deg, #7c3aed, #8b5cf6);
 }
 
-.card-rh::before {
-    background: linear-gradient(90deg, #94a3b8, #cbd5e1);
+.card-rh:hover,
+.card-rh:focus-visible {
+    border-color: var(--aj-violeta-primario);
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px -8px rgba(124, 58, 237, 0.16), 0 4px 12px -2px rgba(124, 58, 237, 0.08);
+    outline: none;
 }
 
 .card-rh .card-icon-container,
 .card-rh .card-tag {
-    background-color: var(--aj-neutro-suave);
-    color: var(--aj-neutro-primario);
-    border: 1px solid var(--aj-neutro-borda);
+    background-color: var(--aj-violeta-suave);
+    color: var(--aj-violeta-primario);
+    border: 1px solid var(--aj-violeta-borda);
 }
 
 .card-rh .card-button {
-    background-color: var(--aj-neutro-suave);
-    color: var(--aj-neutro-primario);
-    border: 1px solid var(--aj-neutro-borda);
-    cursor: not-allowed;
+    background-color: var(--aj-violeta-primario);
+    color: #ffffff;
+    box-shadow: 0 4px 12px var(--aj-violeta-glow);
 }
 
-.card-rh .arrow-icon-circle {
-    background: rgba(100, 116, 139, 0.12);
-}
-
-.card-rh:hover .card-icon-container,
-.card-rh:hover .arrow-icon-circle {
-    transform: none;
-}
-
-.card-rh:hover .arrow-icon-circle {
-    background: rgba(100, 116, 139, 0.12);
+.card-rh:hover .card-button {
+    background-color: var(--aj-violeta-hover);
+    box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
 }
 
 /* ==========================================================================

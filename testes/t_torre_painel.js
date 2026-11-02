@@ -1,5 +1,6 @@
-// Seleção de painéis com 4 cards (Portal da Frota, Cadastro, Torre Shoppe, RH em breve)
+// Seleção de painéis com 4 cards (Portal da Frota, Cadastro, Torre Shoppe, Dashboard - RH)
 // e acesso à Torre de Controle: admin entra, quem não é admin vai para o login.
+// Salva o print do card RH em testes/capturas/escolha_card_rh.png
 // Uso: node testes/t_torre_painel.js [larguras]   (padrão 360,768,1440)
 const http = require('http');
 const fs = require('fs');
@@ -10,6 +11,7 @@ const { abrir } = require('./harness');
 const LARGURAS = (process.argv[2] || '360,768,1440').split(',').map(Number);
 const RAIZ = path.resolve(__dirname, '..');
 const TORRE = '/torre-de-controle-shoppe/HTML/index.html';
+const RH = '/dashboard-rh/HTML/index.html';
 let falhas = 0;
 const ok = (cond, msg) => { console.log(`${cond ? 'OK  ' : 'FALHA'} ${msg}`); if (!cond) falhas++; };
 
@@ -62,8 +64,19 @@ function servidorReal() {
         foraDaTela: r.filter(x => x.right > window.innerWidth + 1 || x.left < -1).length,
         torreHref: cards[2].getAttribute('href'),
         torreBotao: getComputedStyle(cards[2].querySelector('.card-button')).backgroundColor,
-        rhDesab: cards[3].getAttribute('aria-disabled') === 'true' && cards[3].querySelector('.card-button').disabled,
-        rhLinks: cards[3].querySelectorAll('a').length
+        rhHref: cards[3].getAttribute('href'),
+        rhAtivo: !cards[3].hasAttribute('aria-disabled') && !cards[3].querySelector('.card-button').disabled,
+        rhTexto: cards[3].textContent.replace(/\s+/g, ' ').trim(),
+        rhTag: cards[3].querySelectorAll('.card-tag').length,
+        rhBotao: getComputedStyle(cards[3].querySelector('.card-button')).backgroundColor,
+        rhFaixa: getComputedStyle(cards[3], '::before').backgroundImage,
+        rhIcone: getComputedStyle(cards[3].querySelector('.card-icon-container')).color,
+        rhSeta: cards[3].querySelectorAll('.arrow-icon-circle line').length === 1 && !cards[3].querySelector('.arrow-icon-circle circle'),
+        // Mesmo estilo base da Torre (borda, raio, sombra, opacidade, cursor, botão)
+        mesmoEstilo: ['borderTopWidth', 'borderRadius', 'boxShadow', 'opacity', 'cursor', 'paddingTop']
+          .filter(p => getComputedStyle(cards[2])[p] !== getComputedStyle(cards[3])[p]),
+        mesmoBotao: ['height', 'borderRadius', 'fontSize', 'fontWeight', 'color']
+          .filter(p => getComputedStyle(cards[2].querySelector('.card-button'))[p] !== getComputedStyle(cards[3].querySelector('.card-button'))[p])
       };
     });
     console.log(`\n${w}px:`, JSON.stringify(m));
@@ -73,17 +86,39 @@ function servidorReal() {
     ok(!m.rolagemH && m.foraDaTela === 0, `${w}px: sem rolagem lateral`);
     ok(m.torreHref === TORRE, `${w}px: Torre aponta para ${TORRE}`);
     ok(m.torreBotao === 'rgb(238, 77, 45)', `${w}px: botão da Torre laranja #EE4D2D`);
-    ok(m.tags[3] === 'DIV' && m.rhDesab && m.rhLinks === 0, `${w}px: RH é div desabilitada, sem link`);
+    ok(m.tags[3] === 'A' && m.rhHref === RH && m.rhAtivo, `${w}px: RH é link ativo para ${RH}`);
+    ok(m.rhBotao === 'rgb(124, 58, 237)' && m.rhIcone === 'rgb(124, 58, 237)', `${w}px: botão e ícone do RH violeta #7c3aed`);
+    ok(m.rhFaixa.includes('rgb(124, 58, 237)'), `${w}px: faixa de cor violeta no topo do RH`);
+    ok(!/em breve|em desenvolvimento/i.test(m.rhTexto) && m.rhTag === 0, `${w}px: sem selo/botão "Em breve" nem "Em desenvolvimento"`);
+    ok(m.rhTexto.includes('Gestão de pessoas, admissões, rescisões, exames e férias.') && m.rhTexto.includes('Acessar Dashboard do RH') && m.rhSeta,
+      `${w}px: descrição nova e botão "Acessar" com seta`);
+    ok(m.mesmoEstilo.length === 0 && m.mesmoBotao.length === 0, `${w}px: mesmo estilo do card da Torre ${JSON.stringify([m.mesmoEstilo, m.mesmoBotao])}`);
   }
 
-  // RH não navega
+  // Hover do RH: sobe, borda e botão violeta (como os outros cards)
   await page.setViewport({ width: 1440, height: 900 });
   await page.goto(`${base}/HTML/escolhaDashboard.html`, { waitUntil: 'load' });
-  const antes = page.url();
-  await page.click('#card-dashboard-rh');
-  await page.click('#card-dashboard-rh .card-button').catch(() => {});
+  await page.hover('#card-dashboard-rh');
   await new Promise(r => setTimeout(r, 500));
-  ok(page.url() === antes, 'clicar no RH não sai da página');
+  const hov = await page.evaluate(() => {
+    const c = document.getElementById('card-dashboard-rh');
+    const s = getComputedStyle(c);
+    return { borda: s.borderTopColor, transform: s.transform, botao: getComputedStyle(c.querySelector('.card-button')).backgroundColor };
+  });
+  ok(hov.borda === 'rgb(124, 58, 237)' && hov.transform.includes('-6') && hov.botao === 'rgb(109, 40, 217)', `hover do RH igual aos outros ${JSON.stringify(hov)}`);
+
+  // Print do card RH
+  await page.mouse.move(0, 0);
+  await new Promise(r => setTimeout(r, 500));
+  fs.mkdirSync(path.join(RAIZ, 'testes', 'capturas'), { recursive: true });
+  const cardRh = await page.$('#card-dashboard-rh');
+  await cardRh.screenshot({ path: path.join(RAIZ, 'testes', 'capturas', 'escolha_card_rh.png') });
+  ok(fs.existsSync(path.join(RAIZ, 'testes', 'capturas', 'escolha_card_rh.png')), 'print salvo em testes/capturas/escolha_card_rh.png');
+
+  // RH navega para o Dashboard do RH
+  await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.click('#card-dashboard-rh')]);
+  ok(page.url() === `${base}${RH}`, 'clicar no RH abre o Dashboard do RH');
+  await page.goto(`${base}/HTML/escolhaDashboard.html`, { waitUntil: 'load' });
 
   // Torre navega para a página certa
   await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.click('#card-torre-shoppe')]);
