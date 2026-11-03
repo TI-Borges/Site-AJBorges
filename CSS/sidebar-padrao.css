@@ -9,7 +9,8 @@
    ========================================================================== */
 
 :root {
-    /* Mesma largura nos 4 (cada dashboard usa um nome de variável) */
+    /* Mesma largura nos 4 (cada dashboard usa um nome de variável). Fontes em px: cada página tem
+       um tamanho de fonte na raiz, então rem daria tamanhos diferentes (valores do RH, raiz 15px) */
     --sidebar-largura: 268px;
     --sidebar-colapsada: 74px;
     --sidebar-recolhida-largura: 74px;
@@ -108,7 +109,7 @@
 
 .ajb-sidebar .brand-name {
     font-family: 'Outfit', sans-serif;
-    font-size: 1.12rem;
+    font-size: 16.8px;
     font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.2;
@@ -116,7 +117,7 @@
 }
 
 .ajb-sidebar .brand-tag {
-    font-size: 0.7rem;
+    font-size: 10.5px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -162,7 +163,7 @@
 }
 
 .ajb-sidebar .nav-group-label {
-    font-size: 0.68rem;
+    font-size: 10.2px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -193,7 +194,7 @@
     border-radius: 10px;
     color: var(--sb-texto);
     text-decoration: none;
-    font-size: 0.88rem;
+    font-size: 13.2px;
     font-weight: 500;
     line-height: 1.4;
     position: relative;
@@ -295,7 +296,7 @@
     align-items: center;
     justify-content: center;
     font-family: 'Outfit', sans-serif;
-    font-size: 0.85rem;
+    font-size: 12.75px;
     font-weight: 700;
     flex-shrink: 0;
 }
@@ -309,7 +310,7 @@
 }
 
 .ajb-sidebar .user-email {
-    font-size: 0.78rem;
+    font-size: 11.7px;
     font-weight: 600;
     color: var(--sb-texto-forte);
     white-space: nowrap;
@@ -326,7 +327,7 @@
 
 /* Selo do perfil (ADMINISTRADOR / DIRETORIA ...) */
 .ajb-sidebar .role-tag {
-    font-size: 0.62rem;
+    font-size: 9.3px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -360,7 +361,7 @@
     color: #f87171;
     border: 1px solid rgba(239, 68, 68, 0.25);
     font-family: inherit;
-    font-size: 0.82rem;
+    font-size: 12.3px;
     font-weight: 600;
     line-height: 1.4;
     cursor: pointer;

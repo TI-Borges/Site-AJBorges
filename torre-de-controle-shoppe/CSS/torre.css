@@ -278,23 +278,9 @@ body {
     text-overflow: ellipsis;
 }
 
-/* Rodapé da Sidebar (Hub e Sair) */
-.sidebar-footer {
-    padding: 10px;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    flex-shrink: 0;
-}
-
-.sidebar-logout {
-    color: #fca5a5;
-}
-
-.sidebar-logout:hover {
-    background-color: rgba(239, 68, 68, 0.18);
-    color: #fecaca;
+/* Rodapé (usuário e Sair) e "<": visual em /CSS/sidebar-padrao.css */
+.btn-toggle-sidebar {
+    display: inline-flex;
 }
 
 /* Estado Recolhido da Barra Lateral (Desktop) */
@@ -304,8 +290,11 @@ body {
 }
 
 .torre-sidebar.sidebar-recolhida .brand-info,
+.torre-sidebar.sidebar-recolhida .btn-toggle-sidebar,
 .torre-sidebar.sidebar-recolhida .nav-group-label,
-.torre-sidebar.sidebar-recolhida .nav-text {
+.torre-sidebar.sidebar-recolhida .nav-text,
+.torre-sidebar.sidebar-recolhida .user-details,
+.torre-sidebar.sidebar-recolhida .btn-logout-sidebar span {
     display: none;
 }
 
@@ -1854,8 +1843,8 @@ body.modo-tv .torre-tabela-scroll {
 @media (max-width: 900px) {
     .torre-sidebar {
         transform: translateX(-105%);
-        width: 256px !important;
-        min-width: 256px !important;
+        width: 268px !important;
+        min-width: 268px !important;
     }
 
     .torre-sidebar.sidebar-aberta {
@@ -1864,17 +1853,26 @@ body.modo-tv .torre-tabela-scroll {
 
     .torre-sidebar.sidebar-aberta .brand-info,
     .torre-sidebar.sidebar-aberta .nav-group-label,
-    .torre-sidebar.sidebar-aberta .nav-text {
+    .torre-sidebar.sidebar-aberta .nav-text,
+    .torre-sidebar.sidebar-aberta .user-details {
         display: flex !important;
+    }
+
+    .torre-sidebar.sidebar-aberta .btn-logout-sidebar span {
+        display: inline !important;
     }
 
     .torre-sidebar.sidebar-aberta .nav-link {
         justify-content: flex-start !important;
-        padding: 9px 11px !important;
+        padding: 10px 13px !important;
     }
 
     .btn-fechar-sidebar {
         display: inline-flex;
+    }
+
+    .btn-toggle-sidebar {
+        display: none;
     }
 
     .torre-sidebar-backdrop.visivel {

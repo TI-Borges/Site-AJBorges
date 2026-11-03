@@ -1752,6 +1752,7 @@ function inicializarSidebar() {
     const brandBtn = document.getElementById('sidebar-brand');
     const btnMobile = document.getElementById('btn-mobile-menu');
     const btnFechar = document.getElementById('btn-fechar-sidebar');
+    const btnRecolher = document.getElementById('btn-toggle-sidebar');
     const backdrop = document.getElementById('torre-sidebar-backdrop');
 
     if (!sidebar || !brandBtn) return;
@@ -1782,6 +1783,7 @@ function inicializarSidebar() {
     };
 
     brandBtn.addEventListener('click', alternarSidebarDesktop);
+    if (btnRecolher) btnRecolher.addEventListener('click', alternarSidebarDesktop);
     brandBtn.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -2123,16 +2125,11 @@ function registrarEventosGlobais() {
 /* ============================================================================
    INICIALIZAÇÃO AUTENTICADA (ADMIN E DIRETORIA)
    ============================================================================ */
-ajbAoAutenticar(['admin', 'diretoria'], '/HTML/Login.html#admin', async () => {
-    window.ajbAuth.vigiarSessao(['admin', 'diretoria'], '/HTML/Login.html#admin');
+ajbAoAutenticar(['admin', 'diretoria'], '/HTML/Login.html#admin', async (usuario) => {
+    window.ajbAuth.vigiarSessao('/HTML/Login.html#admin');
 
-    const botaoSair = document.getElementById('torre-sair');
-    if (botaoSair) {
-        botaoSair.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.ajbAuth.sair('/HTML/Login.html#admin');
-        });
-    }
+    // Rodapé da barra lateral (avatar, e-mail, selo do perfil e Sair): JavaScript/sidebar-padrao.js
+    window.ajbSidebar?.iniciar(usuario);
 
     carregarEstadoSalvoAbas();
     inicializarSidebar();
