@@ -23,6 +23,8 @@
 
     <!-- Folha de Estilos Base -->
     <link rel="stylesheet" href="../CSS/dashboard-admin.css?v=3.0">
+    <!-- Barra lateral padrão dos dashboards (depois do CSS da página) -->
+    <link rel="stylesheet" href="/CSS/sidebar-padrao.css?v=1">
 
     <!-- Verificação de Sessão Administrativa (Route Guard) -->
     <script>
@@ -368,19 +370,25 @@
         <!-- ====================================================================
              1. SIDEBAR LATERAL
              ==================================================================== -->
-        <aside class="admin-sidebar" id="admin-sidebar">
+        <aside class="admin-sidebar ajb-sidebar ajb-sidebar--cadastro" id="admin-sidebar">
             <div class="sidebar-header">
                 <!-- Logo: recolhe e abre a barra (alternarSidebar, no script desta página) -->
                 <div class="sidebar-brand" id="sidebar-brand" role="button" tabindex="0" aria-label="Recolher menu"
                     aria-expanded="true" aria-controls="admin-sidebar" title="Recolher menu">
-                    <div class="brand-logo-wrapper" style="background: linear-gradient(135deg, #059669, #10b981);">
+                    <div class="brand-logo-wrapper">
                         <img src="../Imagens/logo-brand-1x.png" srcset="../Imagens/logo-brand-1x.png 1x, ../Imagens/logo-brand-2x.png 2x" alt="AJBorges Logo" class="brand-logo" width="24" height="16">
                     </div>
                     <div class="brand-info">
                         <span class="brand-name">AJBorges</span>
-                        <span class="brand-tag" style="color: #34d399;">Cadastro do Motorista</span>
+                        <span class="brand-tag">Cadastro do Motorista</span>
                     </div>
                 </div>
+                <button type="button" class="btn-toggle-sidebar" id="btn-toggle-sidebar" aria-label="Recolher Menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
             </div>
 
             <nav class="sidebar-nav" aria-label="Menu de Fichas Cadastrais">
@@ -403,25 +411,6 @@
                                 style="background-color: #334155;">0</span>
                         </a>
                     </li>
-                </ul>
-
-                <div class="nav-group-label" style="margin-top: 24px;">SISTEMAS &amp; PAINÉIS</div>
-                <ul class="nav-list">
-                    <li class="nav-item">
-                        <a href="escolhaDashboard.html" class="nav-link" title="Retornar à tela de escolha">
-                            <span class="nav-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
-                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                    stroke-linejoin="round">
-                                    <rect x="3" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="14" width="7" height="7"></rect>
-                                    <rect x="3" y="14" width="7" height="7"></rect>
-                                </svg>
-                            </span>
-                            <span class="nav-text">Hub de Dashboard</span>
-                        </a>
-                    </li>
                     <li class="nav-item">
                         <a href="FichaMultiCadastro.html" class="nav-link btn-sidebar-create-driver"
                             title="Abrir formulário de cadastro de motorista (Seja um Agregado Conosco)">
@@ -437,27 +426,51 @@
                         </a>
                     </li>
                 </ul>
+
+                <!-- Barra lateral padrão dos 4 dashboards (CSS/sidebar-padrao.css) -->
+                <div class="nav-group-label nav-group-sistemas">SISTEMAS &amp; PAINÉIS</div>
+                <ul class="nav-list">
+                    <li class="nav-item">
+                        <a href="/HTML/escolhaDashboard.html" class="nav-link nav-link-hub" id="sidebar-link-hub"
+                            title="Hub de Dashboard">
+                            <span class="nav-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <rect x="3" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="14" width="7" height="7"></rect>
+                                    <rect x="3" y="14" width="7" height="7"></rect>
+                                </svg>
+                            </span>
+                            <span class="nav-text">Hub de Dashboard</span>
+                        </a>
+                    </li>
+                </ul>
             </nav>
 
+            <!-- Rodapé: usuário logado e Sair (JavaScript/sidebar-padrao.js) -->
             <div class="sidebar-footer">
-                <div class="user-profile-badge">
-                    <div class="user-avatar-circle" style="background: linear-gradient(135deg, #059669, #10b981);">RH
-                    </div>
+                <div class="user-profile-badge" id="sidebar-user-badge">
+                    <div class="user-avatar-circle" id="user-avatar-initials" aria-hidden="true"></div>
                     <div class="user-details">
-                        <span class="user-email">cadastro@ajborges.com</span>
+                        <span class="user-email" id="sidebar-user-email"></span>
                         <div class="user-role-row">
-                            <span class="role-tag">Triagem &amp; Agregados</span>
-                            <span class="pulse-online"></span>
+                            <span class="role-tag" id="sidebar-user-role"></span>
+                            <span class="pulse-online" title="Conectado"></span>
                         </div>
                     </div>
                 </div>
-                <a href="escolhaDashboard.html" class="btn-logout-sidebar" title="Voltar ao Hub">
+                <button type="button" class="btn-logout-sidebar" id="btn-logout" title="Sair">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="15 18 9 12 15 6"></polyline>
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
                     </svg>
-                    <span>Hub</span>
-                </a>
+                    <span>Sair</span>
+                </button>
             </div>
         </aside>
 
@@ -468,6 +481,14 @@
             <!-- Topbar Superior -->
             <header class="admin-topbar">
                 <div class="topbar-left">
+                    <button type="button" class="btn-mobile-menu" id="btn-mobile-menu" aria-label="Abrir Menu">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
                     <div class="topbar-title-block">
                         <h1 class="topbar-title">Fichas Cadastrais</h1>
                         <p class="topbar-subtitle">
@@ -661,6 +682,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../JavaScript/supabase-client.js"></script>
     <script src="../JavaScript/auth.js"></script>
+    <script src="/JavaScript/sidebar-padrao.js?v=1"></script>
     <script src="../JavaScript/aviso-atualizacao-gestao.js?v=3"></script>
     <script src="../JavaScript/aviso-atualizacao.js?v=3" data-aviso-local="cadastro"></script>
     <script src="../JavaScript/notificacoes-gestao.js?v=1"></script>
@@ -674,11 +696,13 @@
             iniciarNotificacoesCadastros(usuarioSessao && usuarioSessao.id);
         });
 
-        // Barra lateral recolhível pelo logo, igual à do dashboard da frota (classes do
-        // dashboard-admin.css). Só no computador; no celular esta barra não aparece, nada muda.
+        // Barra lateral recolhível pelo logo e pelo "<", igual à do dashboard da frota (classes do
+        // dashboard-admin.css). Computador: recolhe (só ícones) e lembra; celular: gaveta pelo menu.
         (function () {
             const sidebar = document.getElementById('admin-sidebar');
             const logoSidebar = document.getElementById('sidebar-brand');
+            const btnToggleSidebar = document.getElementById('btn-toggle-sidebar');
+            const btnMobileMenu = document.getElementById('btn-mobile-menu');
             const layoutApp = document.querySelector('.admin-app-layout');
             const CHAVE_SIDEBAR = 'ajborges_sidebar_recolhida_cadastro';
             if (!sidebar || !logoSidebar || !layoutApp) return;
@@ -709,7 +733,10 @@
             };
 
             const alternarSidebar = () => {
-                if (window.matchMedia('(max-width: 992px)').matches) return;
+                if (window.matchMedia('(max-width: 992px)').matches) {
+                    sidebar.classList.toggle('sidebar-aberta');
+                    return;
+                }
                 const recolhida = !layoutApp.classList.contains('sidebar-recolhida');
                 aplicarSidebarRecolhida(recolhida);
                 try { localStorage.setItem(CHAVE_SIDEBAR, recolhida ? '1' : '0'); } catch (e) { /* só nesta aba */ }
@@ -728,6 +755,8 @@
                 if (item && layoutApp.classList.contains('sidebar-recolhida')) colocarDicaSidebar(item);
             });
             logoSidebar.addEventListener('click', alternarSidebar);
+            if (btnToggleSidebar) btnToggleSidebar.addEventListener('click', alternarSidebar);
+            if (btnMobileMenu) btnMobileMenu.addEventListener('click', () => sidebar.classList.toggle('sidebar-aberta'));
             logoSidebar.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
@@ -1724,19 +1753,9 @@ ${secao('Documentos extras', listaExtras)}
             abrirModal(c.id);
         }
 
+        // Rodapé da barra lateral (avatar, e-mail, selo do perfil e Sair): JavaScript/sidebar-padrao.js
         function atualizarUsuarioLateral() {
-            try {
-                const u = JSON.parse(localStorage.getItem('ajborges_usuario_ativo') || 'null');
-                if (!u) return;
-                const emailEl = document.querySelector('.sidebar-footer .user-email');
-                const avatarEl = document.querySelector('.sidebar-footer .user-avatar-circle');
-                const papelEl = document.querySelector('.sidebar-footer .role-tag');
-                if (emailEl) emailEl.textContent = u.email || '';
-                const partes = String(u.nome || '').trim().split(/\s+/).filter(Boolean);
-                const iniciais = partes.length ? (partes[0][0] + (partes.length > 1 ? partes[partes.length - 1][0] : '')) : String(u.email || '').slice(0, 2);
-                if (avatarEl) avatarEl.textContent = iniciais.toUpperCase();
-                if (papelEl) papelEl.textContent = u.role === 'diretoria' ? 'Diretoria' : 'Administrador';
-            } catch (e) { /* ignora */ }
+            window.ajbSidebar?.iniciar();
         }
 
         // Sino de cadastros novos (só cadastros_agregados; fichas de viagem ficam no sino da frota).

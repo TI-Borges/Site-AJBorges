@@ -1,7 +1,7 @@
 // Barra lateral recolhível pelo logo nos dois dashboards: clique no logo e no "<" (frota), Enter e
 // espaço, aria-label/aria-expanded, só ícones (textos e números somem), title com o nome do item,
 // conteúdo ocupa o espaço, escolha lembrada ao recarregar (chave por dashboard), 1366 e 1920 px sem
-// rolagem lateral; no celular o comportamento de antes (gaveta da frota; barra do cadastro escondida).
+// rolagem lateral; no celular a gaveta (frota: menu e "<"; cadastro: o logo também abre a gaveta).
 const { abrir } = require('./harness');
 
 const LARGURAS = (process.argv[2] || '1366,1920').split(',').map(Number);
