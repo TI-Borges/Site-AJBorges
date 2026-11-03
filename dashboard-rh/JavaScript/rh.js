@@ -7,6 +7,8 @@
  * botões que o papel não pode usar. Depois de cada gravação, relê tudo.
  * Anexos: arquivo no bucket privado rh-anexos (abre só por link assinado de
  * 60 segundos) e dados em rh.anexos.
+ * Lixeira (R05): excluir/restaurar colaborador pelas RPCs do schema rh (nada é
+ * apagado); o banco já esconde o excluído e tudo que é dele de todas as leituras.
  * ============================================================================
  */
 
@@ -50,6 +52,8 @@ const estadoRh = {
     modeloIndexEditando: null,
     // Envios de anexo em andamento: etapaId -> texto da barra de envio
     enviosAnexo: {},
+    // Lixeira: lida pela RPC rh.lixeira() ao abrir a tela (só rh e admin)
+    lixeira: [],
 
     // Modelos de etapas por chave (rescisao_clt, distrato_pj, exame_periodico, admissao_clt)
     modelos: {}
@@ -193,6 +197,12 @@ async function atualizarRh(tabela, id, valores) {
     return data;
 }
 
+async function chamarRpcRh(funcao, argumentos) {
+    const { data, error } = await bancoRh().rpc(funcao, argumentos);
+    if (error) throw error;
+    return data;
+}
+
 function mensagemDeErro(erro, acao) {
     const texto = String((erro && (erro.message || erro.details)) || erro || '');
     const codigo = String((erro && erro.code) || '');
@@ -203,6 +213,9 @@ function mensagemDeErro(erro, acao) {
     }
     if (codigo === '42501' || status === 403 || /permission denied|row-level security/i.test(texto)) {
         return `Sem permissão para ${acao} com o seu usuário. Nada foi alterado.`;
+    }
+    if (codigo === 'P0002') {
+        return `Não foi possível ${acao}: o colaborador não foi encontrado (pode já ter sido excluído ou restaurado em outra tela).`;
     }
     if (codigo === 'PGRST106') {
         return `Não foi possível ${acao}: o schema "rh" ainda não está liberado na API do Supabase.`;
@@ -256,8 +269,9 @@ function montarEstado(linhas) {
             modelos[chavePorModeloId[e.modelo_id]].etapas.push({ id: e.id, nome: e.nome, ordem: e.ordem });
         });
 
+    const excluidos = new Set(linhas.colaboradores.filter((c) => c.excluido_em).map((c) => c.id));
     const colaboradores = linhas.colaboradores
-        .filter((c) => c.ativo)
+        .filter((c) => c.ativo && !c.excluido_em)
         .sort(porCriacao)
         .map((c) => ({
             id: c.id,
@@ -299,7 +313,7 @@ function montarEstado(linhas) {
 
     // Ordem de registro: no empate de data, vale o registrado por último (exameSubstituido)
     const exames = linhas.exames
-        .filter((ex) => ex.ativo)
+        .filter((ex) => ex.ativo && !excluidos.has(ex.colaborador_id))
         .sort(porCriacao)
         .map((ex) => ({
             id: ex.id,
@@ -348,7 +362,7 @@ function montarEstado(linhas) {
     });
 
     const processos = linhas.processos
-        .filter((p) => !p.cancelado)
+        .filter((p) => !p.cancelado && !excluidos.has(p.colaborador_id))
         .sort(porCriacao)
         .map((p) => ({
             id: p.id,
@@ -933,11 +947,18 @@ function renderizarColaboradores() {
                 <h4 class="item-titulo" style="font-size: 1.12rem;">${escapeHtml(colabAtivo.nome)}</h4>
                 <p class="item-sub">${escapeHtml(colabAtivo.cargo)} • Setor: ${escapeHtml(colabAtivo.setor)}</p>
             </div>
-            <button type="button" class="rh-btn rh-btn-pequeno rh-btn-primario" data-so-edicao
-                data-acao="novo-processo-para-colab"
-                data-colab-id="${escapeHtml(colabAtivo.id)}">
-                + Novo processo para este colaborador
-            </button>
+            <div class="ficha-acoes">
+                <button type="button" class="rh-btn rh-btn-pequeno rh-btn-primario" data-so-edicao
+                    data-acao="novo-processo-para-colab"
+                    data-colab-id="${escapeHtml(colabAtivo.id)}">
+                    + Novo processo para este colaborador
+                </button>
+                <button type="button" class="rh-btn rh-btn-pequeno rh-btn-perigo" data-so-edicao
+                    data-acao="excluir-colaborador" id="btn-excluir-colaborador"
+                    data-colab-id="${escapeHtml(colabAtivo.id)}">
+                    Excluir colaborador
+                </button>
+            </div>
         </div>
 
         <div class="ficha-grade-dados">
@@ -982,6 +1003,64 @@ function renderizarColaboradores() {
             }).join('')}
         </div>
     `;
+}
+
+/* ============================================================================
+   LIXEIRA: EXCLUIR E RESTAURAR COLABORADOR (NADA É APAGADO)
+   ============================================================================ */
+function abrirModalExcluirColaborador(colabId) {
+    const colab = estadoRh.colaboradores.find((c) => c.id === colabId);
+    if (!colab || !podeEditar()) return;
+    document.getElementById('excluir-colab-id').value = colab.id;
+    document.getElementById('excluir-colab-nome').textContent = colab.nome;
+    const modal = document.getElementById('modal-excluir-colaborador');
+    if (modal) modal.hidden = false;
+}
+
+async function carregarLixeira() {
+    if (!podeEditar()) return;
+    try {
+        const linhas = await chamarRpcRh('lixeira', {});
+        estadoRh.lixeira = Array.isArray(linhas) ? linhas : [];
+    } catch (erro) {
+        console.warn('[RH] Falha ao ler a lixeira:', erro);
+        mostrarAvisoErro(mensagemDeErro(erro, 'ler a lixeira'), { tentarDeNovo: true });
+    }
+    renderizarLixeira();
+}
+
+function renderizarLixeira() {
+    const listaEl = document.getElementById('lixeira-lista-container');
+    const totalEl = document.getElementById('lixeira-total-badge');
+    if (totalEl) totalEl.textContent = String(estadoRh.lixeira.length);
+    if (!listaEl) return;
+    if (estadoRh.lixeira.length === 0) {
+        listaEl.innerHTML = '<p class="rh-vazio-msg">A lixeira está vazia</p>';
+        return;
+    }
+    listaEl.innerHTML = estadoRh.lixeira.map((c) => `
+        <div class="rh-item-lista" data-lixeira-id="${escapeHtml(c.id)}">
+            <div class="item-info-principal">
+                <span class="item-titulo">${escapeHtml(c.nome)}</span>
+                <span class="item-sub">Excluído em ${escapeHtml(formatarDataHora(c.excluido_em))} por ${escapeHtml(c.excluido_por_email || 'usuário sem e-mail')}</span>
+            </div>
+            <div class="lixeira-item-acoes">
+                <span class="rh-badge badge-neutro">${escapeHtml(c.vinculo || '')}</span>
+                <button type="button" class="rh-btn rh-btn-pequeno rh-btn-suave" data-so-edicao
+                    data-acao="restaurar-colaborador" data-colab-id="${escapeHtml(c.id)}">
+                    Restaurar
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function restaurarColaborador(colabId) {
+    const item = estadoRh.lixeira.find((c) => c.id === colabId);
+    const ok = await executarGravacao(() => chamarRpcRh('restaurar_colaborador', { p_id: colabId }));
+    if (!ok) return;
+    await carregarLixeira();
+    exibirToast(`${item ? item.nome : 'Colaborador'} restaurado.`);
 }
 
 /* ============================================================================
@@ -2050,12 +2129,15 @@ const TITULOS_TELAS = {
     exames: 'Exames (SST)',
     ferias: 'Férias',
     modelos: 'Modelos de Etapas',
-    agenda: 'Agenda'
+    agenda: 'Agenda',
+    lixeira: 'Lixeira'
 };
 
 function alternarTelaRh(viewId) {
     const viewNormalizada = viewId === 'painel-inicial' ? 'painel' : viewId;
-    const destino = TITULOS_TELAS[viewNormalizada] ? viewNormalizada : 'painel';
+    let destino = TITULOS_TELAS[viewNormalizada] ? viewNormalizada : 'painel';
+    // Lixeira só para quem edita (rh e admin); o banco também barra
+    if (destino === 'lixeira' && !podeEditar()) destino = 'painel';
     estadoRh.abaAtual = destino;
 
     document.querySelectorAll('#rh-nav-list .nav-link').forEach((link) => {
@@ -2077,6 +2159,7 @@ function alternarTelaRh(viewId) {
         window.fecharSidebarMobile();
     }
     atualizarTudo();
+    if (destino === 'lixeira') carregarLixeira();
 }
 
 function inicializarSidebarRecolhivelEMobile() {
@@ -2185,6 +2268,20 @@ function registrarEventosRh() {
         btn.addEventListener('click', () => {
             fecharModalPorId(btn.getAttribute('data-fechar-modal'));
         });
+    });
+
+    // Confirmação: Excluir colaborador (vai para a Lixeira; nada é apagado)
+    document.getElementById('form-excluir-colaborador')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const colabId = document.getElementById('excluir-colab-id')?.value || '';
+        const nome = document.getElementById('excluir-colab-nome')?.textContent || 'Colaborador';
+        if (!colabId) return;
+        const ok = await executarGravacao(() => chamarRpcRh('excluir_colaborador', { p_id: colabId }), { form: e.target });
+        if (!ok) return;
+        if (estadoRh.colaboradorSelecionadoId === colabId) estadoRh.colaboradorSelecionadoId = null;
+        fecharModalPorId('modal-excluir-colaborador');
+        renderizarColaboradores();
+        exibirToast(`${nome} foi para a Lixeira.`);
     });
 
     // Submissão: Novo Colaborador
@@ -2401,6 +2498,10 @@ function registrarEventosRh() {
         if (acao === 'selecionar-colaborador') {
             estadoRh.colaboradorSelecionadoId = btnAcao.getAttribute('data-colab-id');
             renderizarColaboradores();
+        } else if (acao === 'excluir-colaborador') {
+            abrirModalExcluirColaborador(btnAcao.getAttribute('data-colab-id') || '');
+        } else if (acao === 'restaurar-colaborador') {
+            restaurarColaborador(btnAcao.getAttribute('data-colab-id') || '');
         } else if (acao === 'novo-processo-para-colab') {
             abrirModalProcesso(btnAcao.getAttribute('data-colab-id') || '');
         } else if (acao === 'selecionar-processo') {

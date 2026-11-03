@@ -23,7 +23,7 @@
         rel="stylesheet">
 
     <!-- Folha de Estilos Exclusiva do Dashboard RH -->
-    <link rel="stylesheet" href="/dashboard-rh/CSS/rh.css?v=9">
+    <link rel="stylesheet" href="/dashboard-rh/CSS/rh.css?v=10">
     <!-- Barra lateral padrão dos dashboards (depois do CSS da página) -->
     <link rel="stylesheet" href="/CSS/sidebar-padrao.css?v=2">
 
@@ -227,6 +227,25 @@
                             </span>
                             <span class="nav-text">Agenda</span>
                             <span class="nav-badge-count" id="nav-count-agenda">0</span>
+                        </a>
+                    </li>
+
+                    <!-- Lixeira (só rh e admin; o banco também barra o rh_restrito) -->
+                    <li class="nav-item" data-so-edicao>
+                        <a href="#lixeira" class="nav-link" data-view="lixeira" id="nav-link-lixeira"
+                            title="Lixeira (colaboradores excluídos)">
+                            <span class="nav-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                                    <path d="M10 11v6"></path>
+                                    <path d="M14 11v6"></path>
+                                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+                                </svg>
+                            </span>
+                            <span class="nav-text">Lixeira</span>
                         </a>
                     </li>
                 </ul>
@@ -714,6 +733,25 @@
                     </div>
                 </section>
 
+                <!-- ============================================================
+                     TELA: LIXEIRA (colaboradores excluídos; nada é apagado)
+                     ============================================================ -->
+                <section class="rh-view-section" id="view-lixeira" style="display: none;" aria-live="polite">
+                    <div class="rh-bloco-card">
+                        <div class="bloco-card-header">
+                            <div>
+                                <h3 class="bloco-titulo">Colaboradores excluídos</h3>
+                                <p class="bloco-subtitulo">Nada é apagado: quem está aqui some das outras telas
+                                    (com processos, etapas, anexos, exames, férias e contratos) e volta igual ao restaurar.</p>
+                            </div>
+                            <span class="agenda-filtro-badge" id="lixeira-total-badge">0</span>
+                        </div>
+                        <div id="lixeira-lista-container" class="painel-lista-corpo">
+                            <p class="rh-vazio-msg">A lixeira está vazia</p>
+                        </div>
+                    </div>
+                </section>
+
             </main>
 
         </div>
@@ -960,6 +998,31 @@
         </div>
     </div>
 
+    <!-- ====================================================================
+         MODAL 6: EXCLUIR COLABORADOR (vai para a Lixeira)
+         ==================================================================== -->
+    <div class="rh-modal-backdrop" id="modal-excluir-colaborador" role="dialog" aria-modal="true"
+        aria-labelledby="modal-excluir-titulo" hidden>
+        <div class="rh-modal-card">
+            <div class="rh-modal-header">
+                <h2 class="rh-modal-titulo" id="modal-excluir-titulo">Excluir colaborador</h2>
+                <button type="button" class="rh-modal-fechar" data-fechar-modal="modal-excluir-colaborador"
+                    aria-label="Fechar janela">&times;</button>
+            </div>
+            <form id="form-excluir-colaborador" class="rh-modal-form" autocomplete="off">
+                <p class="rh-modal-texto">Excluir <strong id="excluir-colab-nome"></strong>?</p>
+                <p class="rh-modal-texto rh-modal-texto-mutado">O cadastro sai de todas as telas, contadores, alertas e
+                    da agenda, junto com processos, etapas, anexos, exames, férias e contratos. Nada é apagado:
+                    dá para restaurar pela Lixeira.</p>
+                <input type="hidden" id="excluir-colab-id">
+                <div class="rh-modal-footer">
+                    <button type="button" class="rh-btn rh-btn-neutro" data-fechar-modal="modal-excluir-colaborador">Cancelar</button>
+                    <button type="submit" class="rh-btn rh-btn-perigo" id="btn-confirmar-exclusao">Excluir colaborador</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Área usada só na impressão do checklist de um processo -->
     <div class="rh-area-impressao" id="rh-area-impressao"></div>
 
@@ -980,7 +1043,7 @@
     <script src="/JavaScript/supabase-client.js"></script>
     <script src="/JavaScript/auth.js"></script>
     <script src="/JavaScript/sidebar-padrao.js?v=1"></script>
-    <script src="/dashboard-rh/JavaScript/rh.js?v=9"></script>
+    <script src="/dashboard-rh/JavaScript/rh.js?v=10"></script>
 </body>
 
 </html>

@@ -1701,6 +1701,32 @@ body.rh-body {
     gap: 1.1rem;
 }
 
+/* Texto do modal de exclusão (vai para a Lixeira) */
+.rh-modal-texto {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--texto-corpo);
+    overflow-wrap: anywhere;
+}
+
+.rh-modal-texto-mutado {
+    font-size: 0.85rem;
+    color: var(--texto-mutado);
+}
+
+.ficha-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.lixeira-item-acoes {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
 .rh-form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
