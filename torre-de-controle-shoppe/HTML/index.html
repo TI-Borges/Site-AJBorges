@@ -22,7 +22,7 @@
         rel="stylesheet">
 
     <!-- Folha de Estilos da Torre de Controle -->
-    <link rel="stylesheet" href="/torre-de-controle-shoppe/CSS/torre.css?v=4">
+    <link rel="stylesheet" href="/torre-de-controle-shoppe/CSS/torre.css?v=5">
     <!-- Barra lateral padrão dos dashboards (depois do CSS da página) -->
     <link rel="stylesheet" href="/CSS/sidebar-padrao.css?v=2">
 
@@ -216,6 +216,23 @@
                             <span class="nav-text">Endereços</span>
                         </a>
                     </li>
+                    <!-- 10. Passagem de turno (torre-passagem.js) -->
+                    <li class="nav-item">
+                        <a href="#passagem" class="nav-link" data-aba="passagem" id="nav-link-passagem"
+                            title="Passagem de turno">
+                            <span class="nav-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M17 1l4 4-4 4"></path>
+                                    <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                                    <path d="M7 23l-4-4 4-4"></path>
+                                    <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                                </svg>
+                            </span>
+                            <span class="nav-text">Passagem de turno</span>
+                        </a>
+                    </li>
                 </ul>
                 <!-- Barra lateral padrão dos 4 dashboards (CSS/sidebar-padrao.css) -->
                 <div class="nav-group-label nav-group-sistemas">SISTEMAS &amp; PAINÉIS</div>
@@ -360,6 +377,81 @@
 
                 <!-- Área principal da tela (Tabela densa ou Cards de Links) -->
                 <section class="torre-area-principal" id="torre-area-principal" aria-live="polite"></section>
+
+                <!-- Passagem de turno (torre-passagem.js): só aparece na aba #passagem -->
+                <section class="torre-passagem" id="torre-passagem" aria-label="Passagem de turno" hidden>
+                    <!-- Topo: a última passagem publicada (para o próximo turno) -->
+                    <div class="passagem-card passagem-ultima" id="passagem-ultima" aria-live="polite">
+                        <p class="passagem-vazio">Carregando a última passagem...</p>
+                    </div>
+
+                    <div class="passagem-grade">
+                        <!-- Nova passagem -->
+                        <form class="passagem-card" id="form-passagem" autocomplete="off" novalidate>
+                            <h3 class="passagem-titulo">Nova passagem</h3>
+                            <div class="passagem-linha">
+                                <label class="passagem-campo">
+                                    <span>Turno</span>
+                                    <select id="passagem-turno" required>
+                                        <option value="">Escolha o turno</option>
+                                    </select>
+                                </label>
+                                <label class="passagem-campo">
+                                    <span>Data do turno</span>
+                                    <input type="date" id="passagem-data" required>
+                                </label>
+                            </div>
+                            <label class="passagem-campo">
+                                <span>Escreva do seu jeito</span>
+                                <textarea id="passagem-original" rows="7" maxlength="4000"
+                                    placeholder="O que aconteceu no turno, o que está em andamento e o que o próximo turno precisa fazer."></textarea>
+                                <small class="passagem-ajuda"><span id="passagem-contador">0</span>/4000 · CPF e telefones
+                                    são retirados antes de ir para a IA.</small>
+                            </label>
+                            <div class="passagem-acoes">
+                                <button type="button" class="btn-topo btn-passagem-gerar" id="btn-gerar-passagem">Gerar passagem</button>
+                            </div>
+                            <label class="passagem-campo">
+                                <span>Passagem formal (revise e edite antes de publicar)</span>
+                                <textarea id="passagem-final" rows="12" maxlength="8000"
+                                    placeholder="Clique em &quot;Gerar passagem&quot; ou escreva aqui."></textarea>
+                            </label>
+                            <p class="passagem-status" id="passagem-status" role="status" aria-live="polite"></p>
+                            <div class="passagem-acoes">
+                                <button type="submit" class="btn-topo btn-passagem-publicar" id="btn-publicar-passagem">Publicar</button>
+                            </div>
+
+                            <details class="passagem-horarios" id="passagem-horarios">
+                                <summary>Horários dos turnos</summary>
+                                <div id="passagem-horarios-lista"></div>
+                                <div class="passagem-acoes">
+                                    <button type="button" class="btn-topo" id="btn-salvar-horarios">Salvar horários</button>
+                                </div>
+                            </details>
+                        </form>
+
+                        <!-- Histórico -->
+                        <div class="passagem-card">
+                            <h3 class="passagem-titulo">Histórico</h3>
+                            <div class="passagem-linha">
+                                <label class="passagem-campo">
+                                    <span>Data</span>
+                                    <input type="date" id="historico-data">
+                                </label>
+                                <label class="passagem-campo">
+                                    <span>Turno</span>
+                                    <select id="historico-turno">
+                                        <option value="">Todos</option>
+                                        <option value="T1">T1</option>
+                                        <option value="T2">T2</option>
+                                        <option value="T3">T3</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="passagem-historico" id="passagem-historico" aria-live="polite"></div>
+                        </div>
+                    </div>
+                </section>
             </main>
         </div>
 
@@ -373,7 +465,8 @@
     <script src="/JavaScript/supabase-client.js"></script>
     <script src="/JavaScript/auth.js"></script>
     <script src="/JavaScript/sidebar-padrao.js?v=1"></script>
-    <script src="/torre-de-controle-shoppe/JavaScript/torre.js?v=4"></script>
+    <script src="/torre-de-controle-shoppe/JavaScript/torre.js?v=5"></script>
+    <script src="/torre-de-controle-shoppe/JavaScript/torre-passagem.js?v=1"></script>
 </body>
 
 </html>

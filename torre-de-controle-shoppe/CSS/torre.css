@@ -1838,6 +1838,279 @@ body.modo-tv .torre-tabela-scroll {
 }
 
 /* ==========================================================================
+   8b. PASSAGEM DE TURNO (torre-passagem.js)
+   ========================================================================== */
+.torre-passagem {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+.torre-passagem[hidden],
+.torre-busca-wrapper[hidden],
+.torre-painel-contadores[hidden],
+.torre-area-principal[hidden] {
+    display: none !important;
+}
+
+.passagem-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-xs);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.passagem-ultima {
+    border-left: 4px solid var(--shopee-orange);
+}
+
+.passagem-ultima-topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.passagem-grade {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.passagem-titulo {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.passagem-linha {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.passagem-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    min-width: 0;
+}
+
+.passagem-campo select,
+.passagem-campo input,
+.passagem-campo textarea,
+.passagem-horario-linha input {
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    padding: 8px 10px;
+    min-width: 0;
+    width: 100%;
+}
+
+.passagem-campo textarea {
+    resize: vertical;
+    line-height: 1.45;
+}
+
+.passagem-campo select:focus,
+.passagem-campo input:focus,
+.passagem-campo textarea:focus {
+    outline: 2px solid var(--shopee-orange);
+    outline-offset: 1px;
+}
+
+.passagem-ajuda {
+    font-weight: 400;
+    color: var(--text-muted);
+}
+
+.passagem-acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-passagem-gerar,
+.btn-passagem-publicar {
+    background: var(--shopee-orange);
+    border-color: var(--shopee-orange);
+    color: #ffffff;
+}
+
+.btn-passagem-gerar:hover,
+.btn-passagem-publicar:hover {
+    background: var(--shopee-orange-hover);
+}
+
+.btn-passagem-gerar:disabled,
+.btn-passagem-publicar:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.passagem-status {
+    margin: 0;
+    min-height: 1em;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.passagem-status-ok {
+    color: #047857;
+}
+
+.passagem-status-erro {
+    color: #b91c1c;
+}
+
+.passagem-texto {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.passagem-meta {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    overflow-wrap: anywhere;
+}
+
+.passagem-selo {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--shopee-orange-soft);
+    color: var(--shopee-orange-hover);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.passagem-link {
+    align-self: flex-start;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--ajb-blue);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.passagem-original {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.passagem-original[hidden] {
+    display: none;
+}
+
+.passagem-original-rotulo {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.passagem-vazio {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.passagem-historico {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.passagem-item {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+
+.passagem-item[open] {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.passagem-item summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.passagem-horarios summary {
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.passagem-horario-linha {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.passagem-horario-linha label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+@media (max-width: 1100px) {
+    .passagem-grade {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .passagem-linha {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* ==========================================================================
    9. RESPONSIVIDADE (1366px, 1920px, TABLET E CELULAR 390px / 360px)
    ========================================================================== */
 @media (max-width: 900px) {

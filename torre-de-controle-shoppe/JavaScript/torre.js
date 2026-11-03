@@ -196,6 +196,11 @@ const ABAS_META = {
             { campo: 'cnpj', rotulo: 'CNPJ' },
             { campo: '_mapa', rotulo: 'Mapa', tipo: 'mapa_acao' }
         ]
+    },
+    // Não é view da planilha: a tela fica em torre-passagem.js (tabelas do T02)
+    passagem: {
+        titulo: 'Passagem de turno',
+        tela: 'passagem'
     }
 };
 
@@ -427,6 +432,14 @@ async function consultarViewTorre(nomeView, temOrdem = true) {
 async function carregarDadosAbaAtual({ silencioso = false } = {}) {
     const aba = estadoTorre.abaAtual;
     const meta = ABAS_META[aba] || ABAS_META.matriz;
+
+    // Passagem de turno: tela própria (torre-passagem.js), sem views da planilha
+    if (meta.tela === 'passagem') {
+        renderizarTelaCompleta();
+        if (window.torrePassagem) await window.torrePassagem.atualizar();
+        return;
+    }
+    if (window.torrePassagem) window.torrePassagem.desativar();
     const btnAtualizar = document.getElementById('btn-atualizar-dados');
 
     if (btnAtualizar) btnAtualizar.classList.add('girando');
@@ -603,6 +616,13 @@ function renderizarTelaCompleta({ preservarRolagem = false } = {}) {
             link.removeAttribute('aria-current');
         }
     });
+
+    // Passagem de turno: esconde as áreas de tabela e mostra a tela dela
+    if (meta.tela === 'passagem') {
+        if (window.torrePassagem) window.torrePassagem.ativar();
+        return;
+    }
+    if (window.torrePassagem) window.torrePassagem.desativar();
 
     const linhasBrutas = estadoTorre.dadosPorAba[aba] || [];
     const painelContadores = document.getElementById('torre-painel-contadores');
