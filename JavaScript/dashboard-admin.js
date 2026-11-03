@@ -350,26 +350,9 @@ function obterUsuarioLogado() {
     }
 }
 
-// Iniciais: primeira letra do primeiro e do último nome; sem nome, 2 primeiras letras do e-mail
-function obterIniciaisUsuario(nome, email) {
-    const partes = String(nome || '').trim().split(/\s+/).filter(Boolean);
-    if (partes.length >= 2) return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
-    if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
-    return String(email || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || '?';
-}
-
+// Rodapé da barra lateral (avatar, e-mail, selo do perfil e Sair): JavaScript/sidebar-padrao.js
 function preencherUsuarioSidebar() {
-    const usuario = obterUsuarioLogado();
-    const elAvatar = document.getElementById('user-avatar-initials');
-    const elEmail = document.getElementById('sidebar-user-email');
-    const elPapel = document.getElementById('sidebar-user-role');
-
-    if (elAvatar) elAvatar.textContent = obterIniciaisUsuario(usuario.nome, usuario.email);
-    if (elEmail) {
-        elEmail.textContent = usuario.email || '';
-        elEmail.title = usuario.nome ? `${usuario.nome} • ${usuario.email || ''}` : (usuario.email || '');
-    }
-    if (elPapel) elPapel.textContent = usuario.role === 'diretoria' ? 'DIRETORIA' : 'ADMINISTRADOR';
+    window.ajbSidebar?.iniciar(obterUsuarioLogado());
 }
 
 // Abre comprovante privado com link temporário (bucket não é público)
@@ -3745,14 +3728,7 @@ ajbAoAutenticar(['admin', 'diretoria'], 'Login.html#admin', (usuarioSessao) => {
         });
     }
 
-    // 10. Botão de Logout (Sair)
-    const btnLogout = document.getElementById('btn-logout');
-    if (btnLogout) {
-        btnLogout.addEventListener('click', (e) => {
-            e.preventDefault();
-            fazerLogoutAdmin();
-        });
-    }
+    // 10. Botão de Logout (Sair): ligado por preencherUsuarioSidebar (JavaScript/sidebar-padrao.js)
 
     // 11. Toggle Sidebar no Mobile e Desktop
     //     Celular: o "<" fecha a gaveta (sidebar-aberta), como sempre. Computador: o "<" e o logo
@@ -3859,10 +3835,8 @@ ajbAoAutenticar(['admin', 'diretoria'], 'Login.html#admin', (usuarioSessao) => {
 // 12. FUNÇÃO GLOBAL DE LOGOUT ADMINISTRATIVO
 // ==========================================================================
 function fazerLogoutAdmin() {
-    if (confirm('Deseja realmente encerrar a sessão de Administrador?')) {
-        // Encerra a sessão no Supabase e apaga os dados de fichas guardados neste navegador
-        window.ajbAuth.sair('Login.html#admin');
-    }
+    // Confirma, encerra a sessão no Supabase e apaga os dados guardados neste navegador
+    window.ajbSidebar.sair();
 }
 window.fazerLogoutAdmin = fazerLogoutAdmin;
 
