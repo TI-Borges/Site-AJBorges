@@ -1,27 +1,35 @@
 /**
  * ============================================================================
  * AJBorges Transportes - Dashboard de Recursos Humanos (RH)
- * Protótipo Navegável em Memória (Sem Banco, Sem localStorage/sessionStorage/Cookies)
+ * Dados no Supabase, schema rh (supabase/sql/rh/R01 + R01b). Quem pode o quê
+ * é decidido no banco (RLS): admin e rh leem e gravam; rh_restrito lê e só
+ * grava observações e conclusão/reabertura de etapas. A tela só esconde os
+ * botões que o papel não pode usar. Depois de cada gravação, relê tudo.
  * ============================================================================
  */
 
 const RH_LOGIN = '/HTML/Login.html#admin';
+const PAPEIS_RH = ['admin', 'rh', 'rh_restrito'];
+const TABELAS_RH = [
+    'colaboradores', 'modelos', 'modelo_etapas', 'processos', 'etapas',
+    'observacoes', 'contratos_pj', 'exames', 'ferias'
+];
 
 /* ============================================================================
-   ESTADO EXCLUSIVAMENTE EM MEMÓRIA (AO RECARREGAR, TUDO SOME)
+   ESTADO DA TELA (OS DADOS VÊM DO BANCO EM carregarDados)
    ============================================================================ */
 const estadoRh = {
     abaAtual: 'painel',
-    usuarioEmail: 'rh@ajborges.com.br',
+    usuarioEmail: '',
     usuarioNome: 'Recursos Humanos',
+    papel: '',
     sidebarRecolhida: false,
 
-    // Tudo começa vazio, sem dados nem alertas inventados
     colaboradores: [],
     processos: [],
     exames: [],
 
-    // Seleções e filtros ativos na sessão
+    // Seleções e filtros ativos na tela
     colaboradorSelecionadoId: null,
     processoSelecionadoId: null,
     filtroTipoProcesso: '',
@@ -31,57 +39,12 @@ const estadoRh = {
     etapaEditandoNomeId: null,
     modeloIndexEditando: null,
 
-    // Modelos oficiais de etapas (editáveis na tela "Modelos")
-    modelos: {
-        rescisao_clt: {
-            id: 'rescisao_clt',
-            nome: 'Rescisão CLT',
-            etapas: [
-                'Comunicação',
-                'Aviso',
-                'Cálculo',
-                'Conferência',
-                'Pagamento',
-                'Assinaturas',
-                'Arquivo'
-            ]
-        },
-        distrato_pj: {
-            id: 'distrato_pj',
-            nome: 'Distrato PJ',
-            etapas: [
-                'Comunicação',
-                'Prazo contratual',
-                'Distrato',
-                'Assinaturas',
-                'Pagamento',
-                'Encerramento'
-            ]
-        },
-        exame_periodico: {
-            id: 'exame_periodico',
-            nome: 'Exame periódico',
-            etapas: [
-                'Vencimento',
-                'Agendamento',
-                'Realização',
-                'ASO',
-                'Atualização do controle'
-            ]
-        },
-        admissao_clt: {
-            id: 'admissao_clt',
-            nome: 'Admissão CLT',
-            etapas: [] // Começa vazio com aviso "Aguardando a lista dos 19 passos do RH"
-        }
-    }
+    // Modelos de etapas por chave (rescisao_clt, distrato_pj, exame_periodico, admissao_clt)
+    modelos: {}
 };
 
-let proximoIdMemoria = 1;
-function gerarId(prefixo) {
-    const id = `${prefixo}_${proximoIdMemoria}`;
-    proximoIdMemoria += 1;
-    return id;
+function podeEditar() {
+    return estadoRh.papel !== 'rh_restrito';
 }
 
 /* ============================================================================
@@ -113,13 +76,15 @@ function formatarDataBr(dataIso) {
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
-function formatarDataHoraAtual() {
-    const agora = new Date();
-    const dd = String(agora.getDate()).padStart(2, '0');
-    const mm = String(agora.getMonth() + 1).padStart(2, '0');
-    const yyyy = agora.getFullYear();
-    const hh = String(agora.getHours()).padStart(2, '0');
-    const min = String(agora.getMinutes()).padStart(2, '0');
+// Data e hora no fuso do navegador (carimbo do servidor em ISO ou agora)
+function formatarDataHora(valor) {
+    const data = valor ? new Date(valor) : new Date();
+    if (Number.isNaN(data.getTime())) return '—';
+    const dd = String(data.getDate()).padStart(2, '0');
+    const mm = String(data.getMonth() + 1).padStart(2, '0');
+    const yyyy = data.getFullYear();
+    const hh = String(data.getHours()).padStart(2, '0');
+    const min = String(data.getMinutes()).padStart(2, '0');
     return `${dd}/${mm}/${yyyy} ${hh}:${min}`;
 }
 
@@ -170,6 +135,232 @@ function deslocarDataIso(dataIso, anos, dias) {
 function formatarMoedaBr(valor) {
     if (valor === null || valor === undefined || valor === '' || Number.isNaN(Number(valor))) return '—';
     return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+/* ============================================================================
+   BANCO: LEITURA E GRAVAÇÃO NO SCHEMA rh
+   Sem delete: "remover" grava ativo = false. Carimbos (autor, hora, quem
+   alterou) são do servidor; o navegador nunca manda esses campos.
+   ============================================================================ */
+function bancoRh() {
+    const cliente = window.supabaseClient;
+    if (!cliente || typeof cliente.schema !== 'function') {
+        throw new Error('Cliente Supabase indisponível.');
+    }
+    return cliente.schema('rh');
+}
+
+async function lerTabelaRh(tabela) {
+    const { data, error } = await bancoRh().from(tabela).select('*');
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+}
+
+async function inserirRh(tabela, valores) {
+    const { data, error } = await bancoRh().from(tabela).insert(valores).select();
+    if (error) throw error;
+    return Array.isArray(data) ? data : [];
+}
+
+// Update que não volta nenhuma linha foi barrado pela RLS (o PostgREST não dá erro nesse caso)
+async function atualizarRh(tabela, id, valores) {
+    const { data, error } = await bancoRh().from(tabela).update(valores).eq('id', id).select();
+    if (error) throw error;
+    if (!Array.isArray(data) || data.length === 0) {
+        const semLinha = new Error('Nenhuma linha alterada.');
+        semLinha.code = '42501';
+        throw semLinha;
+    }
+    return data;
+}
+
+function mensagemDeErro(erro, acao) {
+    const texto = String((erro && (erro.message || erro.details)) || erro || '');
+    const codigo = String((erro && erro.code) || '');
+    const status = Number(erro && erro.status) || 0;
+
+    if (codigo === 'PGRST301' || status === 401 || /jwt expired/i.test(texto)) {
+        return `Sua sessão expirou: não foi possível ${acao}. Entre de novo; o que você digitou continua na tela.`;
+    }
+    if (codigo === '42501' || status === 403 || /permission denied|row-level security/i.test(texto)) {
+        return `Sem permissão para ${acao} com o seu usuário. Nada foi alterado.`;
+    }
+    if (codigo === 'PGRST106') {
+        return `Não foi possível ${acao}: o schema "rh" ainda não está liberado na API do Supabase.`;
+    }
+    if (!codigo && /fetch|network|failed|timeout|indisponível/i.test(texto)) {
+        return `Sem conexão com o servidor: não foi possível ${acao}. Confira a internet e tente de novo; o que você digitou continua na tela.`;
+    }
+    return `Não foi possível ${acao}: ${texto || 'erro desconhecido'}. O que você digitou continua na tela.`;
+}
+
+function mostrarAvisoErro(mensagem, { tentarDeNovo = false } = {}) {
+    const aviso = document.getElementById('rh-aviso-erro');
+    const textoEl = document.getElementById('rh-aviso-erro-texto');
+    const btnTentar = document.getElementById('rh-aviso-erro-tentar');
+    if (!aviso || !textoEl) return;
+    textoEl.textContent = mensagem;
+    if (btnTentar) btnTentar.hidden = !tentarDeNovo;
+    aviso.hidden = false;
+}
+
+function ocultarAvisoErro() {
+    const aviso = document.getElementById('rh-aviso-erro');
+    if (aviso) aviso.hidden = true;
+}
+
+// Monta o estado da tela a partir das linhas do banco (nomes snake_case -> camelCase da tela)
+function montarEstado(linhas) {
+    const porOrdem = (a, b) => a.ordem - b.ordem;
+    const porCriacao = (a, b) => String(a.criado_em).localeCompare(String(b.criado_em));
+
+    const chavePorModeloId = {};
+    const modelos = {};
+    linhas.modelos.forEach((m) => {
+        chavePorModeloId[m.id] = m.chave;
+        if (m.ativo) modelos[m.chave] = { id: m.id, chave: m.chave, nome: m.nome, etapas: [] };
+    });
+    linhas.modelo_etapas
+        .filter((e) => e.ativo && modelos[chavePorModeloId[e.modelo_id]])
+        .sort(porOrdem)
+        .forEach((e) => {
+            modelos[chavePorModeloId[e.modelo_id]].etapas.push({ id: e.id, nome: e.nome, ordem: e.ordem });
+        });
+
+    const colaboradores = linhas.colaboradores
+        .filter((c) => c.ativo)
+        .sort(porCriacao)
+        .map((c) => ({
+            id: c.id,
+            nome: c.nome,
+            cargo: c.cargo || '',
+            setor: c.setor || '',
+            vinculo: c.vinculo,
+            situacao: c.situacao,
+            dataAdmissao: c.data_admissao || '',
+            dataProximoExame: c.data_proximo_exame || '',
+            contratoPj: null,
+            ferias: null
+        }));
+    const colabPorId = Object.fromEntries(colaboradores.map((c) => [c.id, c]));
+
+    linhas.contratos_pj.filter((ct) => ct.ativo && colabPorId[ct.colaborador_id]).forEach((ct) => {
+        colabPorId[ct.colaborador_id].contratoPj = {
+            id: ct.id,
+            inicio: ct.inicio,
+            fim: ct.fim,
+            valor: Number(ct.valor),
+            avisoDias: ct.aviso_dias
+        };
+    });
+
+    // Vale o período aquisitivo mais recente de cada colaborador
+    linhas.ferias
+        .filter((f) => f.ativo && colabPorId[f.colaborador_id])
+        .sort((a, b) => String(a.aquisitivo_inicio).localeCompare(String(b.aquisitivo_inicio)))
+        .forEach((f) => {
+            colabPorId[f.colaborador_id].ferias = {
+                id: f.id,
+                aquisitivoInicio: f.aquisitivo_inicio,
+                saldoDias: f.saldo_dias,
+                programacaoInicio: f.programacao_inicio || '',
+                programacaoFim: f.programacao_fim || ''
+            };
+        });
+
+    // Ordem de registro: no empate de data, vale o registrado por último (exameSubstituido)
+    const exames = linhas.exames
+        .filter((ex) => ex.ativo)
+        .sort(porCriacao)
+        .map((ex) => ({
+            id: ex.id,
+            colaboradorId: ex.colaborador_id,
+            tipo: ex.tipo,
+            dataRealizacao: ex.data_realizacao,
+            vencimento: ex.vencimento || ''
+        }));
+
+    const obsPorEtapa = {};
+    linhas.observacoes.slice().sort(porCriacao).forEach((o) => {
+        (obsPorEtapa[o.etapa_id] = obsPorEtapa[o.etapa_id] || []).push({
+            autor: o.autor_email || 'Usuário sem e-mail',
+            dataHora: formatarDataHora(o.criado_em),
+            texto: o.texto
+        });
+    });
+
+    const etapasPorProcesso = {};
+    linhas.etapas.filter((e) => e.ativo).sort(porOrdem).forEach((e) => {
+        (etapasPorProcesso[e.processo_id] = etapasPorProcesso[e.processo_id] || []).push({
+            id: e.id,
+            ordem: e.ordem,
+            nome: e.nome,
+            concluida: Boolean(e.concluida),
+            responsavel: e.responsavel || '',
+            prazo: e.prazo || '',
+            anexos: Array.isArray(e.anexos) ? e.anexos : [],
+            observacoes: obsPorEtapa[e.id] || []
+        });
+    });
+
+    const processos = linhas.processos
+        .filter((p) => !p.cancelado)
+        .sort(porCriacao)
+        .map((p) => ({
+            id: p.id,
+            colaboradorId: p.colaborador_id,
+            modeloId: chavePorModeloId[p.modelo_id] || '',
+            modeloNome: p.modelo_nome,
+            etapas: etapasPorProcesso[p.id] || []
+        }));
+
+    estadoRh.modelos = modelos;
+    estadoRh.colaboradores = colaboradores;
+    estadoRh.exames = exames;
+    estadoRh.processos = processos;
+}
+
+async function carregarDados() {
+    const resultados = await Promise.all(TABELAS_RH.map(lerTabelaRh));
+    montarEstado(Object.fromEntries(TABELAS_RH.map((t, i) => [t, resultados[i]])));
+}
+
+// Relê tudo e redesenha; se falhar, mantém a tela como está e avisa
+async function recarregarDados() {
+    try {
+        await carregarDados();
+    } catch (erro) {
+        console.warn('[RH] Falha ao carregar os dados:', erro);
+        mostrarAvisoErro(mensagemDeErro(erro, 'carregar os dados do RH'), { tentarDeNovo: true });
+        return false;
+    }
+    atualizarTudo();
+    return true;
+}
+
+// Gravações em fila (uma de cada vez). Se der certo, relê tudo; se der errado,
+// mostra o aviso e não redesenha: o que foi digitado continua nos campos.
+let filaGravacao = Promise.resolve();
+function executarGravacao(gravar, { form = null } = {}) {
+    const botoes = form ? Array.from(form.querySelectorAll('button[type="submit"]')) : [];
+    botoes.forEach((b) => { b.disabled = true; });
+
+    const tarefa = filaGravacao.then(async () => {
+        try {
+            await gravar();
+        } catch (erro) {
+            console.warn('[RH] Falha ao gravar:', erro);
+            mostrarAvisoErro(mensagemDeErro(erro, 'salvar esta alteração'));
+            return false;
+        } finally {
+            botoes.forEach((b) => { b.disabled = false; });
+        }
+        ocultarAvisoErro();
+        await recarregarDados();
+        return true;
+    });
+    filaGravacao = tarefa;
+    return tarefa;
 }
 
 /* ============================================================================
@@ -698,7 +889,7 @@ function renderizarColaboradores() {
                 <h4 class="item-titulo" style="font-size: 1.12rem;">${escapeHtml(colabAtivo.nome)}</h4>
                 <p class="item-sub">${escapeHtml(colabAtivo.cargo)} • Setor: ${escapeHtml(colabAtivo.setor)}</p>
             </div>
-            <button type="button" class="rh-btn rh-btn-pequeno rh-btn-primario"
+            <button type="button" class="rh-btn rh-btn-pequeno rh-btn-primario" data-so-edicao
                 data-acao="novo-processo-para-colab"
                 data-colab-id="${escapeHtml(colabAtivo.id)}">
                 + Novo processo para este colaborador
@@ -843,7 +1034,7 @@ function renderizarProcessos() {
             </div>
 
             <!-- Adicionar nova etapa ao processo -->
-            <form class="nova-etapa-form-linha" data-form="adicionar-etapa-processo" data-proc-id="${escapeHtml(procAtivo.id)}">
+            <form class="nova-etapa-form-linha" data-so-edicao data-form="adicionar-etapa-processo" data-proc-id="${escapeHtml(procAtivo.id)}">
                 <input type="text" class="rh-input input-nova-etapa-proc"
                        placeholder="Nova etapa neste processo..." required aria-label="Nome da nova etapa">
                 <input type="text" class="rh-input input-resp-nova-etapa-proc"
@@ -869,7 +1060,8 @@ function renderizarProcessos() {
 function renderizarCardEtapaProcesso(proc, etapa, idx) {
     const diasPrazo = etapa.prazo ? diferencaDiasParaHoje(etapa.prazo) : null;
     const prazoVencido = !etapa.concluida && diasPrazo !== null && diasPrazo < 0;
-    const editandoNome = estadoRh.etapaEditandoNomeId === etapa.id;
+    const editandoNome = podeEditar() && estadoRh.etapaEditandoNomeId === etapa.id;
+    const somenteLeitura = podeEditar() ? '' : 'disabled';
 
     return `
         <article class="etapa-card ${etapa.concluida ? 'etapa-concluida' : ''} ${prazoVencido ? 'etapa-vencida' : ''}"
@@ -909,13 +1101,13 @@ function renderizarCardEtapaProcesso(proc, etapa, idx) {
                             data-etapa-id="${escapeHtml(etapa.id)}">
                         ${etapa.concluida ? 'Reabrir' : 'Concluir'}
                     </button>
-                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro"
+                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro" data-so-edicao
                             data-acao="iniciar-renomear-etapa-proc"
                             data-etapa-id="${escapeHtml(etapa.id)}"
                             title="Renomear etapa">
                         Renomear
                     </button>
-                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro"
+                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro" data-so-edicao
                             data-acao="mover-etapa-proc"
                             data-proc-id="${escapeHtml(proc.id)}"
                             data-etapa-id="${escapeHtml(etapa.id)}"
@@ -924,7 +1116,7 @@ function renderizarCardEtapaProcesso(proc, etapa, idx) {
                             title="Mover etapa para cima">
                         &uarr;
                     </button>
-                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro"
+                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro" data-so-edicao
                             data-acao="mover-etapa-proc"
                             data-proc-id="${escapeHtml(proc.id)}"
                             data-etapa-id="${escapeHtml(etapa.id)}"
@@ -933,7 +1125,7 @@ function renderizarCardEtapaProcesso(proc, etapa, idx) {
                             title="Mover etapa para baixo">
                         &darr;
                     </button>
-                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-perigo"
+                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-perigo" data-so-edicao
                             data-acao="remover-etapa-proc"
                             data-proc-id="${escapeHtml(proc.id)}"
                             data-etapa-id="${escapeHtml(etapa.id)}"
@@ -951,7 +1143,7 @@ function renderizarCardEtapaProcesso(proc, etapa, idx) {
                            data-proc-id="${escapeHtml(proc.id)}"
                            data-etapa-id="${escapeHtml(etapa.id)}"
                            value="${escapeHtml(etapa.responsavel || '')}"
-                           placeholder="Ex.: DP, RH, Gestor...">
+                           placeholder="Ex.: DP, RH, Gestor..." ${somenteLeitura}>
                 </div>
                 <div class="etapa-campo-item">
                     <label>Prazo</label>
@@ -959,7 +1151,7 @@ function renderizarCardEtapaProcesso(proc, etapa, idx) {
                            class="rh-input input-etapa-prazo ${prazoVencido ? 'prazo-vencido-input' : ''}"
                            data-proc-id="${escapeHtml(proc.id)}"
                            data-etapa-id="${escapeHtml(etapa.id)}"
-                           value="${escapeHtml(etapa.prazo || '')}">
+                           value="${escapeHtml(etapa.prazo || '')}" ${somenteLeitura}>
                     ${prazoVencido ? `
                         <span class="prazo-vencido-texto">
                             Prazo vencido (${escapeHtml(formatarDataBr(etapa.prazo))})
@@ -968,7 +1160,7 @@ function renderizarCardEtapaProcesso(proc, etapa, idx) {
                 </div>
             </div>
 
-            <!-- Histórico de Observações (Append-Only: autor = e-mail logado, data e hora) -->
+            <!-- Histórico de Observações (só insert; autor e hora gravados pelo servidor) -->
             <div class="etapa-subsecao">
                 <span class="etapa-subsecao-titulo">
                     Observações em histórico (${(etapa.observacoes || []).length})
@@ -997,7 +1189,7 @@ function renderizarCardEtapaProcesso(proc, etapa, idx) {
                 </form>
             </div>
 
-            <!-- Anexos (Só mostra o nome do arquivo escolhido, não guarda o arquivo) -->
+            <!-- Anexos (grava só o nome do arquivo escolhido, não o arquivo) -->
             <div class="etapa-subsecao">
                 <span class="etapa-subsecao-titulo">
                     Anexos (${(etapa.anexos || []).length})
@@ -1011,7 +1203,7 @@ function renderizarCardEtapaProcesso(proc, etapa, idx) {
                         `).join('')}
                     </div>
                 ` : ''}
-                <label class="label-upload-anexo">
+                <label class="label-upload-anexo" data-so-edicao>
                     <span>+ Escolher arquivo (apenas nome)</span>
                     <input type="file" class="input-anexo-etapa" hidden
                            data-proc-id="${escapeHtml(proc.id)}"
@@ -1050,7 +1242,7 @@ function renderizarModelos() {
     containerEl.innerHTML = `
         ${avisoAdmissao}
 
-        <form class="nova-etapa-form-linha" id="form-adicionar-etapa-modelo" data-modelo-id="${escapeHtml(idModelo)}">
+        <form class="nova-etapa-form-linha" id="form-adicionar-etapa-modelo" data-so-edicao data-modelo-id="${escapeHtml(idModelo)}">
             <input type="text" id="input-nova-etapa-modelo" class="rh-input"
                    placeholder="Digite o nome de uma nova etapa para ${escapeHtml(modelo.nome)}..." required>
             <button type="submit" class="rh-btn rh-btn-primario">+ Adicionar etapa ao modelo</button>
@@ -1059,8 +1251,9 @@ function renderizarModelos() {
         <div style="display: flex; flex-direction: column; gap: 8px;">
             ${modelo.etapas.length === 0 ? `
                 <p class="rh-vazio-msg">Nenhum registro ainda</p>
-            ` : modelo.etapas.map((nomeEtapa, idx) => {
-                const editando = estadoRh.modeloIndexEditando === `${idModelo}:${idx}`;
+            ` : modelo.etapas.map((etapaModelo, idx) => {
+                const nomeEtapa = etapaModelo.nome;
+                const editando = podeEditar() && estadoRh.modeloIndexEditando === `${idModelo}:${idx}`;
                 return `
                     <div class="modelo-etapa-linha">
                         <div class="etapa-titulo-grupo">
@@ -1085,7 +1278,7 @@ function renderizarModelos() {
                                 <span class="etapa-nome-texto">${escapeHtml(nomeEtapa)}</span>
                             `}
                         </div>
-                        <div class="etapa-acoes-topo">
+                        <div class="etapa-acoes-topo" data-so-edicao>
                             <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro"
                                     data-acao="iniciar-renomear-modelo"
                                     data-modelo-id="${escapeHtml(idModelo)}"
@@ -1244,7 +1437,7 @@ function renderizarPrestadoresPj() {
                                 <td data-label="Aviso" class="td-curta">${contrato && contrato.avisoDias !== null ? `${escapeHtml(contrato.avisoDias)} dia(s)` : '—'}</td>
                                 <td data-label="Situação" class="td-curta"><span class="rh-badge ${sit.badgeClasse}">${escapeHtml(sit.rotulo)}</span></td>
                                 <td data-label="Ações">
-                                    <div class="tabela-acoes">
+                                    <div class="tabela-acoes" data-so-edicao>
                                         <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro"
                                                 data-acao="editar-contrato-pj"
                                                 data-colab-id="${escapeHtml(colab.id)}">
@@ -1321,7 +1514,7 @@ function renderizarExames() {
                             <td data-label="Vencimento" class="td-curta">${escapeHtml(formatarDataBr(exame.vencimento))}</td>
                             <td data-label="Situação" class="td-curta"><span class="rh-badge ${sit.badgeClasse}">${escapeHtml(sit.rotulo)}</span></td>
                             <td data-label="Ações">
-                                <div class="tabela-acoes">
+                                <div class="tabela-acoes" data-so-edicao>
                                     <button type="button" class="rh-btn rh-btn-pequeno rh-btn-suave"
                                             data-acao="agendar-exame"
                                             data-colab-id="${escapeHtml(exame.colaboradorId)}">
@@ -1396,7 +1589,7 @@ function renderizarFerias() {
                                 <td data-label="Programação">${escapeHtml(programacao)}</td>
                                 <td data-label="Situação" class="td-curta"><span class="rh-badge ${sit.badgeClasse}">${escapeHtml(sit.rotulo)}</span></td>
                                 <td data-label="Ações">
-                                    <div class="tabela-acoes">
+                                    <div class="tabela-acoes" data-so-edicao>
                                         <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro"
                                                 data-acao="editar-ferias"
                                                 data-colab-id="${escapeHtml(colab.id)}">
@@ -1431,7 +1624,7 @@ function imprimirChecklistProcesso(procId) {
             <p class="impressao-meta">
                 Vínculo: ${escapeHtml(colab ? colab.vinculo : '—')} •
                 Progresso: ${escapeHtml(prog.texto)} •
-                Impresso em ${escapeHtml(formatarDataHoraAtual())} por ${escapeHtml(estadoRh.usuarioEmail)}
+                Impresso em ${escapeHtml(formatarDataHora())} por ${escapeHtml(estadoRh.usuarioEmail)}
             </p>
         </header>
         <table class="impressao-tabela">
@@ -1473,7 +1666,7 @@ function imprimirChecklistProcesso(procId) {
                 }).join('')}
             </tbody>
         </table>
-        <p class="impressao-rodape">Protótipo: nada é salvo. Documento gerado a partir da sessão atual.</p>
+        <p class="impressao-rodape">Documento gerado a partir dos dados do RH gravados no sistema.</p>
     `;
 
     document.body.classList.add('rh-imprimindo');
@@ -1489,28 +1682,26 @@ function limparImpressao() {
 /* ============================================================================
    CRIAÇÃO DE PROCESSOS (MODAL, DISTRATO PJ E AGENDAMENTO DE EXAME)
    ============================================================================ */
-function criarProcessoNaSessao(colaboradorId, modeloId, respPadrao = '', prazoBase = '') {
+// Grava o processo e copia as etapas do modelo (modelo_nome guarda o nome da época)
+async function criarProcessoNoBanco(colaboradorId, modeloId, respPadrao = '', prazoBase = '') {
     const modelo = estadoRh.modelos[modeloId];
-    if (!colaboradorId || !modelo) return null;
+    if (!colaboradorId || !modelo) throw new Error('colaborador ou modelo não encontrado');
 
-    const novoProc = {
-        id: gerarId('proc'),
-        colaboradorId,
-        modeloId,
-        modeloNome: modelo.nome,
-        etapas: modelo.etapas.map((nomeEtapa) => ({
-            id: gerarId('etapa'),
-            nome: nomeEtapa,
-            concluida: false,
-            responsavel: respPadrao,
-            prazo: prazoBase,
-            observacoes: [],
-            anexos: []
-        }))
-    };
-
-    estadoRh.processos.push(novoProc);
-    return novoProc;
+    const [novoProc] = await inserirRh('processos', {
+        colaborador_id: colaboradorId,
+        modelo_id: modelo.id,
+        modelo_nome: modelo.nome
+    });
+    if (modelo.etapas.length > 0) {
+        await inserirRh('etapas', modelo.etapas.map((etapa, idx) => ({
+            processo_id: novoProc.id,
+            ordem: idx + 1,
+            nome: etapa.nome,
+            responsavel: respPadrao || null,
+            prazo: prazoBase || null
+        })));
+    }
+    return { id: novoProc.id, modeloNome: novoProc.modelo_nome };
 }
 
 function abrirProcessoNaTela(procId) {
@@ -1523,7 +1714,7 @@ function abrirProcessoNaTela(procId) {
 }
 
 // Evita duplicar: se já houver processo do mesmo modelo em andamento, abre o existente
-function abrirOuCriarProcesso(colaboradorId, modeloId) {
+async function abrirOuCriarProcesso(colaboradorId, modeloId) {
     const existente = estadoRh.processos.find(
         (p) => p.colaboradorId === colaboradorId && p.modeloId === modeloId && processoEmAndamento(p)
     );
@@ -1532,10 +1723,23 @@ function abrirOuCriarProcesso(colaboradorId, modeloId) {
         exibirToast(`Já existe um processo "${existente.modeloNome}" em andamento para este colaborador.`);
         return;
     }
-    const novo = criarProcessoNaSessao(colaboradorId, modeloId);
-    if (!novo) return;
+    let novo = null;
+    const ok = await executarGravacao(async () => {
+        novo = await criarProcessoNoBanco(colaboradorId, modeloId);
+    });
+    if (!ok) return;
     abrirProcessoNaTela(novo.id);
-    exibirToast(`Processo "${novo.modeloNome}" criado na sessão.`);
+    exibirToast(`Processo "${novo.modeloNome}" criado.`);
+}
+
+// Troca a ordem de dois itens vizinhos (etapas do processo ou do modelo)
+async function trocarOrdem(tabela, itemA, itemB) {
+    await atualizarRh(tabela, itemA.id, { ordem: itemB.ordem });
+    await atualizarRh(tabela, itemB.id, { ordem: itemA.ordem });
+}
+
+function proximaOrdem(lista) {
+    return lista.reduce((maior, item) => Math.max(maior, item.ordem || 0), 0) + 1;
 }
 
 /* ============================================================================
@@ -1742,7 +1946,7 @@ function inicializarSidebarRecolhivelEMobile() {
     window.fecharSidebarMobile = fecharSidebarMobile;
 }
 
-function registrarEventosPrototipo() {
+function registrarEventosRh() {
     // Links da barra lateral
     document.querySelectorAll('#rh-nav-list .nav-link[data-view]').forEach((link) => {
         link.addEventListener('click', (e) => {
@@ -1783,7 +1987,7 @@ function registrarEventosPrototipo() {
     // Submissão: Novo Colaborador
     const formColab = document.getElementById('form-novo-colaborador');
     if (formColab) {
-        formColab.addEventListener('submit', (e) => {
+        formColab.addEventListener('submit', async (e) => {
             e.preventDefault();
             const nome = (document.getElementById('colab-nome')?.value || '').trim();
             const cargo = (document.getElementById('colab-cargo')?.value || '').trim();
@@ -1795,41 +1999,47 @@ function registrarEventosPrototipo() {
 
             if (!nome) return;
 
-            const novo = {
-                id: gerarId('colab'),
-                nome,
-                cargo,
-                setor,
-                vinculo,
-                situacao,
-                dataAdmissao,
-                dataProximoExame
-            };
+            let novoId = null;
+            const ok = await executarGravacao(async () => {
+                const [novo] = await inserirRh('colaboradores', {
+                    nome,
+                    cargo: cargo || null,
+                    setor: setor || null,
+                    vinculo,
+                    situacao,
+                    data_admissao: dataAdmissao || null,
+                    data_proximo_exame: dataProximoExame || null
+                });
+                novoId = novo.id;
+            }, { form: formColab });
+            if (!ok) return;
 
-            estadoRh.colaboradores.push(novo);
-            estadoRh.colaboradorSelecionadoId = novo.id;
+            estadoRh.colaboradorSelecionadoId = novoId;
             fecharModalPorId('modal-colaborador');
             atualizarTudo();
-            exibirToast('Colaborador adicionado na sessão.');
+            exibirToast('Colaborador cadastrado.');
         });
     }
 
     // Submissão: Novo Processo
     const formProc = document.getElementById('form-novo-processo');
     if (formProc) {
-        formProc.addEventListener('submit', (e) => {
+        formProc.addEventListener('submit', async (e) => {
             e.preventDefault();
             const colaboradorId = document.getElementById('proc-colaborador')?.value || '';
             const modeloId = document.getElementById('proc-modelo')?.value || 'admissao_clt';
             const respPadrao = (document.getElementById('proc-responsavel-padrao')?.value || '').trim();
             const prazoBase = document.getElementById('proc-prazo-inicial')?.value || '';
 
-            const novoProc = criarProcessoNaSessao(colaboradorId, modeloId, respPadrao, prazoBase);
-            if (!novoProc) return;
+            let novoProc = null;
+            const ok = await executarGravacao(async () => {
+                novoProc = await criarProcessoNoBanco(colaboradorId, modeloId, respPadrao, prazoBase);
+            }, { form: formProc });
+            if (!ok) return;
 
             fecharModalPorId('modal-processo');
             abrirProcessoNaTela(novoProc.id);
-            exibirToast(`Processo "${novoProc.modeloNome}" criado na sessão.`);
+            exibirToast(`Processo "${novoProc.modeloNome}" criado.`);
         });
     }
 
@@ -1841,7 +2051,7 @@ function registrarEventosPrototipo() {
     document.getElementById('ferias-colaborador')?.addEventListener('change', (e) => preencherCamposFerias(e.target.value));
 
     // Submissão: Contrato PJ
-    document.getElementById('form-contrato-pj')?.addEventListener('submit', (e) => {
+    document.getElementById('form-contrato-pj')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const colab = estadoRh.colaboradores.find((c) => c.id === document.getElementById('pj-colaborador')?.value);
         const inicio = document.getElementById('pj-inicio')?.value || '';
@@ -1855,14 +2065,19 @@ function registrarEventosPrototipo() {
             return;
         }
 
-        colab.contratoPj = { inicio, fim, valor, avisoDias };
+        const valores = { inicio, fim, valor, aviso_dias: avisoDias };
+        const ok = await executarGravacao(() => (colab.contratoPj
+            ? atualizarRh('contratos_pj', colab.contratoPj.id, valores)
+            : inserirRh('contratos_pj', { colaborador_id: colab.id, ...valores })
+        ), { form: e.target });
+        if (!ok) return;
+
         fecharModalPorId('modal-contrato-pj');
-        atualizarTudo();
-        exibirToast('Contrato PJ salvo na sessão.');
+        exibirToast('Contrato PJ salvo.');
     });
 
     // Submissão: Exame (SST)
-    document.getElementById('form-exame')?.addEventListener('submit', (e) => {
+    document.getElementById('form-exame')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const colaboradorId = document.getElementById('exame-colaborador')?.value || '';
         const tipo = document.getElementById('exame-tipo')?.value || '';
@@ -1875,14 +2090,20 @@ function registrarEventosPrototipo() {
             return;
         }
 
-        estadoRh.exames.push({ id: gerarId('exame'), colaboradorId, tipo, dataRealizacao, vencimento });
+        const ok = await executarGravacao(() => inserirRh('exames', {
+            colaborador_id: colaboradorId,
+            tipo,
+            data_realizacao: dataRealizacao,
+            vencimento: vencimento || null
+        }), { form: e.target });
+        if (!ok) return;
+
         fecharModalPorId('modal-exame');
-        atualizarTudo();
-        exibirToast('Exame registrado na sessão.');
+        exibirToast('Exame registrado.');
     });
 
     // Submissão: Férias
-    document.getElementById('form-ferias')?.addEventListener('submit', (e) => {
+    document.getElementById('form-ferias')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const colab = estadoRh.colaboradores.find((c) => c.id === document.getElementById('ferias-colaborador')?.value);
         const aquisitivoInicio = document.getElementById('ferias-aquisitivo-inicio')?.value || '';
@@ -1904,10 +2125,20 @@ function registrarEventosPrototipo() {
             return;
         }
 
-        colab.ferias = { aquisitivoInicio, saldoDias, programacaoInicio, programacaoFim };
+        const valores = {
+            aquisitivo_inicio: aquisitivoInicio,
+            saldo_dias: saldoDias,
+            programacao_inicio: programacaoInicio || null,
+            programacao_fim: programacaoFim || null
+        };
+        const ok = await executarGravacao(() => (colab.ferias
+            ? atualizarRh('ferias', colab.ferias.id, valores)
+            : inserirRh('ferias', { colaborador_id: colab.id, ...valores })
+        ), { form: e.target });
+        if (!ok) return;
+
         fecharModalPorId('modal-ferias');
-        atualizarTudo();
-        exibirToast('Férias salvas na sessão.');
+        exibirToast('Férias salvas.');
     });
 
     // Filtros da tela Exames (SST)
@@ -1996,21 +2227,14 @@ function registrarEventosPrototipo() {
             abrirOuCriarProcesso(btnAcao.getAttribute('data-colab-id') || '', 'exame_periodico');
         } else if (acao === 'remover-exame') {
             const exameId = btnAcao.getAttribute('data-exame-id');
-            estadoRh.exames = estadoRh.exames.filter((ex) => ex.id !== exameId);
-            atualizarTudo();
+            if (exameId) executarGravacao(() => atualizarRh('exames', exameId, { ativo: false }));
         } else if (acao === 'editar-ferias') {
             abrirModalFerias(btnAcao.getAttribute('data-colab-id') || '');
         } else if (acao === 'imprimir-processo') {
             imprimirChecklistProcesso(btnAcao.getAttribute('data-proc-id') || '');
         } else if (acao === 'alternar-conclusao-etapa') {
-            const procId = btnAcao.getAttribute('data-proc-id');
-            const etapaId = btnAcao.getAttribute('data-etapa-id');
-            const proc = estadoRh.processos.find((p) => p.id === procId);
-            const etapa = proc?.etapas.find((et) => et.id === etapaId);
-            if (etapa) {
-                etapa.concluida = !etapa.concluida;
-                atualizarTudo();
-            }
+            const etapa = acharEtapa(btnAcao);
+            if (etapa) executarGravacao(() => atualizarRh('etapas', etapa.id, { concluida: !etapa.concluida }));
         } else if (acao === 'iniciar-renomear-etapa-proc') {
             estadoRh.etapaEditandoNomeId = btnAcao.getAttribute('data-etapa-id');
             renderizarProcessos();
@@ -2018,40 +2242,29 @@ function registrarEventosPrototipo() {
             estadoRh.etapaEditandoNomeId = null;
             renderizarProcessos();
         } else if (acao === 'salvar-nome-etapa-proc') {
-            const procId = btnAcao.getAttribute('data-proc-id');
-            const etapaId = btnAcao.getAttribute('data-etapa-id');
-            const input = document.getElementById(`input-renomear-${etapaId}`);
+            const etapa = acharEtapa(btnAcao);
+            const input = document.getElementById(`input-renomear-${btnAcao.getAttribute('data-etapa-id')}`);
             const novoNome = (input?.value || '').trim();
-            const proc = estadoRh.processos.find((p) => p.id === procId);
-            const etapa = proc?.etapas.find((et) => et.id === etapaId);
             if (etapa && novoNome) {
-                etapa.nome = novoNome;
-                estadoRh.etapaEditandoNomeId = null;
-                atualizarTudo();
+                executarGravacao(() => atualizarRh('etapas', etapa.id, { nome: novoNome })).then((ok) => {
+                    if (!ok) return;
+                    estadoRh.etapaEditandoNomeId = null;
+                    renderizarProcessos();
+                });
             }
         } else if (acao === 'mover-etapa-proc') {
-            const procId = btnAcao.getAttribute('data-proc-id');
-            const etapaId = btnAcao.getAttribute('data-etapa-id');
+            const proc = estadoRh.processos.find((p) => p.id === btnAcao.getAttribute('data-proc-id'));
             const dir = parseInt(btnAcao.getAttribute('data-direcao') || '0', 10);
-            const proc = estadoRh.processos.find((p) => p.id === procId);
             if (proc) {
-                const idx = proc.etapas.findIndex((et) => et.id === etapaId);
+                const idx = proc.etapas.findIndex((et) => et.id === btnAcao.getAttribute('data-etapa-id'));
                 const destino = idx + dir;
                 if (idx >= 0 && destino >= 0 && destino < proc.etapas.length) {
-                    const temp = proc.etapas[idx];
-                    proc.etapas[idx] = proc.etapas[destino];
-                    proc.etapas[destino] = temp;
-                    atualizarTudo();
+                    executarGravacao(() => trocarOrdem('etapas', proc.etapas[idx], proc.etapas[destino]));
                 }
             }
         } else if (acao === 'remover-etapa-proc') {
-            const procId = btnAcao.getAttribute('data-proc-id');
-            const etapaId = btnAcao.getAttribute('data-etapa-id');
-            const proc = estadoRh.processos.find((p) => p.id === procId);
-            if (proc) {
-                proc.etapas = proc.etapas.filter((et) => et.id !== etapaId);
-                atualizarTudo();
-            }
+            const etapa = acharEtapa(btnAcao);
+            if (etapa) executarGravacao(() => atualizarRh('etapas', etapa.id, { ativo: false }));
         } else if (acao === 'iniciar-renomear-modelo') {
             const modId = btnAcao.getAttribute('data-modelo-id');
             const idx = btnAcao.getAttribute('data-idx');
@@ -2067,9 +2280,11 @@ function registrarEventosPrototipo() {
             const novoNome = (input?.value || '').trim();
             const modelo = estadoRh.modelos[modId];
             if (modelo && idx >= 0 && idx < modelo.etapas.length && novoNome) {
-                modelo.etapas[idx] = novoNome;
-                estadoRh.modeloIndexEditando = null;
-                atualizarTudo();
+                executarGravacao(() => atualizarRh('modelo_etapas', modelo.etapas[idx].id, { nome: novoNome })).then((ok) => {
+                    if (!ok) return;
+                    estadoRh.modeloIndexEditando = null;
+                    renderizarModelos();
+                });
             }
         } else if (acao === 'mover-etapa-modelo') {
             const modId = btnAcao.getAttribute('data-modelo-id');
@@ -2078,18 +2293,14 @@ function registrarEventosPrototipo() {
             const modelo = estadoRh.modelos[modId];
             const destino = idx + dir;
             if (modelo && idx >= 0 && destino >= 0 && destino < modelo.etapas.length) {
-                const temp = modelo.etapas[idx];
-                modelo.etapas[idx] = modelo.etapas[destino];
-                modelo.etapas[destino] = temp;
-                atualizarTudo();
+                executarGravacao(() => trocarOrdem('modelo_etapas', modelo.etapas[idx], modelo.etapas[destino]));
             }
         } else if (acao === 'remover-etapa-modelo') {
             const modId = btnAcao.getAttribute('data-modelo-id');
             const idx = parseInt(btnAcao.getAttribute('data-idx') || '-1', 10);
             const modelo = estadoRh.modelos[modId];
             if (modelo && idx >= 0 && idx < modelo.etapas.length) {
-                modelo.etapas.splice(idx, 1);
-                atualizarTudo();
+                executarGravacao(() => atualizarRh('modelo_etapas', modelo.etapas[idx].id, { ativo: false }));
             }
         }
     });
@@ -2110,36 +2321,22 @@ function registrarEventosPrototipo() {
             const proc = estadoRh.processos.find((p) => p.id === procId);
 
             if (proc && nome) {
-                proc.etapas.push({
-                    id: gerarId('etapa'),
+                executarGravacao(() => inserirRh('etapas', {
+                    processo_id: proc.id,
+                    ordem: proximaOrdem(proc.etapas),
                     nome,
-                    concluida: false,
-                    responsavel,
-                    prazo,
-                    observacoes: [],
-                    anexos: []
-                });
-                atualizarTudo();
+                    responsavel: responsavel || null,
+                    prazo: prazo || null
+                }), { form });
             }
         } else if (tipoForm === 'adicionar-observacao-etapa') {
             e.preventDefault();
-            const procId = form.getAttribute('data-proc-id');
-            const etapaId = form.getAttribute('data-etapa-id');
-            const inputObs = form.querySelector('.input-nova-obs');
-            const texto = (inputObs?.value || '').trim();
-
-            const proc = estadoRh.processos.find((p) => p.id === procId);
-            const etapa = proc?.etapas.find((et) => et.id === etapaId);
+            const etapa = acharEtapa(form);
+            const texto = (form.querySelector('.input-nova-obs')?.value || '').trim();
 
             if (etapa && texto) {
-                if (!Array.isArray(etapa.observacoes)) etapa.observacoes = [];
-                // Histórico append-only: autor = e-mail logado, data e hora, nunca apaga as anteriores
-                etapa.observacoes.push({
-                    autor: estadoRh.usuarioEmail || 'rh@ajborges.com.br',
-                    dataHora: formatarDataHoraAtual(),
-                    texto
-                });
-                atualizarTudo();
+                // Só insert: autor, e-mail e hora são gravados pelo servidor
+                executarGravacao(() => inserirRh('observacoes', { etapa_id: etapa.id, texto }), { form });
             }
         } else if (form.id === 'form-adicionar-etapa-modelo') {
             e.preventDefault();
@@ -2148,8 +2345,11 @@ function registrarEventosPrototipo() {
             const nome = (input?.value || '').trim();
             const modelo = estadoRh.modelos[modId];
             if (modelo && nome) {
-                modelo.etapas.push(nome);
-                atualizarTudo();
+                executarGravacao(() => inserirRh('modelo_etapas', {
+                    modelo_id: modelo.id,
+                    ordem: proximaOrdem(modelo.etapas),
+                    nome
+                }), { form });
             }
         }
     });
@@ -2160,36 +2360,27 @@ function registrarEventosPrototipo() {
         if (!alvo) return;
 
         if (alvo.classList.contains('input-etapa-responsavel')) {
-            const proc = estadoRh.processos.find((p) => p.id === alvo.getAttribute('data-proc-id'));
-            const etapa = proc?.etapas.find((et) => et.id === alvo.getAttribute('data-etapa-id'));
-            if (etapa) {
-                etapa.responsavel = alvo.value.trim();
-                atualizarTudo();
-            }
+            const etapa = acharEtapa(alvo);
+            if (etapa) executarGravacao(() => atualizarRh('etapas', etapa.id, { responsavel: alvo.value.trim() || null }));
         } else if (alvo.classList.contains('input-etapa-prazo')) {
-            const proc = estadoRh.processos.find((p) => p.id === alvo.getAttribute('data-proc-id'));
-            const etapa = proc?.etapas.find((et) => et.id === alvo.getAttribute('data-etapa-id'));
-            if (etapa) {
-                etapa.prazo = alvo.value;
-                atualizarTudo();
-            }
+            const etapa = acharEtapa(alvo);
+            if (etapa) executarGravacao(() => atualizarRh('etapas', etapa.id, { prazo: alvo.value || null }));
         } else if (alvo.classList.contains('input-anexo-etapa')) {
-            const proc = estadoRh.processos.find((p) => p.id === alvo.getAttribute('data-proc-id'));
-            const etapa = proc?.etapas.find((et) => et.id === alvo.getAttribute('data-etapa-id'));
-            const arquivos = alvo.files;
-            if (etapa && arquivos && arquivos.length > 0) {
-                if (!Array.isArray(etapa.anexos)) etapa.anexos = [];
-                // Guarda apenas o nome do arquivo escolhido (não guarda o arquivo em si)
-                Array.from(arquivos).forEach((arq) => {
-                    if (arq && arq.name) {
-                        etapa.anexos.push(arq.name);
-                    }
-                });
-                alvo.value = '';
-                atualizarTudo();
+            const etapa = acharEtapa(alvo);
+            // Grava apenas o nome do arquivo escolhido (não o arquivo em si)
+            const nomes = Array.from(alvo.files || []).map((arq) => arq && arq.name).filter(Boolean);
+            alvo.value = '';
+            if (etapa && nomes.length > 0) {
+                executarGravacao(() => atualizarRh('etapas', etapa.id, { anexos: [...etapa.anexos, ...nomes] }));
             }
         }
     });
+}
+
+// Etapa a partir de um elemento com data-proc-id e data-etapa-id
+function acharEtapa(el) {
+    const proc = estadoRh.processos.find((p) => p.id === el.getAttribute('data-proc-id'));
+    return proc?.etapas.find((et) => et.id === el.getAttribute('data-etapa-id')) || null;
 }
 
 /* ============================================================================
@@ -2202,7 +2393,11 @@ function preencherDadosUsuario(usuario) {
 
     if (usuario) {
         const email = usuario.email || 'rh@ajborges.com.br';
-        const role = usuario.role === 'diretoria' ? 'Diretoria Executiva' : 'Administrador';
+        const role = {
+            admin: 'Administrador',
+            rh: 'Recursos Humanos',
+            rh_restrito: 'RH (consulta)'
+        }[usuario.role] || 'Usuário';
         const nome = usuario.nome || email.split('@')[0];
 
         estadoRh.usuarioEmail = email;
@@ -2248,12 +2443,25 @@ window.exibirToast = exibirToast;
 /* ============================================================================
    INICIALIZAÇÃO AUTENTICADA
    ============================================================================ */
-ajbAoAutenticar(['admin', 'diretoria'], RH_LOGIN, (usuario) => {
+function configurarAvisoErro() {
+    document.getElementById('rh-aviso-erro-fechar')?.addEventListener('click', ocultarAvisoErro);
+    document.getElementById('rh-aviso-erro-tentar')?.addEventListener('click', () => {
+        ocultarAvisoErro();
+        recarregarDados();
+    });
+}
+
+ajbAoAutenticar(PAPEIS_RH, RH_LOGIN, (usuario) => {
     window.ajbAuth.vigiarSessao(RH_LOGIN);
+
+    estadoRh.papel = usuario.role;
+    document.body.classList.toggle('rh-papel-restrito', !podeEditar());
 
     preencherDadosUsuario(usuario);
     configurarEventosLogout();
     inicializarSidebarRecolhivelEMobile();
-    registrarEventosPrototipo();
+    registrarEventosRh();
+    configurarAvisoErro();
     atualizarTudo();
+    recarregarDados();
 });

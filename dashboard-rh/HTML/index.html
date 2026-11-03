@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <meta name="description"
-        content="Dashboard de Recursos Humanos AJBorges Transportes - Protótipo navegável de Gestão de Colaboradores, Processos, Prestadores PJ, Exames (SST), Férias, Modelos de Etapas e Agenda.">
+        content="Dashboard de Recursos Humanos AJBorges Transportes - Gestão de Colaboradores, Processos, Prestadores PJ, Exames (SST), Férias, Modelos de Etapas e Agenda.">
     <title>AJBorges Gestão • Dashboard do RH</title>
 
     <!-- Favicon Oficial AJBorges -->
@@ -23,7 +23,7 @@
         rel="stylesheet">
 
     <!-- Folha de Estilos Exclusiva do Dashboard RH -->
-    <link rel="stylesheet" href="/dashboard-rh/CSS/rh.css?v=6">
+    <link rel="stylesheet" href="/dashboard-rh/CSS/rh.css?v=7">
 
     <!-- Verificação de Sessão Administrativa (Route Guard) -->
     <script>
@@ -33,12 +33,6 @@
 </head>
 
 <body class="rh-body">
-    <!-- FAIXA FIXA NO TOPO: AVISO DE PROTÓTIPO EM MEMÓRIA -->
-    <div class="rh-prototipo-faixa" id="rh-prototipo-faixa" role="region" aria-label="Aviso de protótipo">
-        <span class="prototipo-indicador" aria-hidden="true"></span>
-        <span class="prototipo-texto">Protótipo: nada é salvo. Não digite dados reais.</span>
-    </div>
-
     <!-- Layout do Aplicativo RH -->
     <div class="rh-app-layout" id="rh-app-layout">
 
@@ -284,7 +278,7 @@
         </aside>
 
         <!-- ====================================================================
-             2. CONTEÚDO PRINCIPAL (TOPBAR + 5 TELAS DO PROTÓTIPO)
+             2. CONTEÚDO PRINCIPAL (TOPBAR + TELAS DO RH)
              ==================================================================== -->
         <div class="rh-main-wrapper" id="rh-main-wrapper">
 
@@ -312,7 +306,7 @@
                 </div>
 
                 <div class="topbar-actions">
-                    <button type="button" class="topbar-btn topbar-btn-primario" id="topbar-btn-novo-colab">
+                    <button type="button" class="topbar-btn topbar-btn-primario" id="topbar-btn-novo-colab" data-so-edicao>
                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -321,7 +315,7 @@
                         <span>Novo colaborador</span>
                     </button>
 
-                    <button type="button" class="topbar-btn topbar-btn-secundario" id="topbar-btn-novo-proc">
+                    <button type="button" class="topbar-btn topbar-btn-secundario" id="topbar-btn-novo-proc" data-so-edicao>
                         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
                             stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 11l3 3L22 4"></path>
@@ -365,8 +359,8 @@
                      ============================================================ -->
                 <section class="rh-view-section active" id="view-painel" aria-labelledby="topbar-titulo">
 
-                    <!-- 4 Cards de Contadores (Contados do que foi cadastrado na sessão) -->
-                    <div class="rh-kpis-grid" aria-label="Indicadores da sessão do RH">
+                    <!-- 4 Cards de Contadores (contados do que está gravado no banco) -->
+                    <div class="rh-kpis-grid" aria-label="Indicadores do RH">
                         <div class="rh-kpi-card kpi-clicavel" id="kpi-admissoes" data-ir-view="processos"
                             data-filtro-proc="admissao_clt" role="button" tabindex="0">
                             <div class="kpi-card-header">
@@ -380,7 +374,7 @@
                                         <line x1="23" y1="11" x2="17" y2="11"></line>
                                     </svg>
                                 </div>
-                                <span class="kpi-pill kpi-pill-violeta">Sessão atual</span>
+                                <span class="kpi-pill kpi-pill-violeta">Em andamento</span>
                             </div>
                             <div class="kpi-card-body">
                                 <span class="kpi-valor" id="kpi-valor-admissoes">0</span>
@@ -525,7 +519,7 @@
                                 <option value="Inativo">Inativo</option>
                             </select>
                         </div>
-                        <button type="button" class="rh-btn rh-btn-primario" id="btn-novo-colaborador">
+                        <button type="button" class="rh-btn rh-btn-primario" id="btn-novo-colaborador" data-so-edicao>
                             + Novo colaborador
                         </button>
                     </div>
@@ -566,7 +560,7 @@
                             <button type="button" class="rh-tab-btn" data-filtro-tipo-proc="distrato_pj">Distratos PJ</button>
                             <button type="button" class="rh-tab-btn" data-filtro-tipo-proc="exame_periodico">Exame periódico</button>
                         </div>
-                        <button type="button" class="rh-btn rh-btn-primario" id="btn-novo-processo">
+                        <button type="button" class="rh-btn rh-btn-primario" id="btn-novo-processo" data-so-edicao>
                             + Novo processo
                         </button>
                     </div>
@@ -575,7 +569,7 @@
                         <!-- Coluna esquerda: lista de processos -->
                         <div class="rh-bloco-card">
                             <div class="bloco-card-header">
-                                <h3 class="bloco-titulo">Processos na sessão</h3>
+                                <h3 class="bloco-titulo">Processos</h3>
                                 <span class="agenda-filtro-badge" id="proc-total-badge">0</span>
                             </div>
                             <div id="processos-lista-container" class="painel-lista-corpo">
@@ -601,7 +595,7 @@
                 <section class="rh-view-section" id="view-prestadores" style="display: none;" aria-live="polite">
                     <div class="rh-toolbar-card">
                         <p class="toolbar-label">Colaboradores com vínculo PJ. O Painel alerta a 30, 15 e 7 dias do fim do contrato.</p>
-                        <button type="button" class="rh-btn rh-btn-primario" id="btn-cadastrar-contrato-pj">
+                        <button type="button" class="rh-btn rh-btn-primario" id="btn-cadastrar-contrato-pj" data-so-edicao>
                             + Cadastrar contrato
                         </button>
                     </div>
@@ -642,7 +636,7 @@
                                 <option value="demissional">Demissional</option>
                             </select>
                         </div>
-                        <button type="button" class="rh-btn rh-btn-primario" id="btn-registrar-exame">
+                        <button type="button" class="rh-btn rh-btn-primario" id="btn-registrar-exame" data-so-edicao>
                             + Registrar exame
                         </button>
                     </div>
@@ -667,7 +661,7 @@
                 <section class="rh-view-section" id="view-ferias" style="display: none;" aria-live="polite">
                     <div class="rh-toolbar-card">
                         <p class="toolbar-label">Colaboradores CLT. O Painel alerta quando o período concessivo estiver a 60 dias de vencer.</p>
-                        <button type="button" class="rh-btn rh-btn-primario" id="btn-informar-ferias">
+                        <button type="button" class="rh-btn rh-btn-primario" id="btn-informar-ferias" data-so-edicao>
                             + Informar férias
                         </button>
                     </div>
@@ -995,11 +989,20 @@
     <!-- Feedback Toast Flutuante -->
     <div class="rh-toast" id="rh-toast" role="status" aria-live="polite"></div>
 
+    <!-- Aviso de erro ao carregar/gravar (fica acima dos modais; o que foi digitado continua na tela) -->
+    <div class="rh-aviso-erro" id="rh-aviso-erro" role="alert" hidden>
+        <span class="aviso-erro-texto" id="rh-aviso-erro-texto"></span>
+        <button type="button" class="rh-btn rh-btn-pequeno rh-btn-neutro" id="rh-aviso-erro-tentar" hidden>
+            Tentar de novo
+        </button>
+        <button type="button" class="aviso-erro-fechar" id="rh-aviso-erro-fechar" aria-label="Fechar aviso">&times;</button>
+    </div>
+
     <!-- Scripts de Autenticação e Lógica do RH (Caminhos Absolutos) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/JavaScript/supabase-client.js"></script>
     <script src="/JavaScript/auth.js"></script>
-    <script src="/dashboard-rh/JavaScript/rh.js?v=6"></script>
+    <script src="/dashboard-rh/JavaScript/rh.js?v=7"></script>
 </body>
 
 </html>
