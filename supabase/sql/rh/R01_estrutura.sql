@@ -521,7 +521,7 @@ commit;
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- R.1 Estrutura e permissões (esperado: tabelas_rls=auditoria:true, colaboradores:true, contratos_pj:true, etapas:true, exames:true, ferias:true, modelo_etapas:true, modelos:true, observacoes:true, processos:true | anon_usa_schema=f | anon_privilegios=0 | delete_ou_truncate=0 | observacoes=INSERT,SELECT | auditoria=SELECT | service_role_tabelas=0 | funcoes_papel=eh_rh:t:search_path="", eh_rh_restrito:t:search_path="" | funcoes_para_anon=0 | policies_delete=0 | modelos=Admissão CLT:0, Distrato PJ:6, Exame periódico:5, Rescisão CLT:7)
+-- R.1 Estrutura e permissões (esperado: tabelas_rls=auditoria:true, colaboradores:true, contratos_pj:true, etapas:true, exames:true, ferias:true, modelo_etapas:true, modelos:true, observacoes:true, processos:true | anon_usa_schema=f | anon_privilegios=0 | delete_ou_truncate=0 | observacoes=INSERT,SELECT | auditoria=SELECT | service_role_tabelas=0 | funcoes_papel=eh_rh:true:search_path="", eh_rh_restrito:true:search_path="" | funcoes_para_anon=0 | policies_delete=0 | modelos=Admissão CLT:0, Distrato PJ:6, Exame periódico:5, Rescisão CLT:7)
 -- -----------------------------------------------------------------------------
 do $$
 begin
@@ -590,7 +590,7 @@ rollback;
 
 
 -- -----------------------------------------------------------------------------
--- R.3 Motorista, admin e diretoria da frota não leem nem gravam (esperado: motorista=linhas_lidas:0 gravar:bloqueado | admin=linhas_lidas:0 gravar:bloqueado | diretoria=linhas_lidas:0 gravar:bloqueado | linhas_no_banco>0=t)
+-- R.3 Motorista, admin e diretoria da frota não leem nem gravam (esperado: motorista=linhas_lidas:0 gravar:bloqueado | admin=linhas_lidas:0 gravar:bloqueado | diretoria=linhas_lidas:0 gravar:bloqueado | linhas_no_banco>0=true)
 --     Antes, como dono, grava 1 colaborador + 1 processo + 1 etapa + 1 observação
 --     para provar que existe o que ler (e os 4 modelos já existem).
 -- -----------------------------------------------------------------------------
@@ -786,7 +786,7 @@ rollback;
 
 
 -- -----------------------------------------------------------------------------
--- R.6 Observação não pode ser editada nem apagada; autor e hora do servidor; sem delete físico (esperado: autor_servidor=t | email_servidor=t | hora_servidor=t | rh_update=bloqueado | rh_delete=bloqueado | dono_update=bloqueado | dono_delete=bloqueado | delete_rh=colaboradores:bloqueado etapas:bloqueado exames:bloqueado ferias:bloqueado contratos_pj:bloqueado processos:bloqueado)
+-- R.6 Observação não pode ser editada nem apagada; autor e hora do servidor; sem delete físico (esperado: autor_servidor=true | email_servidor=true | hora_servidor=true | rh_update=bloqueado | rh_delete=bloqueado | dono_update=bloqueado | dono_delete=bloqueado | delete_rh=colaboradores:bloqueado etapas:bloqueado exames:bloqueado ferias:bloqueado contratos_pj:bloqueado processos:bloqueado)
 -- -----------------------------------------------------------------------------
 begin;
 do $$
@@ -873,7 +873,7 @@ rollback;
 
 
 -- -----------------------------------------------------------------------------
--- R.7 Update gera auditoria; só 'rh' lê; ninguém altera a auditoria (esperado: auditou=t | quem=t | antes=Analista | depois=Coordenador | linhas_do_registro=1 | restrito_le=0 linhas | rh_altera=bloqueado | dono_altera=bloqueado | dono_apaga=bloqueado)
+-- R.7 Update gera auditoria; só 'rh' lê; ninguém altera a auditoria (esperado: auditou=true | quem=true | antes=Analista | depois=Coordenador | linhas_do_registro=1 | restrito_le=0 linhas | rh_altera=bloqueado | dono_altera=bloqueado | dono_apaga=bloqueado)
 -- -----------------------------------------------------------------------------
 begin;
 select set_config('request.jwt.claims',
