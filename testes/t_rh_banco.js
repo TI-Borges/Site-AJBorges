@@ -1,18 +1,19 @@
 // Dashboard RH lendo e gravando no schema rh, com o Supabase simulado por um Postgres de verdade:
 // o supabase-js do CDN é trocado por um cliente falso cujo .schema('rh') manda cada consulta para
-// um PGlite (no Node) com R01 + R01b aplicados, como o papel authenticated e o JWT do usuário
+// um PGlite (no Node) com R01 + R01b + R03 aplicados, como o papel authenticated e o JWT do usuário
 // (app_metadata.role). Ou seja: quem barra o rh_restrito é a RLS, não a tela.
 // auth.js e supabase-client.js são os reais.
 // Confere: diretoria/motorista/sem sessão vão para o login; admin grava tudo e relê depois de
 // recarregar; observação sem autor/hora no pedido; erro de rede e de permissão sem perder o que
 // foi digitado; rh_restrito só com observação e concluir/reabrir; escapeHtml.
+// Anexos (Storage) ficam no t_rh_anexos.js.
 // Uso: node testes/t_rh_banco.js
 const http = require('http');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const puppeteer = require('puppeteer-core');
 const { PGlite } = require('@electric-sql/pglite');
+const { AUTH_SIMULADO, storageSimulado } = require('./rh_storage_simulado');
 
 const RAIZ = path.resolve(__dirname, '..');
 const RH = '/dashboard-rh/HTML/index.html';
@@ -66,19 +67,8 @@ window.supabase = { createClient: () => {
 
 async function criarBanco() {
   const db = new PGlite();
-  await db.exec(`
-    create schema auth;
-    create function auth.uid() returns uuid language sql stable as $$
-      select (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid $$;
-    create function auth.jwt() returns jsonb language sql stable as $$
-      select coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb, '{}'::jsonb) $$;
-    create role authenticated;
-    create role anon;
-    create role service_role;
-    grant usage on schema auth to anon, authenticated, service_role;
-    grant execute on all functions in schema auth to anon, authenticated, service_role;
-  `);
-  for (const arq of ['R01_estrutura.sql', 'R01b_admin.sql']) {
+  await db.exec(AUTH_SIMULADO + storageSimulado());
+  for (const arq of ['R01_estrutura.sql', 'R01b_admin.sql', 'R03_anexos.sql']) {
     const sql = fs.readFileSync(path.join(RAIZ, 'supabase/sql/rh', arq), 'utf8');
     const ini = sql.indexOf('\nbegin;\n');
     await db.exec(sql.slice(ini, sql.indexOf('\ncommit;\n') + '\ncommit;\n'.length));
@@ -232,19 +222,13 @@ function servidor() {
   await ocioso();
   ok((await page.$$('.etapa-card')).length === 7, 'processo criado com as 7 etapas do modelo');
 
-  // Concluir a 1ª etapa, observação, responsável da 2ª, anexo, mover a 3ª para baixo, remover a última
+  // Concluir a 1ª etapa, observação, responsável da 2ª, mover a 3ª para baixo, remover a última
   await page.click('.etapa-card:nth-child(1) [data-acao="alternar-conclusao-etapa"]');
   await ocioso();
   await page.type('.etapa-card:nth-child(1) .input-nova-obs', 'Comunicado entregue ao colaborador');
   await page.click('.etapa-card:nth-child(1) form[data-form="adicionar-observacao-etapa"] button[type="submit"]');
   await ocioso();
   await valor('.etapa-card:nth-child(2) .input-etapa-responsavel', 'DP');
-  await ocioso();
-  const arqAnexo = path.join(os.tmpdir(), 'contrato-ana.pdf');
-  fs.writeFileSync(arqAnexo, 'teste');
-  const inputAnexo = await page.$('.etapa-card:nth-child(1) .input-anexo-etapa');
-  await inputAnexo.uploadFile(arqAnexo);
-  await page.$eval('.etapa-card:nth-child(1) .input-anexo-etapa', el => el.dispatchEvent(new Event('change', { bubbles: true })));
   await ocioso();
   await page.click('.etapa-card:nth-child(3) [data-acao="mover-etapa-proc"][data-direcao="1"]');
   await ocioso();
@@ -303,7 +287,6 @@ function servidor() {
       processos: estadoRh.processos.length,
       etapas: proc ? proc.etapas.map(e => `${e.nome}${e.concluida ? '✓' : ''}${e.responsavel ? '(' + e.responsavel + ')' : ''}`).join(', ') : '',
       obs: comObs ? `${comObs.observacoes[0].autor} • ${comObs.observacoes[0].dataHora} • ${comObs.observacoes[0].texto}` : '',
-      anexos: comObs ? comObs.anexos.join() : '',
       exames: estadoRh.exames.length,
       ferias: ana && ana.ferias ? `${ana.ferias.aquisitivoInicio} saldo ${ana.ferias.saldoDias}` : '',
       contrato: bruno && bruno.contratoPj ? `${bruno.contratoPj.fim} R$ ${bruno.contratoPj.valor} aviso ${bruno.contratoPj.avisoDias}` : '',
@@ -316,7 +299,6 @@ function servidor() {
     'relê as etapas: 1ª concluída, responsável na 2ª, 3ª movida para baixo, última removida');
   ok(/^admin@teste\.local • \d{2}\/\d{2}\/\d{4} \d{2}:\d{2} • Comunicado entregue ao colaborador$/.test(relido.obs),
     'relê a observação com e-mail e hora do servidor');
-  ok(relido.anexos === 'contrato-ana.pdf', 'relê o anexo (só o nome)');
   ok(relido.exames === 1 && relido.ferias === '2025-01-10 saldo 30' && relido.contrato === '2026-12-31 R$ 12500.5 aviso 30',
     'relê exame, férias e contrato PJ');
   ok(relido.admissao === 'Exame admissional', 'relê a etapa nova do modelo de Admissão CLT');

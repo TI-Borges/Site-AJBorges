@@ -1,10 +1,12 @@
 /**
  * ============================================================================
  * AJBorges Transportes - Dashboard de Recursos Humanos (RH)
- * Dados no Supabase, schema rh (supabase/sql/rh/R01 + R01b). Quem pode o quê
- * é decidido no banco (RLS): admin e rh leem e gravam; rh_restrito lê e só
- * grava observações e conclusão/reabertura de etapas. A tela só esconde os
+ * Dados no Supabase, schema rh (supabase/sql/rh/R01 + R01b + R03). Quem pode
+ * o quê é decidido no banco (RLS): admin e rh leem e gravam; rh_restrito lê e
+ * só grava observações e conclusão/reabertura de etapas. A tela só esconde os
  * botões que o papel não pode usar. Depois de cada gravação, relê tudo.
+ * Anexos: arquivo no bucket privado rh-anexos (abre só por link assinado de
+ * 60 segundos) e dados em rh.anexos.
  * ============================================================================
  */
 
@@ -12,8 +14,15 @@ const RH_LOGIN = '/HTML/Login.html#admin';
 const PAPEIS_RH = ['admin', 'rh', 'rh_restrito'];
 const TABELAS_RH = [
     'colaboradores', 'modelos', 'modelo_etapas', 'processos', 'etapas',
-    'observacoes', 'contratos_pj', 'exames', 'ferias'
+    'observacoes', 'contratos_pj', 'exames', 'ferias', 'anexos'
 ];
+
+// Anexos: mesmo limite e tipos do bucket (o Storage também barra)
+const BUCKET_ANEXOS = 'rh-anexos';
+const LIMITE_ANEXO_BYTES = 10 * 1024 * 1024;
+const EXTENSAO_POR_TIPO = { 'application/pdf': 'pdf', 'image/jpeg': 'jpg', 'image/png': 'png' };
+const TIPO_POR_EXTENSAO = { pdf: 'application/pdf', jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png' };
+const SEGUNDOS_LINK_ANEXO = 60;
 
 /* ============================================================================
    ESTADO DA TELA (OS DADOS VÊM DO BANCO EM carregarDados)
@@ -38,6 +47,8 @@ const estadoRh = {
     modeloSelecionadoId: 'rescisao_clt',
     etapaEditandoNomeId: null,
     modeloIndexEditando: null,
+    // Envios de anexo em andamento: etapaId -> texto da barra de envio
+    enviosAnexo: {},
 
     // Modelos de etapas por chave (rescisao_clt, distrato_pj, exame_periodico, admissao_clt)
     modelos: {}
@@ -137,6 +148,13 @@ function formatarMoedaBr(valor) {
     return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
+function formatarTamanho(bytes) {
+    const n = Number(bytes) || 0;
+    if (n < 1024) return `${n} bytes`;
+    if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+    return `${(n / (1024 * 1024)).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`;
+}
+
 /* ============================================================================
    BANCO: LEITURA E GRAVAÇÃO NO SCHEMA rh
    Sem delete: "remover" grava ativo = false. Carimbos (autor, hora, quem
@@ -187,6 +205,16 @@ function mensagemDeErro(erro, acao) {
     }
     if (codigo === 'PGRST106') {
         return `Não foi possível ${acao}: o schema "rh" ainda não está liberado na API do Supabase.`;
+    }
+    // Recusas do Storage (o bucket rh-anexos tem limite e tipos próprios)
+    if (status === 413 || /maximum allowed size|too large/i.test(texto)) {
+        return `Não foi possível ${acao}: o arquivo passa do limite de 10 MB.`;
+    }
+    if (status === 415 || /mime type/i.test(texto)) {
+        return `Não foi possível ${acao}: tipo de arquivo não aceito (só PDF, JPG ou PNG).`;
+    }
+    if (/object not found/i.test(texto)) {
+        return `Não foi possível ${acao}: o arquivo não foi encontrado ou o seu usuário não pode abri-lo.`;
     }
     if (!codigo && /fetch|network|failed|timeout|indisponível/i.test(texto)) {
         return `Sem conexão com o servidor: não foi possível ${acao}. Confira a internet e tente de novo; o que você digitou continua na tela.`;
@@ -289,6 +317,19 @@ function montarEstado(linhas) {
         });
     });
 
+    // Anexos com arquivo (rh.anexos); os removidos (ativo = false) não aparecem
+    const anexosPorEtapa = {};
+    linhas.anexos.filter((a) => a.ativo).sort(porCriacao).forEach((a) => {
+        (anexosPorEtapa[a.etapa_id] = anexosPorEtapa[a.etapa_id] || []).push({
+            id: a.id,
+            caminho: a.caminho,
+            nome: a.nome_original,
+            tamanho: a.tamanho,
+            enviadoPor: a.criado_por_email || 'Usuário sem e-mail',
+            enviadoEm: formatarDataHora(a.criado_em)
+        });
+    });
+
     const etapasPorProcesso = {};
     linhas.etapas.filter((e) => e.ativo).sort(porOrdem).forEach((e) => {
         (etapasPorProcesso[e.processo_id] = etapasPorProcesso[e.processo_id] || []).push({
@@ -298,7 +339,9 @@ function montarEstado(linhas) {
             concluida: Boolean(e.concluida),
             responsavel: e.responsavel || '',
             prazo: e.prazo || '',
-            anexos: Array.isArray(e.anexos) ? e.anexos : [],
+            anexos: anexosPorEtapa[e.id] || [],
+            // Antes do R03 só o nome era gravado (rh.etapas.anexos): registro antigo, sem arquivo
+            anexosAntigos: Array.isArray(e.anexos) ? e.anexos : [],
             observacoes: obsPorEtapa[e.id] || []
         });
     });
@@ -1189,29 +1232,176 @@ function renderizarCardEtapaProcesso(proc, etapa, idx) {
                 </form>
             </div>
 
-            <!-- Anexos (grava só o nome do arquivo escolhido, não o arquivo) -->
+            <!-- Anexos: arquivo no bucket privado; "Abrir" gera link assinado de 60 s -->
             <div class="etapa-subsecao">
                 <span class="etapa-subsecao-titulo">
-                    Anexos (${(etapa.anexos || []).length})
+                    Anexos (${etapa.anexos.length + etapa.anexosAntigos.length})
                 </span>
-                ${(etapa.anexos && etapa.anexos.length > 0) ? `
+                ${etapa.anexos.length > 0 ? `
+                    <ul class="anexos-lista">
+                        ${etapa.anexos.map((anexo) => `
+                            <li class="anexo-item">
+                                <div class="anexo-info">
+                                    <span class="anexo-nome">📎 ${escapeHtml(anexo.nome)}</span>
+                                    <span class="anexo-meta">
+                                        ${escapeHtml(formatarTamanho(anexo.tamanho))} • enviado por
+                                        ${escapeHtml(anexo.enviadoPor)} em ${escapeHtml(anexo.enviadoEm)}
+                                    </span>
+                                </div>
+                                <div class="anexo-acoes">
+                                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-suave"
+                                            data-acao="abrir-anexo"
+                                            data-proc-id="${escapeHtml(proc.id)}"
+                                            data-etapa-id="${escapeHtml(etapa.id)}"
+                                            data-anexo-id="${escapeHtml(anexo.id)}">
+                                        Abrir
+                                    </button>
+                                    <button type="button" class="rh-btn rh-btn-pequeno rh-btn-perigo" data-so-edicao
+                                            data-acao="remover-anexo"
+                                            data-proc-id="${escapeHtml(proc.id)}"
+                                            data-etapa-id="${escapeHtml(etapa.id)}"
+                                            data-anexo-id="${escapeHtml(anexo.id)}">
+                                        Remover
+                                    </button>
+                                </div>
+                            </li>
+                        `).join('')}
+                    </ul>
+                ` : ''}
+                ${etapa.anexosAntigos.length > 0 ? `
                     <div class="anexos-chips-lista">
-                        ${etapa.anexos.map((nomeArq) => `
-                            <span class="anexo-chip">
+                        ${etapa.anexosAntigos.map((nomeArq) => `
+                            <span class="anexo-chip anexo-antigo">
                                 📎 ${escapeHtml(nomeArq)}
+                                <em>registro antigo, sem arquivo</em>
                             </span>
                         `).join('')}
                     </div>
                 ` : ''}
+                ${estadoRh.enviosAnexo[etapa.id] ? htmlBarraEnvio(estadoRh.enviosAnexo[etapa.id]) : ''}
                 <label class="label-upload-anexo" data-so-edicao>
-                    <span>+ Escolher arquivo (apenas nome)</span>
+                    <span>📎 Anexar</span>
+                    <small>PDF, JPG ou PNG, até 10 MB</small>
                     <input type="file" class="input-anexo-etapa" hidden
+                           accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
                            data-proc-id="${escapeHtml(proc.id)}"
                            data-etapa-id="${escapeHtml(etapa.id)}">
                 </label>
             </div>
         </article>
     `;
+}
+
+function htmlBarraEnvio(texto) {
+    return `
+        <div class="anexo-envio" role="status" aria-live="polite">
+            <span class="anexo-envio-texto">${escapeHtml(texto)}</span>
+            <div class="anexo-envio-barra"><span></span></div>
+        </div>
+    `;
+}
+
+/* ============================================================================
+   ANEXOS: ENVIO, ABRIR (LINK ASSINADO) E REMOVER (ativo = false)
+   ============================================================================ */
+function storageAnexos() {
+    const cliente = window.supabaseClient;
+    if (!cliente || !cliente.storage) throw new Error('Cliente Supabase indisponível.');
+    return cliente.storage.from(BUCKET_ANEXOS);
+}
+
+// Tipo pelo que o navegador informa; se vier vazio, pela extensão do nome
+function tipoDoAnexo(arquivo) {
+    if (arquivo.type) return EXTENSAO_POR_TIPO[arquivo.type] ? arquivo.type : '';
+    const extensao = String(arquivo.name || '').split('.').pop().toLowerCase();
+    return TIPO_POR_EXTENSAO[extensao] || '';
+}
+
+// Mensagem de recusa antes de enviar (ou '' se o arquivo pode ir)
+function recusaDoAnexo(arquivo) {
+    const nome = arquivo.name || 'arquivo';
+    if (!tipoDoAnexo(arquivo)) {
+        return `"${nome}" não foi anexado: só são aceitos arquivos PDF, JPG ou PNG.`;
+    }
+    if (arquivo.size > LIMITE_ANEXO_BYTES) {
+        return `"${nome}" tem ${formatarTamanho(arquivo.size)} e não foi anexado: o limite é 10 MB por arquivo.`;
+    }
+    if (arquivo.size === 0) {
+        return `"${nome}" está vazio e não foi anexado.`;
+    }
+    return '';
+}
+
+// Caminho gerado aqui (<processo>/<etapa>/<uuid>.<ext>); o nome digitado vai só para nome_original
+async function enviarAnexo(proc, etapa, arquivo) {
+    const tipo = tipoDoAnexo(arquivo);
+    const caminho = `${proc.id}/${etapa.id}/${crypto.randomUUID()}.${EXTENSAO_POR_TIPO[tipo]}`;
+    const { error } = await storageAnexos().upload(caminho, arquivo, {
+        contentType: tipo,
+        upsert: false,
+        cacheControl: '3600'
+    });
+    if (error) throw error;
+    await inserirRh('anexos', {
+        etapa_id: etapa.id,
+        caminho,
+        nome_original: String(arquivo.name || '').trim().slice(0, 255) || 'arquivo',
+        tipo,
+        tamanho: arquivo.size
+    });
+}
+
+function anexarArquivo(input) {
+    const etapa = acharEtapa(input);
+    const proc = estadoRh.processos.find((p) => p.id === input.getAttribute('data-proc-id'));
+    const arquivo = (input.files || [])[0];
+    input.value = '';
+    if (!etapa || !proc || !arquivo) return;
+
+    const recusa = recusaDoAnexo(arquivo);
+    if (recusa) {
+        mostrarAvisoErro(recusa);
+        return;
+    }
+
+    // Barra de envio no card (o supabase-js não informa a porcentagem)
+    const textoBarra = `Enviando "${arquivo.name}" (${formatarTamanho(arquivo.size)})...`;
+    estadoRh.enviosAnexo[etapa.id] = textoBarra;
+    const label = input.closest('.label-upload-anexo');
+    if (label) label.insertAdjacentHTML('beforebegin', htmlBarraEnvio(textoBarra));
+
+    executarGravacao(async () => {
+        try {
+            await enviarAnexo(proc, etapa, arquivo);
+        } finally {
+            delete estadoRh.enviosAnexo[etapa.id];
+        }
+    }).then((ok) => {
+        if (ok) return;
+        // Deu erro: o aviso fica na tela e a barra some (sem redesenhar o resto)
+        document.querySelectorAll(`.etapa-card[data-etapa-id="${CSS.escape(etapa.id)}"] .anexo-envio`)
+            .forEach((barra) => barra.remove());
+    });
+}
+
+// Abre a aba já no clique (senão o navegador bloqueia) e só depois põe o link assinado nela
+async function abrirAnexo(anexo) {
+    const janela = window.open('', '_blank');
+    try {
+        const { data, error } = await storageAnexos().createSignedUrl(anexo.caminho, SEGUNDOS_LINK_ANEXO);
+        if (error) throw error;
+        if (!data || !data.signedUrl) throw new Error('Link do anexo não foi gerado.');
+        if (janela) {
+            janela.opener = null;
+            janela.location.replace(data.signedUrl);
+        } else {
+            window.open(data.signedUrl, '_blank', 'noopener');
+        }
+    } catch (erro) {
+        if (janela) janela.close();
+        console.warn('[RH] Falha ao abrir anexo:', erro);
+        mostrarAvisoErro(mensagemDeErro(erro, 'abrir o anexo'));
+    }
 }
 
 /* ============================================================================
@@ -2265,6 +2455,16 @@ function registrarEventosRh() {
         } else if (acao === 'remover-etapa-proc') {
             const etapa = acharEtapa(btnAcao);
             if (etapa) executarGravacao(() => atualizarRh('etapas', etapa.id, { ativo: false }));
+        } else if (acao === 'abrir-anexo' || acao === 'remover-anexo') {
+            const etapa = acharEtapa(btnAcao);
+            const anexo = etapa?.anexos.find((a) => a.id === btnAcao.getAttribute('data-anexo-id'));
+            if (!anexo) return;
+            if (acao === 'abrir-anexo') {
+                abrirAnexo(anexo);
+            } else if (window.confirm(`Remover "${anexo.nome}" desta etapa? O arquivo continua guardado para histórico.`)) {
+                // Só marca ativo = false: o arquivo fica no bucket
+                executarGravacao(() => atualizarRh('anexos', anexo.id, { ativo: false }));
+            }
         } else if (acao === 'iniciar-renomear-modelo') {
             const modId = btnAcao.getAttribute('data-modelo-id');
             const idx = btnAcao.getAttribute('data-idx');
@@ -2366,13 +2566,7 @@ function registrarEventosRh() {
             const etapa = acharEtapa(alvo);
             if (etapa) executarGravacao(() => atualizarRh('etapas', etapa.id, { prazo: alvo.value || null }));
         } else if (alvo.classList.contains('input-anexo-etapa')) {
-            const etapa = acharEtapa(alvo);
-            // Grava apenas o nome do arquivo escolhido (não o arquivo em si)
-            const nomes = Array.from(alvo.files || []).map((arq) => arq && arq.name).filter(Boolean);
-            alvo.value = '';
-            if (etapa && nomes.length > 0) {
-                executarGravacao(() => atualizarRh('etapas', etapa.id, { anexos: [...etapa.anexos, ...nomes] }));
-            }
+            anexarArquivo(alvo);
         }
     });
 }

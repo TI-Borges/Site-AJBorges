@@ -1443,6 +1443,108 @@ body.rh-body {
     background: var(--rh-primario-suave);
 }
 
+.label-upload-anexo small {
+    font-weight: 500;
+    color: var(--texto-mutado);
+}
+
+/* Anexos com arquivo (bucket rh-anexos) */
+.anexos-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.anexo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    flex-wrap: wrap;
+    padding: 7px 10px;
+    border: 1px solid var(--card-borda);
+    border-radius: 8px;
+    background: #f8fafc;
+    min-width: 0;
+}
+
+.anexo-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1 1 220px;
+}
+
+.anexo-nome {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--texto-corpo);
+    overflow-wrap: anywhere;
+}
+
+.anexo-meta {
+    font-size: 0.72rem;
+    color: var(--texto-mutado);
+    overflow-wrap: anywhere;
+}
+
+.anexo-acoes {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* Anexo antigo: só o nome, sem arquivo */
+.anexo-chip.anexo-antigo {
+    background: var(--amarelo-fundo);
+    border-color: var(--amarelo-borda);
+    max-width: 100%;
+    flex-wrap: wrap;
+    overflow-wrap: anywhere;
+}
+
+.anexo-chip.anexo-antigo em {
+    font-weight: 500;
+    color: var(--amarelo-pendente);
+}
+
+/* Barra de envio (indeterminada: o envio não informa a porcentagem) */
+.anexo-envio {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--rh-primario);
+    overflow-wrap: anywhere;
+}
+
+.anexo-envio-barra {
+    position: relative;
+    height: 6px;
+    border-radius: var(--raio-pill);
+    background: var(--rh-primario-suave);
+    overflow: hidden;
+}
+
+.anexo-envio-barra span {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40%;
+    border-radius: inherit;
+    background: var(--rh-primario);
+    animation: anexo-envio-andando 1.1s ease-in-out infinite;
+}
+
+@keyframes anexo-envio-andando {
+    from { left: -40%; }
+    to { left: 100%; }
+}
+
 /* ==========================================================================
    8. Editor de Modelos de Etapas
    ========================================================================== */
