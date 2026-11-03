@@ -23,7 +23,9 @@
         rel="stylesheet">
 
     <!-- Folha de Estilos Exclusiva do Dashboard RH -->
-    <link rel="stylesheet" href="/dashboard-rh/CSS/rh.css?v=8">
+    <link rel="stylesheet" href="/dashboard-rh/CSS/rh.css?v=9">
+    <!-- Barra lateral padrão dos dashboards (depois do CSS da página) -->
+    <link rel="stylesheet" href="/CSS/sidebar-padrao.css?v=2">
 
     <!-- Verificação de Sessão Administrativa (Route Guard) -->
     <script>
@@ -42,7 +44,7 @@
         <!-- ====================================================================
              1. SIDEBAR FIXA E RECOLHÍVEL (TEMA ESCURO PREMIUM COM VIOLETA #7c3aed)
              ==================================================================== -->
-        <aside class="rh-sidebar" id="rh-sidebar" aria-label="Menu Principal do RH">
+        <aside class="rh-sidebar ajb-sidebar ajb-sidebar--rh" id="rh-sidebar" aria-label="Menu Principal do RH">
             <!-- Topo da Barra Lateral / Identidade da Marca (Clica para recolher) -->
             <div class="sidebar-header">
                 <div class="sidebar-brand" id="sidebar-brand" role="button" tabindex="0"
@@ -229,12 +231,12 @@
                     </li>
                 </ul>
 
-                <div class="nav-group-label" style="margin-top: 24px;">SISTEMAS &amp; ACESSOS</div>
+                <!-- Barra lateral padrão dos 4 dashboards (CSS/sidebar-padrao.css) -->
+                <div class="nav-group-label nav-group-sistemas">SISTEMAS &amp; PAINÉIS</div>
                 <ul class="nav-list">
-                    <!-- Botão Hub para voltar a escolhaDashboard.html -->
                     <li class="nav-item">
                         <a href="/HTML/escolhaDashboard.html" class="nav-link nav-link-hub" id="sidebar-link-hub"
-                            title="Ir para a Central de Seleção de Painéis">
+                            title="Hub de Dashboard">
                             <span class="nav-icon" aria-hidden="true">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
                                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -245,29 +247,28 @@
                                     <rect x="3" y="14" width="7" height="7"></rect>
                                 </svg>
                             </span>
-                            <span class="nav-text">Hub de Painéis</span>
+                            <span class="nav-text">Hub de Dashboard</span>
                         </a>
                     </li>
                 </ul>
             </nav>
 
-            <!-- Rodapé da Barra Lateral com Perfil & Logout -->
+            <!-- Rodapé: usuário logado e Sair (JavaScript/sidebar-padrao.js) -->
             <div class="sidebar-footer">
-                <div class="user-profile-badge" title="Usuário autenticado">
-                    <div class="user-avatar-circle" id="user-avatar-initials" aria-hidden="true">RH</div>
+                <div class="user-profile-badge" id="sidebar-user-badge">
+                    <div class="user-avatar-circle" id="user-avatar-initials" aria-hidden="true"></div>
                     <div class="user-details">
-                        <span class="user-email" id="sidebar-user-email">Carregando usuário...</span>
+                        <span class="user-email" id="sidebar-user-email"></span>
                         <div class="user-role-row">
-                            <span class="role-tag" id="sidebar-user-role">Recursos Humanos</span>
-                            <span class="pulse-online" title="Sessão autenticada e conectada"></span>
+                            <span class="role-tag" id="sidebar-user-role"></span>
+                            <span class="pulse-online" title="Conectado"></span>
                         </div>
                     </div>
                 </div>
-
-                <button type="button" class="btn-logout-sidebar btn-logout-acao" id="btn-logout-sidebar"
-                    title="Encerrar sessão de trabalho">
+                <button type="button" class="btn-logout-sidebar" id="btn-logout" title="Sair">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        aria-hidden="true">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                         <polyline points="16 17 21 12 16 7"></polyline>
                         <line x1="21" y1="12" x2="9" y2="12"></line>
@@ -324,30 +325,6 @@
                         <span>Novo processo</span>
                     </button>
 
-                    <!-- Botão Hub -->
-                    <a href="/HTML/escolhaDashboard.html" class="topbar-btn topbar-btn-hub" id="topbar-hub"
-                        title="Ir para a Central de Seleção de Painéis">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="3" width="7" height="7"></rect>
-                            <rect x="14" y="14" width="7" height="7"></rect>
-                            <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
-                        <span>Hub</span>
-                    </a>
-
-                    <!-- Botão Sair -->
-                    <button type="button" class="topbar-btn topbar-btn-sair btn-logout-acao" id="topbar-sair"
-                        title="Sair do painel e encerrar sessão">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                        <span>Sair</span>
-                    </button>
                 </div>
             </header>
 
@@ -1002,7 +979,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/JavaScript/supabase-client.js"></script>
     <script src="/JavaScript/auth.js"></script>
-    <script src="/dashboard-rh/JavaScript/rh.js?v=8"></script>
+    <script src="/JavaScript/sidebar-padrao.js?v=1"></script>
+    <script src="/dashboard-rh/JavaScript/rh.js?v=9"></script>
 </body>
 
 </html>

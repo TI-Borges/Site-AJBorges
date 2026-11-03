@@ -11,6 +11,7 @@
  */
 
 const RH_LOGIN = '/HTML/Login.html#admin';
+const CHAVE_SIDEBAR = 'ajborges_sidebar_recolhida_rh';
 const PAPEIS_RH = ['admin', 'rh', 'rh_restrito'];
 const TABELAS_RH = [
     'colaboradores', 'modelos', 'modelo_etapas', 'processos', 'etapas',
@@ -2099,8 +2100,20 @@ function inicializarSidebarRecolhivelEMobile() {
     }
 
     function alternarRecolhimento() {
+        // No celular o logo abre e fecha a gaveta; no computador recolhe e lembra a escolha
+        if (window.matchMedia('(max-width: 900px)').matches) {
+            if (sidebar && sidebar.classList.contains('sidebar-aberta')) fecharSidebarMobile();
+            else abrirSidebarMobile();
+            return;
+        }
         aplicarEstadoRecolhido(!estadoRh.sidebarRecolhida);
+        try { localStorage.setItem(CHAVE_SIDEBAR, estadoRh.sidebarRecolhida ? '1' : '0'); } catch (e) { /* só nesta aba */ }
     }
+
+    // Volta como estava (ajborges_sidebar_recolhida_rh)
+    let recolhidaAntes = false;
+    try { recolhidaAntes = localStorage.getItem(CHAVE_SIDEBAR) === '1'; } catch (e) { /* aberta */ }
+    if (recolhidaAntes) aplicarEstadoRecolhido(true);
 
     if (brand) {
         brand.addEventListener('click', (e) => {
@@ -2581,44 +2594,11 @@ function acharEtapa(el) {
    PERFIL DO USUÁRIO E LOGOUT (MANTÉM O LOGIN QUE PROTEGE A PÁGINA)
    ============================================================================ */
 function preencherDadosUsuario(usuario) {
-    const emailEl = document.getElementById('sidebar-user-email');
-    const roleEl = document.getElementById('sidebar-user-role');
-    const avatarEl = document.getElementById('user-avatar-initials');
-
-    if (usuario) {
-        const email = usuario.email || 'rh@ajborges.com.br';
-        const role = {
-            admin: 'Administrador',
-            rh: 'Recursos Humanos',
-            rh_restrito: 'RH (consulta)'
-        }[usuario.role] || 'Usuário';
-        const nome = usuario.nome || email.split('@')[0];
-
-        estadoRh.usuarioEmail = email;
-        estadoRh.usuarioNome = nome;
-
-        if (emailEl) emailEl.textContent = email;
-        if (roleEl) roleEl.textContent = role;
-        if (avatarEl) {
-            const partes = nome.trim().split(/\s+/);
-            let iniciais = 'RH';
-            if (partes.length >= 2) {
-                iniciais = (partes[0][0] + partes[1][0]).toUpperCase();
-            } else if (partes.length === 1 && partes[0].length >= 2) {
-                iniciais = partes[0].substring(0, 2).toUpperCase();
-            }
-            avatarEl.textContent = iniciais;
-        }
-    }
-}
-
-function configurarEventosLogout() {
-    document.querySelectorAll('.btn-logout-acao').forEach((btn) => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.ajbAuth.sair(RH_LOGIN);
-        });
-    });
+    if (!usuario) return;
+    estadoRh.usuarioEmail = usuario.email || '';
+    estadoRh.usuarioNome = usuario.nome || estadoRh.usuarioEmail.split('@')[0];
+    // Rodapé da barra lateral (avatar, e-mail, selo do perfil e Sair): JavaScript/sidebar-padrao.js
+    window.ajbSidebar?.iniciar(usuario);
 }
 
 let timerToast = null;
@@ -2652,7 +2632,6 @@ ajbAoAutenticar(PAPEIS_RH, RH_LOGIN, (usuario) => {
     document.body.classList.toggle('rh-papel-restrito', !podeEditar());
 
     preencherDadosUsuario(usuario);
-    configurarEventosLogout();
     inicializarSidebarRecolhivelEMobile();
     registrarEventosRh();
     configurarAvisoErro();

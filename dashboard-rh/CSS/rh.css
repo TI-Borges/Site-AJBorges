@@ -501,36 +501,38 @@ body.rh-body {
     color: #ffffff;
 }
 
-/* Estado Recolhido da Barra Lateral (Desktop) */
-.rh-app-layout.sidebar-recolhida .rh-sidebar,
-.rh-sidebar.sidebar-recolhida {
-    width: var(--sidebar-recolhida-largura);
-    min-width: var(--sidebar-recolhida-largura);
-}
+/* Estado Recolhido da Barra Lateral (Desktop; no celular a gaveta abre sempre completa) */
+@media (min-width: 901px) {
+    .rh-app-layout.sidebar-recolhida .rh-sidebar,
+    .rh-sidebar.sidebar-recolhida {
+        width: var(--sidebar-recolhida-largura);
+        min-width: var(--sidebar-recolhida-largura);
+    }
 
-.rh-app-layout.sidebar-recolhida .brand-info,
-.rh-app-layout.sidebar-recolhida .btn-toggle-sidebar-desktop,
-.rh-app-layout.sidebar-recolhida .nav-group-label,
-.rh-app-layout.sidebar-recolhida .nav-text,
-.rh-app-layout.sidebar-recolhida .nav-badge-count,
-.rh-app-layout.sidebar-recolhida .nav-indicator,
-.rh-app-layout.sidebar-recolhida .user-details,
-.rh-app-layout.sidebar-recolhida .btn-logout-sidebar span {
-    display: none !important;
-}
+    .rh-app-layout.sidebar-recolhida .brand-info,
+    .rh-app-layout.sidebar-recolhida .btn-toggle-sidebar-desktop,
+    .rh-app-layout.sidebar-recolhida .nav-group-label,
+    .rh-app-layout.sidebar-recolhida .nav-text,
+    .rh-app-layout.sidebar-recolhida .nav-badge-count,
+    .rh-app-layout.sidebar-recolhida .nav-indicator,
+    .rh-app-layout.sidebar-recolhida .user-details,
+    .rh-app-layout.sidebar-recolhida .btn-logout-sidebar span {
+        display: none !important;
+    }
 
-.rh-app-layout.sidebar-recolhida .sidebar-header {
-    justify-content: center;
-    padding: 0 8px;
-}
+    .rh-app-layout.sidebar-recolhida .sidebar-header {
+        justify-content: center;
+        padding: 0 8px;
+    }
 
-.rh-app-layout.sidebar-recolhida .sidebar-brand,
-.rh-app-layout.sidebar-recolhida .nav-link,
-.rh-app-layout.sidebar-recolhida .user-profile-badge,
-.rh-app-layout.sidebar-recolhida .btn-logout-sidebar {
-    justify-content: center;
-    padding-left: 0;
-    padding-right: 0;
+    .rh-app-layout.sidebar-recolhida .sidebar-brand,
+    .rh-app-layout.sidebar-recolhida .nav-link,
+    .rh-app-layout.sidebar-recolhida .user-profile-badge,
+    .rh-app-layout.sidebar-recolhida .btn-logout-sidebar {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+    }
 }
 
 /* ==========================================================================
@@ -651,29 +653,6 @@ body.rh-body {
 
 .topbar-btn-secundario:hover {
     background-color: #ede9fe;
-}
-
-.topbar-btn-hub {
-    background-color: #f8fafc;
-    color: var(--texto-corpo);
-    border-color: var(--card-borda);
-}
-
-.topbar-btn-hub:hover {
-    border-color: var(--rh-primario-borda);
-    color: var(--rh-primario);
-}
-
-.topbar-btn-sair {
-    background-color: #f8fafc;
-    color: #64748b;
-    border-color: var(--card-borda);
-}
-
-.topbar-btn-sair:hover {
-    background-color: #fef2f2;
-    color: #ef4444;
-    border-color: #fecaca;
 }
 
 /* Container Principal */
