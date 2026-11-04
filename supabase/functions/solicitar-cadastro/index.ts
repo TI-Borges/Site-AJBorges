@@ -195,6 +195,23 @@ async function desfazerCadastro(
   }
 }
 
+// Recusa do trigger trg_cadastro_agregado_unico (passo25): erro 23505 com
+// a mensagem "cadastro_duplicado: ...".
+function cadastroDuplicado(erro: unknown): boolean {
+  if (!erro || typeof erro !== "object") return false;
+
+  const e = erro as { code?: unknown; message?: unknown };
+
+  return String(e.code ?? "") === "23505" &&
+    String(e.message ?? "").includes("cadastro_duplicado");
+}
+
+function mensagemDuplicado(tipo: string): string {
+  return `Já existe um cadastro com este ${
+    tipo === "pj" ? "CNPJ" : "CPF"
+  } em análise. Aguarde o retorno da nossa equipe ou fale com a gente pelo WhatsApp (14) 99858-4705.`;
+}
+
 // ---------- Campos aceitos ----------
 
 const CAMPOS_ACESSO = [
@@ -712,36 +729,9 @@ Deno.serve(async (req: Request) => {
       .trim()
       .slice(0, 120);
 
-    // ---------- CPF com cadastro ativo ----------
-
-    const { data: cadastrosCpf, error: erroConsulta } = await admin
-      .from("cadastros_agregados")
-      .select("id, status")
-      .eq("cpf", cpf);
-
-    if (erroConsulta) {
-      console.error(
-        "solicitar-cadastro: falha ao consultar CPF:",
-        codigoErro(erroConsulta),
-      );
-
-      return resp(req, 503, {
-        erro: "Não foi possível verificar cadastros anteriores. Tente novamente.",
-      });
-    }
-
-    const temAtivo = (cadastrosCpf ?? []).some(
-      (cadastro) =>
-        ["pendente", "analise", "aprovado"].includes(cadastro.status),
-    );
-
-    if (temAtivo) {
-      return resp(req, 409, {
-        erro: "Já existe um cadastro para este CPF. Se precisar atualizar algum documento, fale com o time de Cadastros da AJBorges.",
-      });
-    }
-
     // ---------- Criação sem conta de login ----------
+    // Um CPF (PF) ou CNPJ (PJ) só tem um cadastro ativo (não recusado): quem
+    // confere é o trigger trg_cadastro_agregado_unico (passo25), no mesmo insert.
 
     const { data: cad, error: erroCad } = await admin
       .from("cadastros_agregados")
@@ -770,6 +760,14 @@ Deno.serve(async (req: Request) => {
       })
       .select("id")
       .single();
+
+    // Já existe outro cadastro ativo com este CPF/CNPJ: a mensagem não diz
+    // nada do cadastro que já existe (nem nome, nem situação)
+    if (cadastroDuplicado(erroCad)) {
+      return resp(req, 409, {
+        erro: mensagemDuplicado(tipo),
+      });
+    }
 
     if (erroCad || !cad) {
       console.error(
