@@ -206,7 +206,7 @@ function servidor() {
     return {
       passagem: vis('torre-passagem'), tabela: vis('torre-area-principal'), busca: vis('torre-busca-wrapper'), contadores: vis('torre-painel-contadores'),
       titulo: document.getElementById('torre-aba-titulo').textContent,
-      ativo: document.querySelector('#torre-nav-list .nav-link.active')?.getAttribute('data-aba'),
+      ativo: document.querySelector('.sidebar-nav .nav-link.active')?.getAttribute('data-aba'),
       status: document.getElementById('passagem-status').textContent,
       rolagem: document.documentElement.scrollWidth > window.innerWidth
     };

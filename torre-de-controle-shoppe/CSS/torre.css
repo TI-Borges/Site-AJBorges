@@ -1838,8 +1838,33 @@ body.modo-tv .torre-tabela-scroll {
 }
 
 /* ==========================================================================
-   8b. PASSAGEM DE TURNO (torre-passagem.js)
+   8b. PASSAGEM DE TURNO (torre-passagem.js) e HISTÓRICO DE PENDÊNCIAS
+   Comunicação entre turnos: destaque índigo AJBorges (--ajb-blue, #3d3d90),
+   não o laranja das abas da planilha, para ficar claro que é outra área.
    ========================================================================== */
+.torre-passagem,
+.torre-pendencias {
+    --turnos-cor: var(--ajb-blue);
+    --turnos-cor-hover: #2e2e75;
+    --turnos-cor-suave: var(--ajb-blue-soft);
+}
+
+.torre-passagem .passagem-card,
+.torre-pendencias .passagem-card {
+    border-top: 3px solid var(--turnos-cor);
+}
+
+.torre-passagem .passagem-titulo,
+.torre-pendencias .passagem-titulo,
+.torre-passagem .passagem-subtitulo {
+    color: var(--turnos-cor);
+}
+
+/* Título da aba no topo também em índigo nessas telas (classe posta pelo torre.js) */
+.torre-area-turnos .topbar-aba-titulo {
+    color: var(--ajb-blue);
+}
+
 .torre-passagem {
     display: flex;
     flex-direction: column;
@@ -1867,7 +1892,7 @@ body.modo-tv .torre-tabela-scroll {
 }
 
 .passagem-ultima {
-    border-left: 4px solid var(--shopee-orange);
+    border-left: 4px solid var(--turnos-cor);
 }
 
 .passagem-ultima-topo {
@@ -1930,9 +1955,14 @@ body.modo-tv .torre-tabela-scroll {
 
 .passagem-campo select:focus,
 .passagem-campo input:focus,
-.passagem-campo textarea:focus {
-    outline: 2px solid var(--shopee-orange);
+.passagem-campo textarea:focus,
+.pendencia-escolha input:focus-visible {
+    outline: 2px solid var(--turnos-cor);
     outline-offset: 1px;
+}
+
+.pendencia-escolha input {
+    accent-color: var(--turnos-cor);
 }
 
 .passagem-ajuda {
@@ -1949,14 +1979,15 @@ body.modo-tv .torre-tabela-scroll {
 
 .btn-passagem-gerar,
 .btn-passagem-publicar {
-    background: var(--shopee-orange);
-    border-color: var(--shopee-orange);
+    background: var(--turnos-cor);
+    border-color: var(--turnos-cor);
     color: #ffffff;
 }
 
 .btn-passagem-gerar:hover,
 .btn-passagem-publicar:hover {
-    background: var(--shopee-orange-hover);
+    background: var(--turnos-cor-hover);
+    border-color: var(--turnos-cor-hover);
 }
 
 .btn-passagem-gerar:disabled,
@@ -2006,8 +2037,8 @@ body.modo-tv .torre-tabela-scroll {
     align-items: center;
     padding: 2px 8px;
     border-radius: 999px;
-    background: var(--shopee-orange-soft);
-    color: var(--shopee-orange-hover);
+    background: var(--turnos-cor-suave);
+    color: var(--turnos-cor);
     font-size: 12px;
     font-weight: 700;
 }
@@ -2264,6 +2295,69 @@ body.modo-tv .torre-tabela-scroll {
     padding: 8px 10px;
     border-radius: 8px;
     background: var(--bg-card-subtle);
+}
+
+/* Barra lateral: seção "COMUNICAÇÃO ENTRE TURNOS" com destaque índigo próprio.
+   O #3d3d90 some no fundo escuro (#0d111b): a faixa usa #6b6bd6 (contraste 4,2:1)
+   e ícone/texto ativo #a9a9f2 (8,6:1). As variáveis valem só para esta lista: as
+   abas da planilha continuam no laranja da Torre (CSS/sidebar-padrao.css). */
+.ajb-sidebar .nav-list--turnos {
+    --sb-cor: #6b6bd6;
+    --sb-cor-rgb: 107, 107, 214;
+    --sb-cor-clara: #a9a9f2;
+}
+
+/* (.nav-group-label junto: o sidebar-padrao.css carrega depois com o mesmo peso) */
+.ajb-sidebar .nav-group-label.nav-group-turnos {
+    margin-top: 24px;
+    color: #8b8bd9;
+}
+
+.ajb-sidebar .nav-list--turnos .nav-icon {
+    color: var(--sb-cor-clara);
+}
+
+/* Contador de pendências herdadas abertas ao lado de "Passagem de turno" */
+.ajb-sidebar .nav-badge-turnos {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    margin-left: auto;
+    border-radius: 999px;
+    background: #5151c2;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.ajb-sidebar .nav-badge-turnos[hidden] {
+    display: none;
+}
+
+/* Barra recolhida (computador): o rótulo da seção some (como os outros) e vira um
+   separador índigo; o contador fica num canto do ícone (o nome segue no title) */
+@media (min-width: 993px) {
+    .sidebar-recolhida .ajb-sidebar .nav-group-turnos + .nav-list,
+    .ajb-sidebar.sidebar-recolhida .nav-group-turnos + .nav-list {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(169, 169, 242, 0.35);
+    }
+
+    .sidebar-recolhida .ajb-sidebar .nav-badge-turnos,
+    .ajb-sidebar.sidebar-recolhida .nav-badge-turnos {
+        position: absolute;
+        top: 3px;
+        right: 10px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        font-size: 10px;
+    }
 }
 
 @media (max-width: 1100px) {

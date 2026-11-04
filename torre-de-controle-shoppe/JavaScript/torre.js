@@ -624,8 +624,8 @@ function renderizarTelaCompleta({ preservarRolagem = false } = {}) {
         btnLimparBusca.hidden = !(config.busca && config.busca.length > 0);
     }
 
-    // Destaca item na barra lateral
-    document.querySelectorAll('#torre-nav-list .nav-link').forEach((link) => {
+    // Destaca item na barra lateral (abas da planilha e comunicação entre turnos)
+    document.querySelectorAll('#torre-nav-list .nav-link, #torre-nav-turnos .nav-link').forEach((link) => {
         const ativa = link.getAttribute('data-aba') === aba;
         link.classList.toggle('active', ativa);
         if (ativa) {
@@ -634,6 +634,9 @@ function renderizarTelaCompleta({ preservarRolagem = false } = {}) {
             link.removeAttribute('aria-current');
         }
     });
+
+    // Comunicação entre turnos: destaque índigo no topo (CSS .torre-area-turnos)
+    document.body.classList.toggle('torre-area-turnos', !!meta.tela);
 
     // Tela própria: desativa a outra, esconde as áreas de tabela e mostra a dela
     if (meta.tela) {
@@ -1845,7 +1848,7 @@ function inicializarSidebar() {
     if (btnFechar) btnFechar.addEventListener('click', fecharGavetaMobile);
     if (backdrop) backdrop.addEventListener('click', fecharGavetaMobile);
 
-    document.querySelectorAll('#torre-nav-list .nav-link').forEach((link) => {
+    document.querySelectorAll('#torre-nav-list .nav-link, #torre-nav-turnos .nav-link').forEach((link) => {
         link.addEventListener('click', () => {
             fecharGavetaMobile();
         });
@@ -2158,6 +2161,8 @@ function registrarEventosGlobais() {
     estadoTorre.timerAutoRefresh = setInterval(() => {
         if (document.visibilityState === 'visible') {
             carregarDadosAbaAtual({ silencioso: true });
+            // Contador de pendências herdadas ao lado de "Passagem de turno" (outro turno pode ter publicado)
+            if (window.torrePendencias) window.torrePendencias.contarAbertas();
         }
     }, intervaloRefresh);
 }
@@ -2176,5 +2181,7 @@ ajbAoAutenticar(['admin', 'diretoria'], '/HTML/Login.html#admin', async (usuario
     registrarEventosGlobais();
 
     estadoTorre.abaAtual = obterAbaDaHash();
+    // Contador de pendências herdadas na barra lateral, em qualquer aba (torre-pendencias.js)
+    if (window.torrePendencias) window.torrePendencias.contarAbertas();
     await carregarDadosAbaAtual({ silencioso: false });
 });
