@@ -16,8 +16,10 @@
 --      copiados pelo servidor), texto, status (aberta | resolvida | continua),
 --      resolucao, resolvido_por, resolvido_email, resolvido_em,
 --      fechada_na_passagem (a passagem que a fechou), origem_id, criado_por,
---      criado_em. Carimbos sempre do servidor (o que o navegador mandar é
---      ignorado). Pendência fechada não muda; ninguém apaga (nem o dono).
+--      criado_em e ordem (número crescente do servidor: a ordem em que os
+--      itens foram escritos; duas linhas podem ter o mesmo criado_em).
+--      Carimbos sempre do servidor (o que o navegador mandar é ignorado).
+--      Pendência fechada não muda; ninguém apaga (nem o dono).
 --   2. Trigger em torre.passagens_turno: com pendência aberta, publicar é
 --      recusado (vale também para a página antiga, que grava direto).
 --   3. RPCs (security invoker: a RLS de quem chama vale):
@@ -101,11 +103,13 @@ create table if not exists torre.passagem_pendencias (
   origem_id           uuid references torre.passagem_pendencias (id),
   criado_por          uuid,
   criado_em           timestamptz not null default now(),
+  -- ordem em que foram criadas (os itens de uma passagem saem na ordem do texto)
+  ordem               bigint generated always as identity,
   constraint passagem_pendencias_fechada check (
     (status = 'aberta' and resolucao is null and resolvido_em is null and fechada_na_passagem is null)
     or (status <> 'aberta' and resolucao is not null and resolvido_em is not null and fechada_na_passagem is not null))
 );
-create index if not exists passagem_pendencias_abertas on torre.passagem_pendencias (criado_em) where status = 'aberta';
+create index if not exists passagem_pendencias_abertas on torre.passagem_pendencias (ordem) where status = 'aberta';
 create index if not exists passagem_pendencias_filtro on torre.passagem_pendencias (data, turno, status);
 create index if not exists passagem_pendencias_passagem on torre.passagem_pendencias (passagem_id);
 
@@ -135,7 +139,7 @@ begin
   new.resolvido_em := null;
   new.fechada_na_passagem := null;
   new.criado_por := auth.uid();
-  new.criado_em := clock_timestamp();  -- (hora do servidor; clock_timestamp mantém a ordem dos itens)
+  new.criado_em := now();
   if new.criado_por is null then
     raise exception 'torre.passagem_pendencias: precisa de usuário autenticado' using errcode = 'insufficient_privilege';
   end if;
@@ -167,6 +171,7 @@ begin
   new.origem_id := old.origem_id;
   new.criado_por := old.criado_por;
   new.criado_em := old.criado_em;
+  new.ordem := old.ordem;
   new.resolucao := btrim(new.resolucao);
   new.resolvido_por := auth.uid();
   new.resolvido_email := nullif((select auth.jwt()) ->> 'email', '');
@@ -268,7 +273,7 @@ begin
   -- Uma publicação de cada vez (duas abas publicando juntas não fecham a mesma pendência)
   perform pg_advisory_xact_lock(hashtext('torre.publicar_passagem'));
 
-  for r in select p.id, p.texto from torre.passagem_pendencias p where p.status = 'aberta' order by p.criado_em, p.id loop
+  for r in select p.id, p.texto from torre.passagem_pendencias p where p.status = 'aberta' order by p.ordem loop
     select f into v_f from jsonb_array_elements(coalesce(p_fechamentos, '[]'::jsonb)) f
      where f ->> 'id' = r.id::text limit 1;
     if v_f is null then
@@ -294,7 +299,7 @@ begin
   -- "Continua": passa para esta passagem (e daí para o próximo turno)
   insert into torre.passagem_pendencias (passagem_id, texto, origem_id)
   select v_id, p.texto, p.id from torre.passagem_pendencias p
-   where p.fechada_na_passagem = v_id and p.status = 'continua' order by p.criado_em, p.id;
+   where p.fechada_na_passagem = v_id and p.status = 'continua' order by p.ordem;
   get diagnostics v_continuam = row_count;
 
   -- Itens do texto (o que já continua com o mesmo texto não é repetido)
@@ -324,7 +329,7 @@ returns setof jsonb language sql stable security invoker set search_path = '' as
      and (coalesce(p_turno, '') = '' or p.turno = p_turno)
      and (p_data is null or p.data = p_data)
      and (coalesce(p_status, '') = '' or p.status = p_status)
-   order by p.criado_em desc, p.id
+   order by p.ordem desc
    limit 200;
 $$;
 
@@ -379,6 +384,7 @@ create policy torre_operador_fecha on torre.passagem_pendencias for update to au
 -- 4. Permissões (anon, public e service_role: nada; delete nunca)
 -- -----------------------------------------------------------------------------
 revoke all on torre.passagem_pendencias from public, anon, authenticated, service_role;
+revoke all on sequence torre.passagem_pendencias_ordem_seq from public, anon, authenticated, service_role;
 grant select on torre.passagem_pendencias to authenticated;
 grant insert (passagem_id, texto, origem_id) on torre.passagem_pendencias to authenticated;
 grant update (status, resolucao, fechada_na_passagem) on torre.passagem_pendencias to authenticated;
@@ -521,12 +527,12 @@ begin
   values (v_id, 'pendência criada à mão') returning id into v_pid;
   raise exception 'RESULTADO (nada foi salvo): publicou=novas:% fechadas:% continuam:% | pendencias=% | status=% | turno_data_da_passagem=% | criado_por_servidor=% | hora_servidor=% | resolvido_vazio=% | criar_ja_resolvida=%',
     v_r ->> 'novas', v_r ->> 'fechadas', v_r ->> 'continuam',
-    (select string_agg(texto, '; ' order by criado_em, texto) from torre.passagem_pendencias where passagem_id = v_id and id <> v_pid
+    (select string_agg(texto, '; ' order by ordem) from torre.passagem_pendencias where passagem_id = v_id and id <> v_pid
         and texto <> 'pendência criada à mão'),
     (select string_agg(status, ',') from torre.passagem_pendencias where passagem_id = v_id and id <> v_pid),
     (select bool_and(turno = 'T2' and data = current_date - 1) from torre.passagem_pendencias where passagem_id = v_id),
     (select bool_and(criado_por = '00000000-0000-0000-0000-0000000000c3') from torre.passagem_pendencias where passagem_id = v_id),
-    (select bool_and(criado_em >= now() and criado_em <= clock_timestamp()) from torre.passagem_pendencias where passagem_id = v_id),
+    (select bool_and(criado_em = now()) from torre.passagem_pendencias where passagem_id = v_id),
     (select bool_and(resolucao is null and resolvido_por is null and resolvido_em is null) from torre.passagem_pendencias where passagem_id = v_id),
     (select case when status = 'aberta' then 'vira aberta' else status end from torre.passagem_pendencias where id = v_pid);
 end $$;

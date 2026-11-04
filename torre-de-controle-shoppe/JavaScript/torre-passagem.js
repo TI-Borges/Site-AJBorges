@@ -123,7 +123,7 @@
     // Pendências abertas = as herdadas pelo próximo turno (mais antigas primeiro)
     async function carregarHerdadas() {
         const { data, error } = await banco().from('passagem_pendencias').select('*')
-            .eq('status', 'aberta').order('criado_em', { ascending: true });
+            .eq('status', 'aberta').order('ordem', { ascending: true });
         if (error) throw error;
         estado.herdadas = Array.isArray(data) ? data : [];
         const ids = new Set(estado.herdadas.map((p) => p.id));
