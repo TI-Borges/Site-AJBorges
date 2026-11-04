@@ -16,4 +16,9 @@ RedirectMatch 404 \.(sql|md|json|lock|csv|xlsx|xls|env|zip|yml)$
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Permissions-Policy "geolocation=(), microphone=()"
   Header always set Strict-Transport-Security "max-age=31536000"
+  # Páginas HTML: o navegador sempre confere com o servidor se mudou antes de usar a cópia guardada.
+  # Vale também para a raiz /, que é reescrita para HTML/index.html. CSS, JS e imagens seguem com ?v=.
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
 </IfModule>
