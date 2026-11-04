@@ -1,29 +1,30 @@
 -- =============================================================================
--- PASSO 25 - Cadastro único por CPF do motorista e CNPJ (PJ)     RASCUNHO - AINDA NÃO RODADO
+-- PASSO 25 - Cadastro único pelo CPF do motorista (PF e PJ juntos)
 -- AJBorges Transporte & Logística
 --
--- Regra: o CPF do motorista só pode ter UM cadastro ativo, em qualquer tipo
--- (PF ou PJ: um PF bloqueia um PJ com o mesmo CPF de motorista, e vice-versa);
--- e, na PJ, o CNPJ também só pode ter UM cadastro PJ ativo. Ativo = qualquer
--- situação que não seja 'recusado'. Depois que a gestão recusa o anterior, pode
--- enviar de novo.
+-- Este arquivo é igual à função que está rodando no banco de produção.
 --
--- Onde ficam os números (gravados pela edge function solicitar-cadastro):
---   CPF do motorista: coluna cpf (só números, PF e PJ);
---   CNPJ: dados ->> 'cnpj' (só na PJ, como foi digitado, com máscara).
--- A comparação usa só os dígitos (sem pontos, barra e traço).
+-- Regra: o CPF do motorista só pode ter UM cadastro ativo, em qualquer tipo
+-- (PF ou PJ: um PF bloqueia um PJ com o mesmo CPF de motorista, e vice-versa).
+-- Ativo = qualquer situação que não seja 'recusado'. Depois que a gestão recusa
+-- o anterior, pode enviar de novo.
+-- O CNPJ NÃO trava: uma empresa PJ pode ter vários motoristas no mesmo CNPJ
+-- (cada um com o seu CPF).
+--
+-- Onde fica o número (gravado pela edge function solicitar-cadastro):
+--   CPF do motorista: coluna cpf (só números, PF e PJ).
+-- A comparação usa só os dígitos (sem pontos e traço).
 --
 --   1. Função public.cadastro_agregado_unico() + trigger trg_cadastro_agregado_unico,
 --      BEFORE INSERT: recusa o cadastro NOVO quando já existe outro ativo com o
---      mesmo CPF (qualquer tipo) ou, na PJ, o mesmo CNPJ. Erro 23505
---      (unique_violation) com a mensagem 'cadastro_duplicado: ... CPF' ou '... CNPJ',
---      que a edge function troca pela mensagem da ficha. Um lock por documento
---      (pg_advisory_xact_lock, sempre CPF antes de CNPJ) impede que dois envios ao
---      mesmo tempo passem juntos.
+--      mesmo CPF de motorista (qualquer tipo). Erro 23505 (unique_violation) com a
+--      mensagem 'cadastro_duplicado: ... CPF', que a edge function troca pela
+--      mensagem da ficha. Um lock por CPF (pg_advisory_xact_lock) impede que dois
+--      envios ao mesmo tempo passem juntos.
 --   2. Só INSERT: nenhum update, delete ou índice único. Os cadastros que já
 --      existem, inclusive os duplicados de hoje, ficam exatamente como estão (o
---      Dashboard do Cadastro mostra o selo "CPF repetido" / "CNPJ repetido" para a
---      gestão recusar os extras manualmente).
+--      Dashboard do Cadastro mostra o selo "CPF repetido" para a gestão recusar
+--      os extras manualmente).
 --
 -- Como rodar (SQL Editor do Supabase):
 --   a) rode o item 0 sozinho e anote o resultado (retrato do public, contagem de
@@ -87,13 +88,14 @@ select tgname as gatilho, pg_get_triggerdef(oid) as definicao
 
 
 -- -----------------------------------------------------------------------------
--- 0.2 Só leitura: CPFs/CNPJs repetidos hoje, por situação (sem nomes nem números)
---     CPF = CPF do motorista em qualquer tipo (PF e PJ); CNPJ = só entre PJ.
---     (uma PJ conta nas duas listas)
+-- 0.2 Só leitura: CPFs de motorista repetidos hoje, por situação (sem nomes nem números)
+--     CPF = CPF do motorista em qualquer tipo (PF e PJ juntos), que é o que trava.
 --     cadastros = quantos cadastros estão num grupo repetido;
---     documentos = quantos CPFs/CNPJs diferentes estão repetidos.
+--     documentos = quantos CPFs diferentes estão repetidos.
 --     "ativos" conta só os grupos com 2 ou mais cadastros não recusados (os que o
 --     dashboard marca); "contando recusados" conta qualquer repetição.
+--     A última linha ("CNPJ - só informativo, não trava") mostra quantas PJs
+--     ativas dividem o mesmo CNPJ (empresa com vários motoristas: é permitido).
 -- -----------------------------------------------------------------------------
 with base as (
   select 'CPF' as documento,
@@ -101,33 +103,42 @@ with base as (
          coalesce(status, '') <> 'recusado' as ativo,
          regexp_replace(coalesce(cpf, ''), '\D', '', 'g') as chave
     from public.cadastros_agregados
-  union all
-  select 'CNPJ',
-         coalesce(status, '(sem situação)'),
-         coalesce(status, '') <> 'recusado',
-         regexp_replace(coalesce(dados ->> 'cnpj', ''), '\D', '', 'g')
-    from public.cadastros_agregados
-   where tipo = 'pj'
 ),
 rep_ativos as (
-  select documento, chave from base where ativo and chave <> '' group by 1, 2 having count(*) > 1
+  select chave from base where ativo and chave <> '' group by 1 having count(*) > 1
 ),
 rep_todos as (
-  select documento, chave from base where chave <> '' group by 1, 2 having count(*) > 1
+  select chave from base where chave <> '' group by 1 having count(*) > 1
+),
+cnpj as (
+  select coalesce(status, '(sem situação)') as situacao,
+         regexp_replace(coalesce(dados ->> 'cnpj', ''), '\D', '', 'g') as chave
+    from public.cadastros_agregados
+   where tipo = 'pj' and coalesce(status, '') <> 'recusado'
+),
+rep_cnpj as (
+  select chave from cnpj where chave <> '' group by 1 having count(*) > 1
 )
-select 'ativos' as grupo, b.documento, b.situacao, count(*) as cadastros, count(distinct b.chave) as documentos
-  from base b join rep_ativos r using (documento, chave)
- where b.ativo
- group by 1, 2, 3
-union all
-select 'contando recusados', b.documento, b.situacao, count(*), count(distinct b.chave)
-  from base b join rep_todos r using (documento, chave)
- group by 1, 2, 3
-union all
-select 'sem número', documento, situacao, count(*), 0
-  from base where chave = ''
- group by 1, 2, 3
- order by 1, 2, 3;
+select grupo, documento, situacao, cadastros, documentos
+  from (
+    select 'ativos' as grupo, b.documento, b.situacao, count(*) as cadastros, count(distinct b.chave) as documentos
+      from base b join rep_ativos r using (chave)
+     where b.ativo
+     group by 1, 2, 3
+    union all
+    select 'contando recusados', b.documento, b.situacao, count(*), count(distinct b.chave)
+      from base b join rep_todos r using (chave)
+     group by 1, 2, 3
+    union all
+    select 'sem número', documento, situacao, count(*), 0
+      from base where chave = ''
+     group by 1, 2, 3
+    union all
+    select 'CNPJ - só informativo, não trava', 'CNPJ', c.situacao, count(*), count(distinct c.chave)
+      from cnpj c join rep_cnpj r using (chave)
+     group by 1, 2, 3
+  ) t
+ order by grupo like 'CNPJ%', grupo, documento, situacao;
 
 
 begin;
@@ -135,40 +146,27 @@ begin;
 
 -- -----------------------------------------------------------------------------
 -- 1. Função do trigger: recusa um cadastro NOVO quando já existe outro ativo
---    com o mesmo CPF de motorista (PF ou PJ) ou, na PJ, o mesmo CNPJ,
---    comparando só os dígitos
+--    com o mesmo CPF de motorista (PF ou PJ), comparando só os dígitos.
+--    O CNPJ não é olhado. Texto igual ao que está rodando no banco.
+--    (Cadastro gravado como recusado não ocupa a vaga; dois envios do mesmo CPF
+--     ao mesmo tempo: o segundo espera o primeiro terminar; a mensagem não diz
+--     qual cadastro nem a situação dele.)
 -- -----------------------------------------------------------------------------
 create or replace function public.cadastro_agregado_unico()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
+returns trigger language plpgsql security definer set search_path = '' as $$
 declare
-  v_cpf  text;
-  v_cnpj text;
+  v_cpf text;
 begin
-  -- Cadastro já gravado como recusado não ocupa a vaga
   if coalesce(new.status, '') = 'recusado' then
     return new;
   end if;
-
   v_cpf := regexp_replace(coalesce(new.cpf, ''), '\D', '', 'g');
-  v_cnpj := case when new.tipo = 'pj' then regexp_replace(coalesce(new.dados ->> 'cnpj', ''), '\D', '', 'g') else '' end;
-
-  -- Dois envios do mesmo documento ao mesmo tempo: o segundo espera o primeiro terminar
-  -- (sempre CPF antes de CNPJ, para dois envios nunca ficarem esperando um pelo outro)
-  if v_cpf <> '' then
-    perform pg_advisory_xact_lock(hashtextextended('cadastro_unico:cpf:' || v_cpf, 0));
+  if v_cpf = '' then
+    return new;
   end if;
-  if v_cnpj <> '' then
-    perform pg_advisory_xact_lock(hashtextextended('cadastro_unico:cnpj:' || v_cnpj, 0));
-  end if;
-
-  -- Não diz qual cadastro nem a situação dele: a edge function devolve a mensagem da ficha
-  if v_cpf <> '' and exists (
-    select 1
-      from public.cadastros_agregados c
+  perform pg_advisory_xact_lock(hashtextextended('cadastro_unico:cpf:' || v_cpf, 0));
+  if exists (
+    select 1 from public.cadastros_agregados c
      where c.id is distinct from new.id
        and coalesce(c.status, '') <> 'recusado'
        and regexp_replace(coalesce(c.cpf, ''), '\D', '', 'g') = v_cpf
@@ -176,19 +174,6 @@ begin
     raise exception 'cadastro_duplicado: já existe um cadastro ativo com este CPF'
       using errcode = 'unique_violation';
   end if;
-
-  if v_cnpj <> '' and exists (
-    select 1
-      from public.cadastros_agregados c
-     where c.id is distinct from new.id
-       and coalesce(c.status, '') <> 'recusado'
-       and c.tipo = 'pj'
-       and regexp_replace(coalesce(c.dados ->> 'cnpj', ''), '\D', '', 'g') = v_cnpj
-  ) then
-    raise exception 'cadastro_duplicado: já existe um cadastro ativo com este CNPJ'
-      using errcode = 'unique_violation';
-  end if;
-
   return new;
 end;
 $$;
@@ -219,10 +204,10 @@ commit;
 --    99.999.999/9999-99), então não batem com nenhum cadastro de verdade.
 -- =============================================================================
 
--- 7.1 Estrutura e permissões (esperado: trigger=ligado | quando=before insert | definer=t | config=search_path="" | executar=anon:f authenticated:f | indices_unicos_novos=0 | apaga_ou_altera=0)
+-- 7.1 Estrutura e permissões (esperado: trigger=ligado | quando=before insert | definer=t | config=search_path="" | executar=anon:f authenticated:f | indices_unicos_novos=0 | apaga_ou_altera=0 | olha_cnpj=f)
 do $$
 begin
-  raise exception 'RESULTADO: trigger=% | quando=% | definer=% | config=% | executar=anon:% authenticated:% | indices_unicos_novos=% | apaga_ou_altera=%',
+  raise exception 'RESULTADO: trigger=% | quando=% | definer=% | config=% | executar=anon:% authenticated:% | indices_unicos_novos=% | apaga_ou_altera=% | olha_cnpj=%',
     (select case when t.tgenabled = 'O' then 'ligado' else 'DESLIGADO' end from pg_trigger t
       where t.tgrelid = 'public.cadastros_agregados'::regclass and t.tgname = 'trg_cadastro_agregado_unico'),
     -- tgtype: 2 = BEFORE, 4 = INSERT, 8 = DELETE, 16 = UPDATE, 32 = TRUNCATE
@@ -242,7 +227,9 @@ begin
         and pg_get_indexdef(i.indexrelid) ~* '(cpf|cnpj)'),
     (select count(*) from pg_proc p
       where p.oid = 'public.cadastro_agregado_unico()'::regprocedure
-        and p.prosrc ~* '\m(update|delete|truncate)\M');
+        and p.prosrc ~* '\m(update|delete|truncate)\M'),
+    -- A trava é só pelo CPF: a função não lê o CNPJ
+    (select p.prosrc ~* 'cnpj' from pg_proc p where p.oid = 'public.cadastro_agregado_unico()'::regprocedure);
 end $$;
 
 -- 7.2 CPF (esperado: cpf_de_teste_livre=t | primeiro=aceito | segundo_igual=recusado | segundo_com_pontos=recusado | mensagem=cadastro_duplicado: já existe um cadastro ativo com este CPF | mensagem_sem_dados=t | depois_de_recusar=aceito | de_novo_com_o_novo_ativo=recusado | gravado_como_recusado=aceito)
@@ -305,71 +292,64 @@ begin
 end $$;
 rollback;
 
--- 7.3 CNPJ e CPF do motorista em qualquer tipo (esperado: numeros_de_teste_livres=t | primeiro_pj=aceito | mesmo_cnpj_sem_pontos=recusado | mesmo_cnpj_com_pontos=recusado | mensagem_cnpj=cadastro_duplicado: já existe um cadastro ativo com este CNPJ | outro_cnpj_mesmo_motorista=recusado | mensagem_cpf=cadastro_duplicado: já existe um cadastro ativo com este CPF | pf_com_cpf_do_motorista_da_pj=recusado | pj_com_cpf_de_um_pf=recusado | pj_novo_cpf_e_cnpj_novos=aceito | depois_de_recusar=aceito)
+-- 7.3 PJ: o CNPJ não trava; o CPF do motorista trava entre PF e PJ (esperado: numeros_de_teste_livres=t | primeira_pj=aceito | mesmo_cnpj_outro_motorista=aceito | mesmo_cnpj_terceiro_motorista_com_pontos=aceito | pj_com_cpf_de_motorista_ja_ativo=recusado | mensagem=cadastro_duplicado: já existe um cadastro ativo com este CPF | pf_com_cpf_do_motorista_da_pj=recusado | pj_com_cpf_de_um_pf=recusado | depois_de_recusar_a_pj=aceito | depois_de_recusar_o_pf=aceito)
 begin;
 do $$
 declare
   v_livre    boolean;
   v_a        uuid;
-  v_primeiro text := 'RECUSADO';
-  v_sem      text := 'ACEITO';
-  v_com      text := 'ACEITO';
-  v_outro    text := 'ACEITO';
-  v_pf       text := 'ACEITO';
+  v_pf       uuid;
+  v_primeira text := 'RECUSADO';
+  v_outro    text := 'RECUSADO';
+  v_terceiro text := 'RECUSADO';
+  v_mesmo    text := 'ACEITO';
+  v_pfdapj   text := 'ACEITO';
   v_pjdopf   text := 'ACEITO';
-  v_novo     text := 'RECUSADO';
-  v_depois   text := 'RECUSADO';
-  v_msg_cnpj text;
-  v_msg_cpf  text;
+  v_dep_pj   text := 'RECUSADO';
+  v_dep_pf   text := 'RECUSADO';
+  v_msg      text;
 begin
   select not exists (select 1 from public.cadastros_agregados
-                      where regexp_replace(coalesce(dados ->> 'cnpj', ''), '\D', '', 'g') in ('99999999999999', '99999999999998', '99999999999997')
-                         or regexp_replace(coalesce(cpf, ''), '\D', '', 'g') in ('99999999999', '99999999998', '99999999997', '99999999996', '99999999995'))
+                      where regexp_replace(coalesce(cpf, ''), '\D', '', 'g') in ('99999999999', '99999999998', '99999999997', '99999999996'))
     into v_livre;
 
   insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
   values (null, 'pj', 'pendente', 'Fulano de Teste P25', '99999999999', null, '11900000000', true,
           '{"nome-empresa": "Empresa de Teste P25", "cnpj": "99.999.999/9999-99"}')
   returning id into v_a;
-  v_primeiro := 'aceito';
+  v_primeira := 'aceito';
 
-  -- Mesmo CNPJ com outro motorista
-  begin
-    insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
-    values (null, 'pj', 'pendente', 'Ciclano de Teste P25', '99999999998', null, '11900000000', true,
-            '{"cnpj": "99999999999999"}');
-  exception when unique_violation then
-    v_sem := 'recusado';
-    get stacked diagnostics v_msg_cnpj = message_text;
-  end;
+  -- Mesma empresa (mesmo CNPJ), outro motorista: aceito (empresa com vários motoristas)
+  insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
+  values (null, 'pj', 'pendente', 'Ciclano de Teste P25', '99999999998', null, '11900000000', true,
+          '{"nome-empresa": "Empresa de Teste P25", "cnpj": "99999999999999"}');
+  v_outro := 'aceito';
+  insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
+  values (null, 'pj', 'aprovado', 'Sicrano de Teste P25', '999.999.999-97', null, '11900000000', true,
+          '{"nome-empresa": "Empresa de Teste P25", "cnpj": " 99 999 999 / 9999 - 99 "}');
+  v_terceiro := 'aceito';
 
-  begin
-    insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
-    values (null, 'pj', 'aprovado', 'Ciclano de Teste P25', '99999999997', null, '11900000000', true,
-            '{"cnpj": " 99 999 999 / 9999 - 99 "}');
-  exception when unique_violation then v_com := 'recusado';
-  end;
-
-  -- Outra empresa com o mesmo motorista: o CPF do motorista já está num cadastro ativo
+  -- O mesmo motorista de novo numa PJ (outro CNPJ): o CPF já está num cadastro ativo
   begin
     insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
     values (null, 'pj', 'pendente', 'Fulano de Teste P25', '999.999.999-99', null, '11900000000', true,
             '{"cnpj": "99.999.999/9999-98"}');
   exception when unique_violation then
-    v_outro := 'recusado';
-    get stacked diagnostics v_msg_cpf = message_text;
+    v_mesmo := 'recusado';
+    get stacked diagnostics v_msg = message_text;
   end;
 
-  -- O motorista da PJ tentando um cadastro PF
+  -- PJ -> PF: o motorista da PJ tentando um cadastro PF
   begin
     insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
     values (null, 'pf', 'pendente', 'Fulano de Teste P25', '99999999999', null, '11900000000', true, '{}');
-  exception when unique_violation then v_pf := 'recusado';
+  exception when unique_violation then v_pfdapj := 'recusado';
   end;
 
-  -- Um PF ativo bloqueia um PJ com o mesmo CPF de motorista
+  -- PF -> PJ: um PF ativo bloqueia uma PJ com o mesmo CPF de motorista
   insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
-  values (null, 'pf', 'pendente', 'Beltrano de Teste P25', '99999999996', null, '11900000000', true, '{}');
+  values (null, 'pf', 'pendente', 'Beltrano de Teste P25', '99999999996', null, '11900000000', true, '{}')
+  returning id into v_pf;
   begin
     insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
     values (null, 'pj', 'pendente', 'Beltrano de Teste P25', '999.999.999-96', null, '11900000000', true,
@@ -377,21 +357,19 @@ begin
   exception when unique_violation then v_pjdopf := 'recusado';
   end;
 
-  -- CPF e CNPJ novos passam
-  insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
-  values (null, 'pj', 'pendente', 'Sicrano de Teste P25', '99999999995', null, '11900000000', true,
-          '{"cnpj": "99.999.999/9999-98"}');
-  v_novo := 'aceito';
-
-  -- A gestão recusa a primeira PJ: o mesmo motorista e o mesmo CNPJ podem enviar de novo
+  -- A gestão recusa: o mesmo CPF pode enviar de novo (nos dois sentidos)
   update public.cadastros_agregados set status = 'recusado' where id = v_a;
   insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
-  values (null, 'pj', 'pendente', 'Fulano de Teste P25', '99999999999', null, '11900000000', true,
-          '{"cnpj": "99999999999999"}');
-  v_depois := 'aceito';
+  values (null, 'pf', 'pendente', 'Fulano de Teste P25', '99999999999', null, '11900000000', true, '{}');
+  v_dep_pj := 'aceito';
+  update public.cadastros_agregados set status = 'recusado' where id = v_pf;
+  insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
+  values (null, 'pj', 'pendente', 'Beltrano de Teste P25', '99999999996', null, '11900000000', true,
+          '{"cnpj": "99.999.999/9999-97"}');
+  v_dep_pf := 'aceito';
 
-  raise exception 'RESULTADO (nada foi salvo): numeros_de_teste_livres=% | primeiro_pj=% | mesmo_cnpj_sem_pontos=% | mesmo_cnpj_com_pontos=% | mensagem_cnpj=% | outro_cnpj_mesmo_motorista=% | mensagem_cpf=% | pf_com_cpf_do_motorista_da_pj=% | pj_com_cpf_de_um_pf=% | pj_novo_cpf_e_cnpj_novos=% | depois_de_recusar=%',
-    v_livre, v_primeiro, v_sem, v_com, v_msg_cnpj, v_outro, v_msg_cpf, v_pf, v_pjdopf, v_novo, v_depois;
+  raise exception 'RESULTADO (nada foi salvo): numeros_de_teste_livres=% | primeira_pj=% | mesmo_cnpj_outro_motorista=% | mesmo_cnpj_terceiro_motorista_com_pontos=% | pj_com_cpf_de_motorista_ja_ativo=% | mensagem=% | pf_com_cpf_do_motorista_da_pj=% | pj_com_cpf_de_um_pf=% | depois_de_recusar_a_pj=% | depois_de_recusar_o_pf=%',
+    v_livre, v_primeira, v_outro, v_terceiro, v_mesmo, v_msg, v_pfdapj, v_pjdopf, v_dep_pj, v_dep_pf;
 end $$;
 rollback;
 
@@ -424,9 +402,10 @@ begin
   values (null, 'pj', 'pendente', 'Ciclano de Teste P25', '99999999998', null, '11900000000', true, '{"cnpj": "99.999.999/9999-99"}')
   returning id into v_id;
   v_ids := v_ids || v_id;
+  -- O mesmo motorista da PJ de teste num PF: recusado (nada gravado)
   begin
     insert into public.cadastros_agregados (user_id, tipo, status, nome, cpf, email, celular, sem_carreta, dados)
-    values (null, 'pj', 'pendente', 'Sicrano de Teste P25', '99999999997', null, '11900000000', true, '{"cnpj": "99999999999999"}');
+    values (null, 'pf', 'pendente', 'Ciclano de Teste P25', '999.999.999-98', null, '11900000000', true, '{}');
   exception when unique_violation then null;
   end;
 
@@ -442,23 +421,18 @@ begin
 end $$;
 rollback;
 
--- 7.5 Duplicados que já existem continuam lá, sem mudança (só leitura; esperado: os mesmos números do item 0.2, grupo "ativos")
+-- 7.5 Duplicados que já existem continuam lá, sem mudança (só leitura; esperado: as mesmas linhas do item 0.2, grupo "ativos" — só CPF)
 with base as (
   select 'CPF' as documento, coalesce(status, '(sem situação)') as situacao,
          regexp_replace(coalesce(cpf, ''), '\D', '', 'g') as chave
     from public.cadastros_agregados
    where coalesce(status, '') <> 'recusado'
-  union all
-  select 'CNPJ', coalesce(status, '(sem situação)'),
-         regexp_replace(coalesce(dados ->> 'cnpj', ''), '\D', '', 'g')
-    from public.cadastros_agregados
-   where tipo = 'pj' and coalesce(status, '') <> 'recusado'
 ),
 rep as (
-  select documento, chave from base where chave <> '' group by 1, 2 having count(*) > 1
+  select chave from base where chave <> '' group by 1 having count(*) > 1
 )
 select 'ativos' as grupo, b.documento, b.situacao, count(*) as cadastros, count(distinct b.chave) as documentos
-  from base b join rep r using (documento, chave)
+  from base b join rep r using (chave)
  group by 1, 2, 3
  order by 1, 2, 3;
 

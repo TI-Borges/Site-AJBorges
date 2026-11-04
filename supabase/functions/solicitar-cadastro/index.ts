@@ -197,7 +197,7 @@ async function desfazerCadastro(
 
 // Recusa do trigger trg_cadastro_agregado_unico (passo25): erro 23505 com
 // a mensagem "cadastro_duplicado: ... com este CPF" (CPF do motorista, PF ou
-// PJ) ou "... com este CNPJ" (PJ).
+// PJ; o CNPJ não trava).
 function cadastroDuplicado(erro: unknown): boolean {
   if (!erro || typeof erro !== "object") return false;
 
@@ -207,13 +207,8 @@ function cadastroDuplicado(erro: unknown): boolean {
     String(e.message ?? "").includes("cadastro_duplicado");
 }
 
-function mensagemDuplicado(erro: unknown): string {
-  const doc = /\bCNPJ\b/.test(String((erro as { message?: unknown }).message ?? ""))
-    ? "CNPJ"
-    : "CPF";
-
-  return `Já existe um cadastro com este ${doc} em análise. Aguarde o retorno da nossa equipe ou fale com a gente pelo WhatsApp (14) 99858-4705.`;
-}
+const MENSAGEM_DUPLICADO =
+  "Já existe um cadastro com este CPF em análise. Aguarde o retorno da nossa equipe ou fale com a gente pelo WhatsApp (14) 99858-4705.";
 
 // ---------- Campos aceitos ----------
 
@@ -733,9 +728,9 @@ Deno.serve(async (req: Request) => {
       .slice(0, 120);
 
     // ---------- Criação sem conta de login ----------
-    // O CPF do motorista (PF ou PJ) e o CNPJ (PJ) só têm um cadastro ativo (não
-    // recusado): quem confere é o trigger trg_cadastro_agregado_unico (passo25),
-    // no mesmo insert.
+    // O CPF do motorista (PF ou PJ) só tem um cadastro ativo (não recusado):
+    // quem confere é o trigger trg_cadastro_agregado_unico (passo25), no mesmo
+    // insert. O CNPJ não trava (uma empresa pode ter vários motoristas).
 
     const { data: cad, error: erroCad } = await admin
       .from("cadastros_agregados")
@@ -769,7 +764,7 @@ Deno.serve(async (req: Request) => {
     // nada do cadastro que já existe (nem nome, nem situação)
     if (cadastroDuplicado(erroCad)) {
       return resp(req, 409, {
-        erro: mensagemDuplicado(erroCad),
+        erro: MENSAGEM_DUPLICADO,
       });
     }
 

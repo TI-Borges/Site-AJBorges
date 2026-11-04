@@ -632,7 +632,7 @@
                             <button type="button" class="btn-action-small" data-tab="recusado"
                                 id="btn-tab-recusados">Recusados (0)</button>
                             <button type="button" class="btn-action-small" data-tab="repetidos" id="btn-tab-repetidos"
-                                title="Cadastros ativos com outro ativo do mesmo CPF de motorista (PF ou PJ) ou do mesmo CNPJ (PJ)">Só repetidos (0)</button>
+                                title="Cadastros ativos com outro ativo do mesmo CPF de motorista (PF e PJ juntos)">Só repetidos (0)</button>
                         </div>
                     </div>
 
@@ -1013,32 +1013,24 @@
             renderTabela();
         }
 
-        // CPF do motorista (PF ou PJ) ou CNPJ (entre PJ) com mais de um cadastro ativo (não recusado),
-        // comparando só os números, como o trigger do passo25: selo "CPF repetido" / "CNPJ repetido" e
-        // filtro "Só repetidos" para a gestão recusar os extras à mão. Só mostra; não muda nenhum cadastro.
-        let repetidos = new Map(); // id -> ['CPF', 'CNPJ']
+        // CPF do motorista (PF e PJ juntos) com mais de um cadastro ativo (não recusado), comparando só os
+        // números, como o trigger do passo25: selo "CPF repetido" e filtro "Só repetidos" para a gestão
+        // recusar os extras à mão. O CNPJ não conta (uma empresa pode ter vários motoristas).
+        // Só mostra; não muda nenhum cadastro.
+        let repetidos = new Set(); // ids
         const soNumeros = (v) => String(v || '').replace(/\D/g, '');
         function calcularRepetidos() {
             const grupos = new Map();
-            const juntar = (g, id) => grupos.set(g, [...(grupos.get(g) || []), id]);
             cadastros.forEach((c) => {
-                if (c.status === 'recusado') return;
                 const cpf = soNumeros(c.cpf);
-                const cnpj = c.tipo === 'pj' ? soNumeros((c.dados || {}).cnpj) : '';
-                if (cpf) juntar(`CPF:${cpf}`, c.id);
-                if (cnpj) juntar(`CNPJ:${cnpj}`, c.id);
+                if (!cpf || c.status === 'recusado') return;
+                grupos.set(cpf, [...(grupos.get(cpf) || []), c.id]);
             });
-            repetidos = new Map();
-            grupos.forEach((ids, g) => {
-                if (ids.length < 2) return;
-                const doc = g.split(':')[0];
-                ids.forEach((id) => repetidos.set(id, [...(repetidos.get(id) || []), doc]));
-            });
+            repetidos = new Set([...grupos.values()].filter((ids) => ids.length > 1).flat());
         }
         function seloRepetido(c) {
-            const docs = repetidos.get(c.id);
-            if (!docs) return '';
-            return `<div>${docs.map((doc) => `<span class="selo-repetido" title="Há outro cadastro ativo com o mesmo ${doc}. Confira e recuse o que sobrar.">${doc} repetido</span>`).join(' ')}</div>`;
+            if (!repetidos.has(c.id)) return '';
+            return '<div><span class="selo-repetido" title="Há outro cadastro ativo com o mesmo CPF de motorista. Confira e recuse o que sobrar.">CPF repetido</span></div>';
         }
 
         // Avaliação Apto / Inapto (passo25b): marcação extra da gestão, gravada pela RPC avaliar_cadastro.

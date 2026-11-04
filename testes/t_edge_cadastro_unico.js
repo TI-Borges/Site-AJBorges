@@ -1,5 +1,6 @@
 // Edge function solicitar-cadastro com o trigger do passo25 simulado no banco em memória: o CPF do motorista
-// (PF ou PJ) e o CNPJ (PJ) só têm um cadastro ativo (não recusado). Nada vai para o banco nem para o bucket.
+// (PF ou PJ juntos) só tem um cadastro ativo (não recusado); o CNPJ não trava (empresa com vários
+// motoristas). Nada vai para o banco nem para o bucket.
 // Só dados inventados (CPFs de teste gerados aqui, nomes "de Teste").
 // Uso: node testes/t_edge_cadastro_unico.js
 const fs = require('fs');
@@ -18,6 +19,7 @@ function cpfDe(base) {
 const CPF_A = cpfDe('523169159'); // 52316915930
 const CPF_B = cpfDe('111444777');
 const CPF_C = cpfDe('333666999');
+const CPF_D = cpfDe('444777000');
 const formatar = (c) => c.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 
 async function carregarEdge() {
@@ -32,16 +34,13 @@ async function carregarEdge() {
     serve: (fn) => { handler = fn; }
   };
   globalThis.__banco = { cadastros: [], urls: [], selects: 0, falharInsert: null };
-  // O mesmo que public.cadastro_agregado_unico() faz no insert: CPF do motorista em qualquer tipo,
-  // depois o CNPJ entre PJ. Devolve 'CPF', 'CNPJ' ou null
+  // O mesmo que public.cadastro_agregado_unico() faz no insert: só o CPF do motorista, em qualquer
+  // tipo. Devolve 'CPF' ou null
   const dig = (v) => String(v || '').replace(/\D/g, '');
-  const cnpjDe = (l) => (l.tipo === 'pj' ? dig((l.dados || {}).cnpj) : '');
   const duplicado = (nova) => {
-    if (nova.status === 'recusado') return null;
+    if (nova.status === 'recusado' || !dig(nova.cpf)) return null;
     const ativos = globalThis.__banco.cadastros.filter((l) => l.status !== 'recusado');
-    if (dig(nova.cpf) && ativos.some((l) => dig(l.cpf) === dig(nova.cpf))) return 'CPF';
-    if (cnpjDe(nova) && ativos.some((l) => cnpjDe(l) === cnpjDe(nova))) return 'CNPJ';
-    return null;
+    return ativos.some((l) => dig(l.cpf) === dig(nova.cpf)) ? 'CPF' : null;
   };
   globalThis.__criarCliente = () => {
     const banco = globalThis.__banco;
@@ -100,7 +99,6 @@ function corpo(tipo, cpf, nome, cnpj) {
 }
 
 const MSG_CPF = 'Já existe um cadastro com este CPF em análise. Aguarde o retorno da nossa equipe ou fale com a gente pelo WhatsApp (14) 99858-4705.';
-const MSG_CNPJ = 'Já existe um cadastro com este CNPJ em análise. Aguarde o retorno da nossa equipe ou fale com a gente pelo WhatsApp (14) 99858-4705.';
 
 (async () => {
   const handler = await carregarEdge();
@@ -125,15 +123,19 @@ const MSG_CNPJ = 'Já existe um cadastro com este CNPJ em análise. Aguarde o re
   banco.cadastros[0].status = 'recusado';
   res.depoisDeRecusar = await enviar(corpo('pf', CPF_A, 'Fulano'));
   res.deNovoComONovoAtivo = await enviar(corpo('pf', formatar(CPF_A), 'Fulano'));
-  // PJ: a regra é o CNPJ
+  // PJ: o CNPJ não trava; a mesma empresa pode ter vários motoristas
   res.pjPrimeiro = await enviar(corpo('pj', formatar(CPF_B), 'Ciclano', '11.222.333/0001-81'));
-  res.pjMesmoCnpj = await enviar(corpo('pj', formatar(CPF_C), 'Beltrano', '11222333000181'));
+  res.pjMesmoCnpjOutroMotorista = await enviar(corpo('pj', formatar(CPF_C), 'Beltrano', '11222333000181'));
   // O CPF do motorista vale em qualquer tipo: outra empresa com o mesmo motorista é bloqueada,
-  // e um PF ativo bloqueia uma PJ com o mesmo CPF de motorista
+  // e um PF ativo bloqueia uma PJ com o mesmo CPF de motorista (e vice-versa)
   res.pjOutroCnpjMesmoMotorista = await enviar(corpo('pj', formatar(CPF_B), 'Ciclano', '11.222.333/0002-62'));
   res.pjComCpfDeUmPf = await enviar(corpo('pj', CPF_A, 'Fulano', '44.555.666/0001-77'));
   res.pfComCpfDoMotoristaDaPj = await enviar(corpo('pf', CPF_B, 'Ciclano'));
-  res.pjCpfECnpjNovos = await enviar(corpo('pj', formatar(CPF_C), 'Beltrano', '44.555.666/0001-77'));
+  res.pjCpfNovo = await enviar(corpo('pj', formatar(CPF_D), 'Sicrano', '44.555.666/0001-77'));
+  // Mesmo que o banco mandasse outra mensagem de duplicado, a resposta é a do CPF
+  banco.falharInsert = { code: '23505', message: 'cadastro_duplicado: já existe um cadastro ativo com este CNPJ' };
+  res.mensagemSempreDoCpf = await enviar(corpo('pj', cpfDe('555888111'), 'Sicrano', '77.888.999/0001-00'));
+  banco.falharInsert = null;
   // Outro erro do banco: não vira a mensagem de duplicado
   banco.falharInsert = { code: 'XX000', message: 'falha simulada' };
   res.outroErroDoBanco = await enviar(corpo('pf', cpfDe('222555888'), 'Fulano'));
@@ -149,11 +151,13 @@ const MSG_CNPJ = 'Já existe um cadastro com este CNPJ em análise. Aguarde o re
   r.semConsultaAntesDoInsert = banco.selects === 0;
   const ok = aceito(res.primeiro) && bloqueado(res.segundo, MSG_CPF) && bloqueado(res.semPontuacao, MSG_CPF) &&
     bloqueado(res.comEspacos, MSG_CPF) && aceito(res.depoisDeRecusar) && bloqueado(res.deNovoComONovoAtivo, MSG_CPF) &&
-    aceito(res.pjPrimeiro) && bloqueado(res.pjMesmoCnpj, MSG_CNPJ) && bloqueado(res.pjOutroCnpjMesmoMotorista, MSG_CPF) &&
-    bloqueado(res.pjComCpfDeUmPf, MSG_CPF) && bloqueado(res.pfComCpfDoMotoristaDaPj, MSG_CPF) && aceito(res.pjCpfECnpjNovos) &&
+    aceito(res.pjPrimeiro) && aceito(res.pjMesmoCnpjOutroMotorista) && bloqueado(res.pjOutroCnpjMesmoMotorista, MSG_CPF) &&
+    bloqueado(res.pjComCpfDeUmPf, MSG_CPF) && bloqueado(res.pfComCpfDoMotoristaDaPj, MSG_CPF) && aceito(res.pjCpfNovo) &&
+    bloqueado(res.mensagemSempreDoCpf, MSG_CPF) &&
     res.outroErroDoBanco.status === 503 && res.outroErroDoBanco.erro !== MSG_CPF &&
     res.unicoQueNaoEDoTrigger.status === 503 && res.unicoQueNaoEDoTrigger.erro !== MSG_CPF &&
-    ![res.segundo, res.semPontuacao, res.comEspacos, res.deNovoComONovoAtivo, res.pjMesmoCnpj].some(vaza) &&
+    ![res.segundo, res.semPontuacao, res.comEspacos, res.deNovoComONovoAtivo, res.pjOutroCnpjMesmoMotorista].some(vaza) &&
+    !/CNPJ/.test(fs.readFileSync(path.join(RAIZ, 'supabase/functions/solicitar-cadastro/index.ts'), 'utf8').match(/MENSAGEM_DUPLICADO =[\s\S]*?;/)[0]) &&
     r.semConsultaAntesDoInsert;
   console.log(JSON.stringify(r, null, 2));
   console.log(ok ? 'OK' : 'FALHOU');

@@ -124,27 +124,58 @@ const RAIZ = process.env.RAIZ || path.resolve(__dirname, '..');
     cpf_so_com_recusados: await tentar('pf', 'pendente', '00000000353'),
     cpf_novo: await tentar('pf', 'pendente', '00000000604'),
     cpf_novo_de_novo: await tentar('pf', 'pendente', '000.000.006-04'),
-    cnpj_ja_duplicado_hoje: await tentar('pj', 'pendente', '00000000999', '11 222 333 0001 81'),
-    pj_sem_cnpj: await tentar('pj', 'pendente', '00000000999', ''),
+    // O CNPJ não trava: a mesma empresa (CNPJ já repetido hoje) com outro motorista passa
+    cnpj_ja_repetido_outro_motorista: await tentar('pj', 'pendente', '00000000999', '11 222 333 0001 81'),
+    pj_sem_cnpj_outro_motorista: await tentar('pj', 'pendente', '00000000880', ''),
     tipo_nulo_conta_como_pf: await tentar(null, 'pendente', '00000000604'),
-    // CPF do motorista vale em qualquer tipo
+    // CPF do motorista vale em qualquer tipo, nos dois sentidos
     pj_com_cpf_de_pf_ativo: await tentar('pj', 'pendente', '000.000.002-72', '55.666.777/0001-00'),
     pf_com_cpf_de_motorista_de_pj_ativa: await tentar('pf', 'pendente', '00000000434'),
+    pj_mesmo_cnpj_mesmo_motorista: await tentar('pj', 'pendente', '000.000.009-99', '11.222.333/0001-81'),
     pj_cpf_e_cnpj_novos: await tentar('pj', 'pendente', '00000000700', '55.666.777/0001-00')
   };
   await db.exec('rollback');
   r.linhasIguaisNoFim = (await fotoLinhas()) === linhasAntes;
+
+  // O corpo da função no arquivo é letra por letra o que está rodando no banco de produção
+  const CORPO_DO_BANCO = `
+declare
+  v_cpf text;
+begin
+  if coalesce(new.status, '') = 'recusado' then
+    return new;
+  end if;
+  v_cpf := regexp_replace(coalesce(new.cpf, ''), '\\D', '', 'g');
+  if v_cpf = '' then
+    return new;
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('cadastro_unico:cpf:' || v_cpf, 0));
+  if exists (
+    select 1 from public.cadastros_agregados c
+     where c.id is distinct from new.id
+       and coalesce(c.status, '') <> 'recusado'
+       and regexp_replace(coalesce(c.cpf, ''), '\\D', '', 'g') = v_cpf
+  ) then
+    raise exception 'cadastro_duplicado: já existe um cadastro ativo com este CPF'
+      using errcode = 'unique_violation';
+  end if;
+  return new;
+end;
+`;
+  const prosrc = (await db.query(`select prosrc from pg_proc where oid = 'public.cadastro_agregado_unico()'::regprocedure`)).rows[0].prosrc;
+  r.funcaoIgualAoBanco = prosrc.replace(/\r/g, '') === CORPO_DO_BANCO;
 
   console.log(JSON.stringify(r, null, 2));
   const ok = !r.erros.length && r.semApagarNemAlterarLinhas && r.semIndiceUnico && r.conferenciasTerminamEmRollback &&
     r.item76IgualAoItem0 && r.item75IgualAo02Ativos && r.linhasIguais && r.arquivosIguais && r.linhasIguaisNoFim &&
     r.trigger.cpf_ja_duplicado_hoje.startsWith('recusado') && r.trigger.cpf_so_com_recusados === 'aceito' &&
     r.trigger.cpf_novo === 'aceito' && r.trigger.cpf_novo_de_novo.startsWith('recusado') &&
-    r.trigger.cnpj_ja_duplicado_hoje.startsWith('recusado') && r.trigger.pj_sem_cnpj === 'aceito' &&
+    r.trigger.cnpj_ja_repetido_outro_motorista === 'aceito' && r.trigger.pj_sem_cnpj_outro_motorista === 'aceito' &&
     r.trigger.tipo_nulo_conta_como_pf.startsWith('recusado') &&
     r.trigger.pj_com_cpf_de_pf_ativo.endsWith('com este CPF') &&
     r.trigger.pf_com_cpf_de_motorista_de_pj_ativa.endsWith('com este CPF') &&
-    r.trigger.pj_cpf_e_cnpj_novos === 'aceito';
+    r.trigger.pj_mesmo_cnpj_mesmo_motorista.endsWith('com este CPF') &&
+    r.trigger.pj_cpf_e_cnpj_novos === 'aceito' && r.funcaoIgualAoBanco;
   console.log(ok ? 'OK' : 'FALHOU');
   process.exit(ok ? 0 : 1);
 })().catch((e) => { console.error(e); process.exit(1); });

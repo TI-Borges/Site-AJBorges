@@ -1,6 +1,6 @@
-// Cadastro único por CPF/CNPJ nas telas: a ficha mostra o aviso do servidor sem apagar o que foi
+// Cadastro único pelo CPF do motorista nas telas: a ficha mostra o aviso do servidor sem apagar o que foi
 // preenchido (e não consulta CPF antes do envio); o Dashboard do Cadastro mostra o selo "CPF repetido"
-// / "CNPJ repetido" e o filtro "Só repetidos". Em 1366 e 390 px.
+// (só CPF; o CNPJ não conta) e o filtro "Só repetidos". Em 1366 e 390 px.
 // Nada vai para o Supabase: a edge function e o Storage são simulados no navegador (com a mesma regra
 // do trigger do passo25). Só dados inventados (CPF de teste 523.169.159-30, nomes "de Teste").
 // Uso: node testes/t_cadastro_unico_telas.js   -> prints em testes/capturas/cadastro_unico_*.png
@@ -170,7 +170,7 @@ async function enviar(page) {
         { ...base, id: 'c2', tipo: 'pj', status: 'aprovado', nome: 'Outro de Teste', cpf: '33366699957', dados: { 'nome-empresa': 'Empresa de Teste', cnpj: '11222333000181' } },
         // Mesmo CPF de motorista num PF e numa PJ: o CPF vale em qualquer tipo
         { ...base, id: 'd1', tipo: 'pj', status: 'pendente', nome: 'Beltrano de Teste', cpf: '11144477735', dados: { cnpj: '99.888.777/0001-66' } },
-        // Repetido nos dois: CPF de motorista (a1/a2) e CNPJ (c1/c2)
+        // Mesmo CPF de motorista (a1/a2) numa PJ que divide o CNPJ com c1/c2: só o CPF conta
         { ...base, id: 'e1', tipo: 'pj', status: 'pendente', nome: 'Fulano de Teste', cpf: '52316915930', dados: { cnpj: '11222333000181' } }
       ];
       cadastros = lista; // eslint-disable-line no-undef
@@ -187,10 +187,10 @@ async function enviar(page) {
       const semTagInjetada = !document.querySelector('#driver-table-body b');
       return { todos, filtrados, botao, selosNoHtml, semTagInjetada, cadastrosIntactos: JSON.stringify(cadastros) === JSON.stringify(lista) }; // eslint-disable-line no-undef
     });
-    confere(JSON.stringify(d.filtrados.sort()) === JSON.stringify(['a1:CPF repetido', 'a2:CPF repetido', 'b1:CPF repetido', 'c1:CNPJ repetido', 'c2:CNPJ repetido', 'd1:CPF repetido', 'e1:CPF repetido+CNPJ repetido']),
+    confere(JSON.stringify(d.filtrados.sort()) === JSON.stringify(['a1:CPF repetido', 'a2:CPF repetido', 'b1:CPF repetido', 'd1:CPF repetido', 'e1:CPF repetido']),
       `${largura}: filtro Só repetidos errado: ${d.filtrados}`);
-    confere(d.todos.length === 9 && d.todos.filter((t) => !t.endsWith(':-')).length === 7, `${largura}: selos errados: ${d.todos}`);
-    confere(d.botao === 'Só repetidos (7)', `${largura}: botão ${d.botao}`);
+    confere(d.todos.length === 9 && d.todos.filter((t) => !t.endsWith(':-')).length === 5 && !d.todos.some((t) => /CNPJ/.test(t)), `${largura}: selos errados: ${d.todos}`);
+    confere(d.botao === 'Só repetidos (5)', `${largura}: botão ${d.botao}`);
     confere(d.semTagInjetada && d.cadastrosIntactos, `${largura}: HTML injetado ou cadastros mudaram`);
     d.semRolagemLateral = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
     confere(d.semRolagemLateral, `${largura}: página com rolagem lateral`);
