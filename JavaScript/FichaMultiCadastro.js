@@ -566,13 +566,40 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button type="button" class="btn-modal-pri" id="btn-tentar-de-novo">Tentar enviar de novo</button>
                     </div>
                 </div>
+            </div>
+            <div class="modal-cadastro" id="modal-cadastro-duplicado" role="alertdialog" aria-modal="true" aria-labelledby="titulo-cadastro-duplicado" aria-describedby="texto-cadastro-duplicado">
+                <div class="modal-cadastro-caixa">
+                    <h3 id="titulo-cadastro-duplicado">Cadastro já enviado</h3>
+                    <p id="texto-cadastro-duplicado"></p>
+                    <div class="modal-cadastro-botoes">
+                        <a class="btn-modal-sec" id="btn-duplicado-whatsapp" target="_blank" rel="noopener">Falar pelo WhatsApp</a>
+                        <button type="button" class="btn-modal-pri" id="btn-duplicado-fechar">Entendi</button>
+                    </div>
+                </div>
             </div>`;
         document.body.appendChild(wrap);
         const revisar = document.getElementById('modal-revisar-cadastro');
         const fechar = () => revisar.classList.remove('ativo');
         document.getElementById('btn-voltar-revisar').addEventListener('click', fechar);
         revisar.addEventListener('click', (e) => { if (e.target === revisar) fechar(); });
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fechar(); });
+        const duplicado = document.getElementById('modal-cadastro-duplicado');
+        const fecharDuplicado = () => duplicado.classList.remove('ativo');
+        document.getElementById('btn-duplicado-fechar').addEventListener('click', fecharDuplicado);
+        duplicado.addEventListener('click', (e) => { if (e.target === duplicado) fecharDuplicado(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { fechar(); fecharDuplicado(); } });
+    }
+
+    // Já existe cadastro ativo com este CPF/CNPJ (resposta 409 da edge function, depois do envio:
+    // a ficha não consulta CPF antes). Mostra a mensagem do servidor e mantém tudo o que foi preenchido.
+    const CADASTRO_DUPLICADO = /^Já existe um cadastro com este (CPF|CNPJ)\b/;
+
+    function avisarDuplicado(msg) {
+        document.getElementById('texto-cadastro-duplicado').textContent = msg;
+        // Mensagem pronta sem CPF nem nome: a pessoa completa no WhatsApp se quiser
+        document.getElementById('btn-duplicado-whatsapp').href = `https://wa.me/${WHATSAPP_RH}?text=${encodeURIComponent(
+            'Olá! Tentei enviar meu cadastro de agregado pelo site e apareceu que já existe um cadastro em análise.')}`;
+        document.getElementById('modal-cadastro-duplicado').classList.add('ativo');
+        document.getElementById('btn-duplicado-fechar').focus();
     }
 
     // Primeiro problema nos anexos: { msg, doc } (doc = cartão onde mostrar o aviso)
@@ -842,6 +869,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!r.sucesso) {
                 restaurar();
                 document.getElementById('modal-revisar-cadastro').classList.remove('ativo');
+                if (CADASTRO_DUPLICADO.test(r.erro || '')) return avisarDuplicado(r.erro);
                 return mostrarErro(r.erro, r.faltando);
             }
 
