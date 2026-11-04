@@ -76,7 +76,7 @@ async function criarBanco() {
     create function public.is_admin() returns boolean language sql stable security definer as $$
       select coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') in ('admin', 'diretoria') $$;
   `);
-  for (const arq of ['T01_copia_planilha.sql', 'T02_passagem_turno.sql', 'T03_pendencias.sql']) {
+  for (const arq of ['T01_copia_planilha.sql', 'T02_passagem_turno.sql', 'T03_pendencias.sql', 'T04_nome_operador.sql']) {
     const sql = ateCommit(fs.readFileSync(path.join(RAIZ, 'supabase/sql/torre', arq), 'utf8'));
     await db.exec(sql.slice(sql.indexOf('\nbegin;\n')));
   }
@@ -90,8 +90,8 @@ function montarSql(pedido) {
   if (pedido.op === 'rpc') {
     const a = pedido.args || {};
     if (pedido.funcao === 'publicar_passagem') {
-      return ['select torre.publicar_passagem($1, $2::date, $3, $4, $5, $6::jsonb)::json as j',
-        [a.p_turno, a.p_data, a.p_texto_original, a.p_texto_ia, a.p_texto_final, JSON.stringify(a.p_fechamentos ?? [])]];
+      return ['select torre.publicar_passagem($1, $2::date, $3, $4, $5, $6::jsonb, $7)::json as j',
+        [a.p_turno, a.p_data, a.p_texto_original, a.p_texto_ia, a.p_texto_final, JSON.stringify(a.p_fechamentos ?? []), a.p_operador_nome]];
     }
     if (pedido.funcao === 'buscar_pendencias') {
       return [`select coalesce(json_agg(x), '[]'::json) as j from torre.buscar_pendencias($1, $2, $3::date, $4) x`,
@@ -196,7 +196,7 @@ function servidor() {
   };
   const entrar = async (papel, hash = '#passagem') => {
     await page.goto(`${base}/HTML/Login.html`).catch(() => { });
-    await page.evaluate(p => { localStorage.clear(); localStorage.setItem('teste_papel', p); }, papel);
+    await page.evaluate(p => { localStorage.clear(); localStorage.setItem('teste_papel', p); localStorage.setItem('torre_operador_nome', { admin: 'Ana Operadora', diretoria: 'Bruno Diretoria' }[p] || ''); }, papel);
     await page.goto(`${base}${TORRE}${hash}`, { waitUntil: 'load' });
     await ocioso();
   };
@@ -309,7 +309,7 @@ function servidor() {
   ok(l.length === 5 && await page.$eval('#pendencias-resumo', el => el.textContent) === '5 pendência(s)', 'lista todas (5)', l);
   ok(await page.$$eval('#pendencias-lista img', i => i.length) === 0, 'escapeHtml no histórico');
   const resolvida = await page.$$eval('#pendencias-lista .pendencia-resolvida', els => els.map(e => e.textContent.replace(/\s+/g, ' ').trim()).find(t => /Canhotos conferidos/.test(t)) || '');
-  ok(/Como foi resolvido Canhotos conferidos com o CD Cajamar por e-mail\. Resolvida por diretoria@teste\.local em \d{2}\/\d{2}\/\d{4} \d{2}:\d{2} · na passagem do T2 de/.test(resolvida),
+  ok(/Como foi resolvido Canhotos conferidos com o CD Cajamar por e-mail\. Resolvida por Bruno Diretoria em \d{2}\/\d{2}\/\d{4} \d{2}:\d{2} · na passagem do T2 de/.test(resolvida),
     'resolvida mostra como, quem, quando e em qual passagem', resolvida.slice(0, 160));
   await valor('#pendencias-texto', 'cajamar');
   await esperar(400); await ocioso();

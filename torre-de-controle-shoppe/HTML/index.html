@@ -22,7 +22,7 @@
         rel="stylesheet">
 
     <!-- Folha de Estilos da Torre de Controle -->
-    <link rel="stylesheet" href="/torre-de-controle-shoppe/CSS/torre.css?v=7">
+    <link rel="stylesheet" href="/torre-de-controle-shoppe/CSS/torre.css?v=8">
     <!-- Barra lateral padrão dos dashboards (depois do CSS da página) -->
     <link rel="stylesheet" href="/CSS/sidebar-padrao.css?v=2">
 
@@ -411,6 +411,14 @@
                         <!-- Nova passagem -->
                         <form class="passagem-card" id="form-passagem" autocomplete="off" novalidate>
                             <h3 class="passagem-titulo">Nova passagem</h3>
+                            <!-- Seu nome (T04): todos usam o mesmo login; obrigatório para gerar e publicar -->
+                            <label class="passagem-campo">
+                                <span>Seu nome <span class="passagem-obrigatorio" aria-hidden="true">*</span></span>
+                                <input type="text" id="passagem-operador-nome" minlength="2" maxlength="80" required aria-required="true"
+                                    autocomplete="name" placeholder="Quem está passando o turno">
+                                <small class="passagem-ajuda">Todos usam o mesmo login: o nome mostra quem escreveu a passagem e quem
+                                    fechou cada pendência. Não vai para a IA.</small>
+                            </label>
                             <!-- Pendências herdadas (T03): fechar cada uma antes de publicar -->
                             <div class="passagem-herdadas" id="passagem-herdadas" hidden></div>
                             <div class="passagem-linha">
@@ -528,8 +536,8 @@
     <script src="/JavaScript/auth.js"></script>
     <script src="/JavaScript/sidebar-padrao.js?v=1"></script>
     <script src="/torre-de-controle-shoppe/JavaScript/torre.js?v=7"></script>
-    <script src="/torre-de-controle-shoppe/JavaScript/torre-passagem.js?v=3"></script>
-    <script src="/torre-de-controle-shoppe/JavaScript/torre-pendencias.js?v=1"></script>
+    <script src="/torre-de-controle-shoppe/JavaScript/torre-passagem.js?v=4"></script>
+    <script src="/torre-de-controle-shoppe/JavaScript/torre-pendencias.js?v=2"></script>
 </body>
 
 </html>

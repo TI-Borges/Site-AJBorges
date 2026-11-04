@@ -2201,7 +2201,8 @@ body.modo-tv .torre-tabela-scroll {
     color: #b91c1c;
 }
 
-.passagem-campo textarea[aria-invalid="true"] {
+.passagem-campo textarea[aria-invalid="true"],
+.passagem-campo input[aria-invalid="true"] {
     border-color: #b91c1c;
 }
 

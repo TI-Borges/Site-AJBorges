@@ -77,7 +77,7 @@ async function criarBanco() {
     create function public.is_admin() returns boolean language sql stable security definer as $$
       select coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') in ('admin', 'diretoria') $$;
   `);
-  for (const arq of ['T01_copia_planilha.sql', 'T02_passagem_turno.sql', 'T03_pendencias.sql']) {
+  for (const arq of ['T01_copia_planilha.sql', 'T02_passagem_turno.sql', 'T03_pendencias.sql', 'T04_nome_operador.sql']) {
     const sql = ateCommit(fs.readFileSync(path.join(RAIZ, 'supabase/sql/torre', arq), 'utf8'));
     await db.exec(sql.slice(sql.indexOf('\nbegin;\n')));
   }
@@ -91,8 +91,8 @@ function montarSql(pedido) {
   if (pedido.op === 'rpc') {
     const a = pedido.args || {};
     if (pedido.funcao === 'publicar_passagem') {
-      return ['select torre.publicar_passagem($1, $2::date, $3, $4, $5, $6::jsonb)::json as j',
-        [a.p_turno, a.p_data, a.p_texto_original, a.p_texto_ia, a.p_texto_final, JSON.stringify(a.p_fechamentos ?? [])]];
+      return ['select torre.publicar_passagem($1, $2::date, $3, $4, $5, $6::jsonb, $7)::json as j',
+        [a.p_turno, a.p_data, a.p_texto_original, a.p_texto_ia, a.p_texto_final, JSON.stringify(a.p_fechamentos ?? []), a.p_operador_nome]];
     }
     if (pedido.funcao === 'buscar_pendencias') {
       return [`select coalesce(json_agg(x), '[]'::json) as j from torre.buscar_pendencias($1, $2, $3::date, $4) x`,
@@ -197,7 +197,7 @@ function servidor() {
   };
   const entrar = async (papel, hash = '#passagem') => {
     await page.goto(`${base}/HTML/Login.html`).catch(() => { });
-    await page.evaluate(p => { localStorage.clear(); localStorage.setItem('teste_papel', p); }, papel);
+    await page.evaluate(p => { localStorage.clear(); localStorage.setItem('teste_papel', p); localStorage.setItem('torre_operador_nome', { admin: 'Ana Operadora', diretoria: 'Bruno Diretoria' }[p] || ''); }, papel);
     await page.goto(`${base}${TORRE}${hash}`, { waitUntil: 'load' });
     await ocioso();
   };
@@ -294,7 +294,7 @@ function servidor() {
     const orig = document.getElementById('passagem-ultima-original');
     return { meta: el.querySelector('.passagem-meta').textContent, texto: el.querySelector('.passagem-texto').textContent, origEscondido: orig.hidden, img: el.querySelectorAll('img').length };
   });
-  ok(/^Turno T1 de \d{2}\/\d{2}\/\d{4} · por admin@teste\.local · publicada em \d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/.test(topo.meta) && topo.texto === FINAL && topo.origEscondido && topo.img === 0,
+  ok(/^T1 · \d{2}\/\d{2} \d{2}:\d{2} · por Ana Operadora$/.test(topo.meta) && topo.texto === FINAL && topo.origEscondido && topo.img === 0,
     'topo: última passagem com turno, data, quem e quando (texto como texto)', topo.meta);
   await page.click('#passagem-ultima [data-passagem-original]');
   const orig = await page.evaluate(() => ({ visivel: !document.getElementById('passagem-ultima-original').hidden, texto: document.querySelector('#passagem-ultima-original .passagem-texto').textContent, botao: document.querySelector('#passagem-ultima [data-passagem-original]').textContent }));
@@ -315,13 +315,13 @@ function servidor() {
   await ocioso();
   const sem = (await db.query(`select texto_ia, autor_email, data::text from torre.passagens_turno where turno = 'T3'`)).rows[0];
   ok(sem && sem.texto_ia === null && sem.autor_email === 'diretoria@teste.local' && sem.data === ontem, 'diretoria publica sem IA (texto_ia vazio) com a data escolhida', sem);
-  ok(await page.$eval('#passagem-ultima .passagem-meta', el => /^Turno T3 de .* por diretoria@teste\.local/.test(el.textContent)), 'topo mostra a mais recente');
+  ok(await page.$eval('#passagem-ultima .passagem-meta', el => /^T3 · .* · por Bruno Diretoria · turno de \d{2}\/\d{2}\/\d{4}$/.test(el.textContent)), 'topo mostra a mais recente');
   const hist = () => page.$$eval('#passagem-historico .passagem-item summary', s => s.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
   ok((await hist()).length === 2, 'histórico com as 2 passagens');
   await page.select('#historico-turno', 'T1');
   await ocioso();
   let h = await hist();
-  ok(h.length === 1 && /^T1 /.test(h[0]) && h[0].includes('admin@teste.local'), 'filtro por turno', h.join(' / '));
+  ok(h.length === 1 && /^T1 /.test(h[0]) && h[0].includes('por Ana Operadora'), 'filtro por turno', h.join(' / '));
   await page.select('#historico-turno', '');
   await valor('#historico-data', ontem);
   await ocioso();

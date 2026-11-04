@@ -14,11 +14,18 @@
  * "Como foi resolvido" obrigatório. A publicação vai pela RPC
  * torre.publicar_passagem, que fecha as herdadas, publica e cria as pendências
  * da passagem nova numa transação só (o banco recusa se faltar alguma).
+ * Nome do operador (T04_nome_operador.sql): todos usam o mesmo login, então o
+ * campo "Seu nome" (2 a 80 letras) é obrigatório para gerar e publicar; o
+ * mesmo nome fica como quem fechou as herdadas. O navegador lembra o último
+ * nome (localStorage). O nome NÃO vai para a IA.
  * Tudo que vem do banco ou da IA entra na tela por escapeHtml/textContent.
  */
 (function () {
     const TURNOS = ['T1', 'T2', 'T3'];
     const LIMITE_HISTORICO = 30;
+    const CHAVE_NOME = 'torre_operador_nome';
+    const NOME_MIN = 2;
+    const NOME_MAX = 80;
 
     const estado = {
         iniciado: false,
@@ -62,6 +69,42 @@
 
     function hora(valor) {
         return valor ? String(valor).slice(0, 5) : '';
+    }
+
+    // "04/11 15:30" (hora em que foi publicada)
+    function diaHoraCurta(valor) {
+        const d = new Date(valor);
+        if (Number.isNaN(d.getTime())) return '';
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+
+    // Passagens e pendências de antes do T04 não têm nome
+    function nomeOuVazio(nome) {
+        return String(nome || '').trim() || 'não informado';
+    }
+
+    /* "Seu nome": lembrado no navegador (sem localStorage, só não lembra) */
+    function lerNomeSalvo() {
+        try { return localStorage.getItem(CHAVE_NOME) || ''; } catch (e) { return ''; }
+    }
+
+    function salvarNome(nome) {
+        try {
+            if (nome) localStorage.setItem(CHAVE_NOME, nome);
+            else localStorage.removeItem(CHAVE_NOME);
+        } catch (e) { /* navegador sem localStorage */ }
+    }
+
+    // Nome válido (2 a 80 letras) ou null; sem nome marca o campo e põe o foco nele
+    function conferirNome() {
+        const el = $('passagem-operador-nome');
+        const nome = el ? el.value.trim() : '';
+        const valido = nome.length >= NOME_MIN && nome.length <= NOME_MAX;
+        if (el) el.setAttribute('aria-invalid', String(!valido));
+        if (valido) return nome;
+        if (el) el.focus();
+        status(`Preencha "Seu nome" (${NOME_MIN} a ${NOME_MAX} letras): todos usam o mesmo login e o nome mostra quem escreveu.`, 'erro');
+        return null;
     }
 
     function banco() {
@@ -198,7 +241,7 @@
                 <h3 class="passagem-titulo">Última passagem</h3>
                 <span class="passagem-selo">${esc(p.turno)}</span>
             </div>
-            <p class="passagem-meta">Turno ${esc(p.turno)} de ${esc(dataBr(p.data))} · por ${esc(p.autor_email || 'usuário sem e-mail')} · publicada em ${esc(dataHoraBr(p.criado_em))}</p>
+            <p class="passagem-meta" title="Login: ${esc(p.autor_email || 'usuário sem e-mail')}">${esc(p.turno)} · ${esc(diaHoraCurta(p.criado_em))} · por ${esc(nomeOuVazio(p.operador_nome))}${dataBr(p.data) === new Date(p.criado_em).toLocaleDateString('pt-BR') ? '' : ` · turno de ${esc(dataBr(p.data))}`}</p>
             ${blocoPassagem(p, { idPrefixo: 'passagem-ultima-original' })}`;
     }
 
@@ -214,7 +257,7 @@
                 <summary>
                     <span class="passagem-selo">${esc(p.turno)}</span>
                     <span>${esc(dataBr(p.data))}</span>
-                    <span class="passagem-meta">${esc(p.autor_email || 'usuário sem e-mail')} · ${esc(dataHoraBr(p.criado_em))}</span>
+                    <span class="passagem-meta" title="Login: ${esc(p.autor_email || 'usuário sem e-mail')}">por ${esc(nomeOuVazio(p.operador_nome))} · ${esc(dataHoraBr(p.criado_em))}</span>
                 </summary>
                 ${blocoPassagem(p, { idPrefixo: `passagem-hist-original-${i}` })}
             </details>`).join('');
@@ -230,7 +273,7 @@
         }
         el.innerHTML = `
             <h4 class="passagem-subtitulo">Pendências herdadas (${estado.herdadas.length})</h4>
-            <p class="passagem-ajuda">Feche cada uma antes de publicar: "Resolvida" ou "Continua" (passa para o próximo turno), sempre com "Como foi resolvido".</p>
+            <p class="passagem-ajuda">Feche cada uma antes de publicar: "Resolvida" ou "Continua" (passa para o próximo turno), sempre com "Como foi resolvido". Fica registrado como fechada pelo nome em "Seu nome".</p>
             ${estado.herdadas.map((p) => {
                 const id = esc(p.id);
                 const f = estado.fechamentos[p.id] || {};
@@ -296,6 +339,7 @@
         if (estado.gerando) return;
         const turno = $('passagem-turno').value;
         const texto = $('passagem-original').value.trim();
+        if (!conferirNome()) return;
         if (!turno) return status('Escolha o turno.', 'erro');
         if (!texto) return status('Escreva a passagem antes de gerar.', 'erro');
 
@@ -338,6 +382,8 @@
         const data = $('passagem-data').value;
         const original = $('passagem-original').value.trim();
         const final = $('passagem-final').value.trim();
+        const nome = conferirNome();
+        if (!nome) return;
         if (!turno) return status('Escolha o turno.', 'erro');
         if (!data) return status('Informe a data do turno.', 'erro');
         if (!original) return status('O texto original está vazio.', 'erro');
@@ -362,7 +408,8 @@
                     id: p.id,
                     status: estado.fechamentos[p.id].status,
                     resolucao: estado.fechamentos[p.id].resolucao.trim()
-                }))
+                })),
+                p_operador_nome: nome
             });
             if (error) {
                 status(mensagemErro(error, 'publicar a passagem'), 'erro');
@@ -414,6 +461,17 @@
         estado.iniciado = true;
         const dataEl = $('passagem-data');
         if (dataEl && !dataEl.value) dataEl.value = hojeIso();
+        const nomeEl = $('passagem-operador-nome');
+        if (nomeEl) {
+            if (!nomeEl.value) nomeEl.value = lerNomeSalvo();
+            nomeEl.addEventListener('input', () => {
+                salvarNome(nomeEl.value.trim());
+                if (nomeEl.getAttribute('aria-invalid') === 'true') {
+                    const n = nomeEl.value.trim().length;
+                    nomeEl.setAttribute('aria-invalid', String(n < NOME_MIN || n > NOME_MAX));
+                }
+            });
+        }
 
         $('passagem-original')?.addEventListener('input', (e) => {
             $('passagem-contador').textContent = String(e.target.value.length);

@@ -6,6 +6,8 @@
  * supabase/sql/torre/T03_pendencias.sql) pela RPC torre.buscar_pendencias:
  * busca por texto (na pendência ou em "Como foi resolvido"), turno, data da
  * passagem e status (aberta, resolvida, continua). Até 200 por busca.
+ * Quem criou (nome de quem publicou a passagem) e quem resolveu vêm do campo
+ * "Seu nome" (T04_nome_operador.sql); as antigas mostram "não informado".
  * Também mantém o contador de pendências abertas ao lado de "Passagem de
  * turno" na barra lateral (window.torreAtualizarContadorPendencias).
  * Tudo que vem do banco entra na tela por escapeHtml.
@@ -36,6 +38,10 @@
         const d = new Date(valor);
         if (Number.isNaN(d.getTime())) return '';
         return `${d.toLocaleDateString('pt-BR')} ${d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+
+    function nomeOuVazio(nome) {
+        return String(nome || '').trim() || 'não informado';
     }
 
     function banco() {
@@ -115,7 +121,7 @@
                 <div class="pendencia-topo">
                     <span class="pendencia-status">${esc(ROTULO_STATUS[status])}</span>
                     <span class="passagem-selo">${esc(p.turno)}</span>
-                    <span class="passagem-meta">Passagem de ${esc(dataBr(p.data))}</span>
+                    <span class="passagem-meta">Passagem de ${esc(dataBr(p.data))} · criada por ${esc(nomeOuVazio(p.criado_nome))}</span>
                 </div>
                 <p class="pendencia-texto">${esc(p.texto)}</p>
                 ${p.origem_id ? `<p class="passagem-meta">Continua de uma pendência do ${esc(p.origem_turno || '')} de ${esc(dataBr(p.origem_data))}</p>` : ''}
@@ -123,7 +129,7 @@
                 <div class="pendencia-resolucao">
                     <span class="passagem-original-rotulo">Como foi resolvido</span>
                     <p class="pendencia-texto">${esc(p.resolucao)}</p>
-                    <p class="passagem-meta">${status === 'continua' ? 'Passou para o turno seguinte' : 'Resolvida'} por ${esc(p.resolvido_email || 'usuário sem e-mail')} em ${esc(dataHoraBr(p.resolvido_em))}${p.fechada_turno ? ` · na passagem do ${esc(p.fechada_turno)} de ${esc(dataBr(p.fechada_data))}` : ''}</p>
+                    <p class="passagem-meta">${status === 'continua' ? 'Passou para o turno seguinte' : 'Resolvida'} por ${esc(nomeOuVazio(p.resolvido_nome))} em ${esc(dataHoraBr(p.resolvido_em))}${p.fechada_turno ? ` · na passagem do ${esc(p.fechada_turno)} de ${esc(dataBr(p.fechada_data))}` : ''}</p>
                 </div>` : '<p class="passagem-meta">Ainda aberta: o próximo turno fecha ao publicar a passagem.</p>'}
             </article>`;
     }
