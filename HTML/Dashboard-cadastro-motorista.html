@@ -310,6 +310,16 @@
         .selo-etapa { padding: 3px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #cbd5e1; background: #f1f5f9; color: #64748b; white-space: nowrap; }
         .selo-etapa.feito { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
         .selo-repetido { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #fdba74; background: #fff7ed; color: #c2410c; white-space: nowrap; }
+        /* Avaliação Apto / Inapto (controle interno da gestão; não muda status nem a trava por CPF) */
+        .selo-avaliacao { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; white-space: nowrap; border: 1px solid; }
+        .selo-avaliacao.apto { background: #ecfdf5; border-color: #6ee7b7; color: #047857; }
+        .selo-avaliacao.inapto { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+        .filtro-avaliacao { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.8rem; color: #475569; }
+        .filtro-avaliacao select { height: 32px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0 8px; font-size: 0.8rem; background: #fff; color: #1e293b; }
+        .avaliacao-opcoes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+        .avaliacao-opcoes label { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; cursor: pointer; background: #fff; }
+        .avaliacao-motivo { width: 100%; min-height: 70px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 0.85rem; resize: vertical; box-sizing: border-box; }
+        .avaliacao-rodape { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.78rem; color: #64748b; }
 
         /* Projeto 2: caixinhas de etapas (mesmo checkbox personalizado do formulário) */
         .etapas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
@@ -597,6 +607,14 @@
                         <div>
                             <h2 style="font-size: 1.15rem; font-weight: 700; color: #0f172a;">Fichas de Solicitações
                             </h2>
+                            <label class="filtro-avaliacao">Avaliação
+                                <select id="filtro-avaliacao">
+                                    <option value="todas">Todas</option>
+                                    <option value="sem">Sem avaliação</option>
+                                    <option value="apto">Apto</option>
+                                    <option value="inapto">Inapto</option>
+                                </select>
+                            </label>
                         </div>
 
                         <!-- Filtros por Status -->
@@ -777,6 +795,7 @@
         // =====================================================================
         let cadastros = [];
         let filtroAtual = 'todos';
+        let filtroAvaliacao = 'todas';
         let termoBusca = '';
         let cadastroAberto = null;
 
@@ -1022,6 +1041,67 @@
             return `<div>${docs.map((doc) => `<span class="selo-repetido" title="Há outro cadastro ativo com o mesmo ${doc}. Confira e recuse o que sobrar.">${doc} repetido</span>`).join(' ')}</div>`;
         }
 
+        // Avaliação Apto / Inapto (passo25b): marcação extra da gestão, gravada pela RPC avaliar_cadastro.
+        // Não muda o status nem a trava por CPF/CNPJ. Quem marcou e quando vêm do servidor.
+        const avaliacaoDe = (c) => (c.avaliacao === 'apto' || c.avaliacao === 'inapto' ? c.avaliacao : 'sem');
+        function seloAvaliacao(c) {
+            const a = avaliacaoDe(c);
+            if (a === 'sem') return '';
+            const dica = c.avaliacao_motivo ? ` title="${esc(c.avaliacao_motivo)}"` : '';
+            return `<div><span class="selo-avaliacao ${a}"${dica}>${a === 'apto' ? 'Apto' : 'Inapto'}</span></div>`;
+        }
+
+        function secaoAvaliacao(c) {
+            const a = avaliacaoDe(c);
+            const opcao = (valor, rotulo) => `<label><input type="radio" name="avaliacao" value="${valor}" ${a === (valor || 'sem') ? 'checked' : ''}> ${rotulo}</label>`;
+            const motivo = c.avaliacao_motivo || '';
+            return `
+                <fieldset class="cad-secao" id="secao-avaliacao">
+                    <legend>Avaliação (controle interno da gestão)</legend>
+                    <div class="etapas-aviso">Só para controle: não muda a aprovação/recusa nem a trava por CPF. O motorista não vê.</div>
+                    <div class="avaliacao-opcoes">
+                        ${opcao('', 'Sem avaliação')}
+                        ${opcao('apto', 'Apto')}
+                        ${opcao('inapto', 'Inapto')}
+                    </div>
+                    <label for="avaliacao-motivo" style="font-size: 0.8rem; color: #475569;">Motivo (opcional, até 300 letras)</label>
+                    <textarea id="avaliacao-motivo" class="avaliacao-motivo" maxlength="300">${esc(motivo)}</textarea>
+                    <div class="avaliacao-rodape">
+                        <span id="avaliacao-contador">${motivo.length}/300</span>
+                        <span>${c.avaliado_por ? `Marcado por <b>${esc(c.avaliado_por)}</b> em ${formatarData(c.avaliado_em)}` : 'Ainda sem avaliação.'}</span>
+                        <button type="button" class="btn-action-small" data-acao="salvar-avaliacao" data-id="${esc(c.id)}" style="background:#059669; color:#fff; border-color:#059669;">Salvar avaliação</button>
+                    </div>
+                </fieldset>`;
+        }
+
+        async function salvarAvaliacao(id, botao) {
+            const c = cadastros.find((x) => x.id === id);
+            if (!c) return;
+            const escolhida = document.querySelector('#secao-avaliacao input[name="avaliacao"]:checked');
+            const valor = escolhida ? escolhida.value : '';
+            const motivo = (document.getElementById('avaliacao-motivo')?.value || '').trim();
+            if (motivo.length > 300) return aviso('O motivo tem no máximo 300 letras.');
+            if (botao) botao.disabled = true;
+            try {
+                const { data, error } = await window.supabaseClient.rpc('avaliar_cadastro', {
+                    p_id: id, p_avaliacao: valor || null, p_motivo: valor ? (motivo || null) : null
+                });
+                if (error || !data) {
+                    console.error('Erro ao salvar a avaliação:', error);
+                    return aviso('Não foi possível salvar a avaliação. Tente novamente.');
+                }
+                Object.assign(c, {
+                    avaliacao: data.avaliacao || null, avaliacao_motivo: data.avaliacao_motivo || null,
+                    avaliado_por: data.avaliado_por || null, avaliado_em: data.avaliado_em || null
+                });
+                renderTabela();
+                if (cadastroAberto === id) abrirModal(id);
+                exibirToast('Avaliação salva.');
+            } finally {
+                if (botao) botao.disabled = false;
+            }
+        }
+
         function atualizarMetricas() {
             calcularRepetidos();
             const total = cadastros.length;
@@ -1074,6 +1154,7 @@
                 if (filtroAtual === 'repetidos') {
                     if (!repetidos.has(c.id)) return false;
                 } else if (filtroAtual !== 'todos' && statusExibido(c) !== filtroAtual) return false;
+                if (filtroAvaliacao !== 'todas' && avaliacaoDe(c) !== filtroAvaliacao) return false;
                 return bateBusca(c);
             });
 
@@ -1114,7 +1195,7 @@
                             <div style="font-size: 0.78rem; color: #64748b;">Placa: <strong>${esc(placa)}</strong>${c.sem_carreta && !novo ? ' &bull; sem carreta' : ''}</div></td>
                         <td style="padding: 16px;"><span style="font-size: 0.82rem; color: #334155;">${cnh}</span></td>
                         <td style="padding: 16px; color: #64748b; font-size: 0.82rem;">${formatarData(c.criado_em)}</td>
-                        <td style="padding: 16px;">${ROTULOS_STATUS[statusExibido(c)] || esc(c.status)}${prazoExclusao(c)}</td>
+                        <td style="padding: 16px;">${ROTULOS_STATUS[statusExibido(c)] || esc(c.status)}${prazoExclusao(c)}${seloAvaliacao(c)}</td>
                         <td style="padding: 16px;">${selosEtapas(c)}</td>
                         <td style="padding: 16px 20px; text-align: right;">
                             <div class="table-action-btns" style="justify-content: flex-end;">
@@ -1671,7 +1752,9 @@ ${secao('Documentos extras', listaExtras)}
                     ${c.analisado_por ? `<div>Última análise: <b>${esc(c.analisado_por)}</b> em ${formatarData(c.analisado_em)}</div>` : ''}
                     ${c.status === 'recusado' && c.motivo_recusa ? `<div style="color:#b91c1c;">Motivo da recusa: <b>${esc(c.motivo_recusa)}</b></div>` : ''}
                     ${prazoExclusao(c)}
+                    ${avaliacaoDe(c) !== 'sem' ? `<div>Avaliação: <span class="selo-avaliacao ${avaliacaoDe(c)}">${avaliacaoDe(c) === 'apto' ? 'Apto' : 'Inapto'}</span>${c.avaliacao_motivo ? ` · ${esc(c.avaliacao_motivo)}` : ''}</div>` : ''}
                 </div>
+                ${secaoAvaliacao(c)}
                 ${secaoEtapas}
                 ${novo ? '' : `<fieldset class="cad-secao">
                     <legend>Documentos</legend>
@@ -1852,6 +1935,17 @@ ${secao('Documentos extras', listaExtras)}
                 renderTabela();
             });
 
+            document.getElementById('filtro-avaliacao')?.addEventListener('change', (e) => {
+                filtroAvaliacao = e.target.value;
+                renderTabela();
+            });
+            // Contador do motivo da avaliação (no modal)
+            document.addEventListener('input', (e) => {
+                if (e.target.id !== 'avaliacao-motivo') return;
+                const cont = document.getElementById('avaliacao-contador');
+                if (cont) cont.textContent = `${e.target.value.length}/300`;
+            });
+
             const container = document.getElementById('tab-filter-container');
             if (container && !document.getElementById('btn-tab-recusados')) {
                 const btn = document.createElement('button');
@@ -1908,6 +2002,7 @@ ${secao('Documentos extras', listaExtras)}
                         document.getElementById('btn-salvar-dados').style.display = '';
                         break;
                     case 'salvar-dados': salvarDados(); break;
+                    case 'salvar-avaliacao': salvarAvaliacao(id, alvo); break;
                     default: break;
                 }
             });
