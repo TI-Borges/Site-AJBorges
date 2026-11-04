@@ -197,12 +197,29 @@ const ABAS_META = {
             { campo: '_mapa', rotulo: 'Mapa', tipo: 'mapa_acao' }
         ]
     },
-    // Não é view da planilha: a tela fica em torre-passagem.js (tabelas do T02)
+    // Não são views da planilha: telas próprias (comunicação entre turnos)
+    // torre-passagem.js (T02/T03) e torre-pendencias.js (T03)
     passagem: {
         titulo: 'Passagem de turno',
         tela: 'passagem'
+    },
+    pendencias: {
+        titulo: 'Histórico de pendências',
+        tela: 'pendencias'
     }
 };
+
+// Telas próprias (sem views da planilha): cada uma expõe ativar/desativar/atualizar
+function telasProprias() {
+    return { passagem: window.torrePassagem, pendencias: window.torrePendencias };
+}
+
+// Desativa as telas próprias (menos a da aba atual); a que desativa devolve as áreas de tabela
+function desativarTelasProprias(exceto = null) {
+    Object.entries(telasProprias()).forEach(([nome, tela]) => {
+        if (nome !== exceto && tela) tela.desativar();
+    });
+}
 
 /* Definição de colunas em 2 níveis para a MATRIZ */
 const MATRIZ_BLOCOS = [
@@ -433,13 +450,14 @@ async function carregarDadosAbaAtual({ silencioso = false } = {}) {
     const aba = estadoTorre.abaAtual;
     const meta = ABAS_META[aba] || ABAS_META.matriz;
 
-    // Passagem de turno: tela própria (torre-passagem.js), sem views da planilha
-    if (meta.tela === 'passagem') {
+    // Passagem de turno e Histórico de pendências: telas próprias, sem views da planilha
+    if (meta.tela) {
         renderizarTelaCompleta();
-        if (window.torrePassagem) await window.torrePassagem.atualizar();
+        const tela = telasProprias()[meta.tela];
+        if (tela) await tela.atualizar();
         return;
     }
-    if (window.torrePassagem) window.torrePassagem.desativar();
+    desativarTelasProprias();
     const btnAtualizar = document.getElementById('btn-atualizar-dados');
 
     if (btnAtualizar) btnAtualizar.classList.add('girando');
@@ -617,12 +635,14 @@ function renderizarTelaCompleta({ preservarRolagem = false } = {}) {
         }
     });
 
-    // Passagem de turno: esconde as áreas de tabela e mostra a tela dela
-    if (meta.tela === 'passagem') {
-        if (window.torrePassagem) window.torrePassagem.ativar();
+    // Tela própria: desativa a outra, esconde as áreas de tabela e mostra a dela
+    if (meta.tela) {
+        desativarTelasProprias(meta.tela);
+        const tela = telasProprias()[meta.tela];
+        if (tela) tela.ativar();
         return;
     }
-    if (window.torrePassagem) window.torrePassagem.desativar();
+    desativarTelasProprias();
 
     const linhasBrutas = estadoTorre.dadosPorAba[aba] || [];
     const painelContadores = document.getElementById('torre-painel-contadores');

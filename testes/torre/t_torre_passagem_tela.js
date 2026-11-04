@@ -56,7 +56,10 @@ window.supabase = { createClient: () => {
       signOut: async () => ({})
     },
     from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }) }),
-    schema: (nome) => nome === 'torre' ? { from: consulta } : null
+    schema: (nome) => nome === 'torre' ? {
+      from: consulta,
+      rpc: (funcao, args) => ({ then(ok, erro) { return window.__torreBanco(papel(), { op: 'rpc', funcao, args }).then(ok, erro); } })
+    } : null
   };
 } };`;
 
@@ -74,7 +77,7 @@ async function criarBanco() {
     create function public.is_admin() returns boolean language sql stable security definer as $$
       select coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') in ('admin', 'diretoria') $$;
   `);
-  for (const arq of ['T01_copia_planilha.sql', 'T02_passagem_turno.sql']) {
+  for (const arq of ['T01_copia_planilha.sql', 'T02_passagem_turno.sql', 'T03_pendencias.sql']) {
     const sql = ateCommit(fs.readFileSync(path.join(RAIZ, 'supabase/sql/torre', arq), 'utf8'));
     await db.exec(sql.slice(sql.indexOf('\nbegin;\n')));
   }
@@ -84,6 +87,19 @@ async function criarBanco() {
 // PostgREST mínimo: select/eq/order/limit, insert(...).select(), update(...).eq().select()
 function montarSql(pedido) {
   const nome = /^[a-z_]+$/;
+  // RPCs do T03 (PostgREST: argumentos por nome)
+  if (pedido.op === 'rpc') {
+    const a = pedido.args || {};
+    if (pedido.funcao === 'publicar_passagem') {
+      return ['select torre.publicar_passagem($1, $2::date, $3, $4, $5, $6::jsonb)::json as j',
+        [a.p_turno, a.p_data, a.p_texto_original, a.p_texto_ia, a.p_texto_final, JSON.stringify(a.p_fechamentos ?? [])]];
+    }
+    if (pedido.funcao === 'buscar_pendencias') {
+      return [`select coalesce(json_agg(x), '[]'::json) as j from torre.buscar_pendencias($1, $2, $3::date, $4) x`,
+        [a.p_texto, a.p_turno, a.p_data, a.p_status]];
+    }
+    throw new Error('rpc desconhecida');
+  }
   if (!nome.test(pedido.tabela)) throw new Error('tabela inválida');
   const t = `torre.${pedido.tabela}`;
   const params = [];
@@ -270,7 +286,7 @@ function servidor() {
   ok(linha.length === 1 && linha[0].turno === 'T1' && linha[0].texto_original === ORIGINAL && linha[0].texto_ia === IA && linha[0].texto_final === FINAL
     && linha[0].autor === SUBS.admin && linha[0].autor_email === 'admin@teste.local' && linha[0].agora, 'publicou: original, IA e final; autor e hora do servidor', linha[0] && linha[0].autor_email);
   t = await tela();
-  ok(t.status === 'Passagem publicada.' && await page.$eval('#passagem-original', el => el.value) === '' && await page.$eval('#passagem-final', el => el.value) === '', 'formulário limpo depois de publicar');
+  ok(/^Passagem publicada\./.test(t.status) && await page.$eval('#passagem-original', el => el.value) === '' && await page.$eval('#passagem-final', el => el.value) === '', 'formulário limpo depois de publicar', t.status);
 
   // 7. Topo: última passagem (quem, quando, turno) e "Ver texto original"
   const topo = await page.evaluate(() => {
@@ -292,6 +308,9 @@ function servidor() {
   await valor('#passagem-data', ontem);
   await valor('#passagem-original', 'noite tranquila');
   await valor('#passagem-final', 'AVISOS\n- Noite sem ocorrências.');
+  // T03: a pendência "Conferir os canhotos." da passagem do admin é herdada e tem que ser fechada
+  await page.click('#passagem-herdadas input[value="resolvida"]');
+  await valor('#passagem-herdadas [data-fechar-resolucao]', 'Canhotos conferidos.');
   await page.click('#btn-publicar-passagem');
   await ocioso();
   const sem = (await db.query(`select texto_ia, autor_email, data::text from torre.passagens_turno where turno = 'T3'`)).rows[0];

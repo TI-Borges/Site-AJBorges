@@ -22,7 +22,7 @@
         rel="stylesheet">
 
     <!-- Folha de Estilos da Torre de Controle -->
-    <link rel="stylesheet" href="/torre-de-controle-shoppe/CSS/torre.css?v=5">
+    <link rel="stylesheet" href="/torre-de-controle-shoppe/CSS/torre.css?v=6">
     <!-- Barra lateral padrão dos dashboards (depois do CSS da página) -->
     <link rel="stylesheet" href="/CSS/sidebar-padrao.css?v=2">
 
@@ -233,6 +233,22 @@
                             <span class="nav-text">Passagem de turno</span>
                         </a>
                     </li>
+                    <!-- 11. Histórico de pendências (torre-pendencias.js) -->
+                    <li class="nav-item">
+                        <a href="#pendencias" class="nav-link" data-aba="pendencias" id="nav-link-pendencias"
+                            title="Histórico de pendências">
+                            <span class="nav-icon" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M9 11l3 3L22 4"></path>
+                                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                                    <line x1="7" y1="8" x2="11" y2="8"></line>
+                                </svg>
+                            </span>
+                            <span class="nav-text">Histórico de pendências</span>
+                        </a>
+                    </li>
                 </ul>
                 <!-- Barra lateral padrão dos 4 dashboards (CSS/sidebar-padrao.css) -->
                 <div class="nav-group-label nav-group-sistemas">SISTEMAS &amp; PAINÉIS</div>
@@ -389,6 +405,8 @@
                         <!-- Nova passagem -->
                         <form class="passagem-card" id="form-passagem" autocomplete="off" novalidate>
                             <h3 class="passagem-titulo">Nova passagem</h3>
+                            <!-- Pendências herdadas (T03): fechar cada uma antes de publicar -->
+                            <div class="passagem-herdadas" id="passagem-herdadas" hidden></div>
                             <div class="passagem-linha">
                                 <label class="passagem-campo">
                                     <span>Turno</span>
@@ -452,6 +470,44 @@
                         </div>
                     </div>
                 </section>
+
+                <!-- Histórico de pendências (torre-pendencias.js): só aparece na aba #pendencias -->
+                <section class="torre-pendencias" id="torre-pendencias" aria-label="Histórico de pendências" hidden>
+                    <div class="passagem-card">
+                        <h3 class="passagem-titulo">Histórico de pendências</h3>
+                        <div class="pendencias-filtros">
+                            <label class="passagem-campo pendencias-filtro-texto">
+                                <span>Buscar</span>
+                                <input type="search" id="pendencias-texto" maxlength="120" autocomplete="off"
+                                    placeholder="Texto da pendência ou como foi resolvido">
+                            </label>
+                            <label class="passagem-campo">
+                                <span>Turno</span>
+                                <select id="pendencias-turno">
+                                    <option value="">Todos</option>
+                                    <option value="T1">T1</option>
+                                    <option value="T2">T2</option>
+                                    <option value="T3">T3</option>
+                                </select>
+                            </label>
+                            <label class="passagem-campo">
+                                <span>Data da passagem</span>
+                                <input type="date" id="pendencias-data">
+                            </label>
+                            <label class="passagem-campo">
+                                <span>Status</span>
+                                <select id="pendencias-status">
+                                    <option value="">Todos</option>
+                                    <option value="aberta">Aberta</option>
+                                    <option value="resolvida">Resolvida</option>
+                                    <option value="continua">Continua</option>
+                                </select>
+                            </label>
+                        </div>
+                        <p class="passagem-meta" id="pendencias-resumo" role="status" aria-live="polite"></p>
+                        <div class="pendencias-lista" id="pendencias-lista"></div>
+                    </div>
+                </section>
             </main>
         </div>
 
@@ -465,8 +521,9 @@
     <script src="/JavaScript/supabase-client.js"></script>
     <script src="/JavaScript/auth.js"></script>
     <script src="/JavaScript/sidebar-padrao.js?v=1"></script>
-    <script src="/torre-de-controle-shoppe/JavaScript/torre.js?v=5"></script>
-    <script src="/torre-de-controle-shoppe/JavaScript/torre-passagem.js?v=1"></script>
+    <script src="/torre-de-controle-shoppe/JavaScript/torre.js?v=6"></script>
+    <script src="/torre-de-controle-shoppe/JavaScript/torre-passagem.js?v=2"></script>
+    <script src="/torre-de-controle-shoppe/JavaScript/torre-pendencias.js?v=1"></script>
 </body>
 
 </html>

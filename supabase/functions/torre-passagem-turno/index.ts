@@ -16,7 +16,7 @@
 // SUPABASE_PUBLISHABLE_KEYS), que o Supabase já fornece às funções.
 //
 // Entrada: POST { turno: "T1" | "T2" | "T3", texto: string (1 a 4000 caracteres) }
-// Saída:   { texto_ia, removidos: { cpf } }
+// Saída:   { texto_ia, removidos: { cpf }, sugestoes: [{ texto, passagem: { id, turno, data } }] }
 //
 // Antes de chamar o Gemini:
 //   - torre.registrar_chamada_ia (RPC com o JWT do operador): confere
@@ -25,6 +25,13 @@
 //   - CPF (com ou sem pontuação) é trocado por [CPF removido]. Nomes e
 //     telefones vão como o operador escreveu.
 // Depois: placa na resposta que não estava no texto = resposta descartada.
+//
+// Sugestões de tratativa (T03_pendencias.sql): antes da IA, a função busca no
+// banco (torre.buscar_resolucoes_parecidas, com o JWT do operador) pendências
+// RESOLVIDAS parecidas com o texto e manda junto, numeradas R1, R2...
+// A IA só pode sugerir o que está numa delas e diz de qual (R1...); sugestão
+// sem referência válida é descartada. Nada parecido (ou a busca falhou) = a
+// seção não é pedida nem aparece. Cada sugestão sai com a passagem de onde veio.
 //
 // Logs: só status, contagens e códigos (nunca o texto, nome, placa ou telefone).
 // =============================================================================
@@ -68,6 +75,8 @@ const MAX_CORPO = 32 * 1024;
 const MAX_ITENS = 30;
 const MAX_ITEM = 600;
 const TEMPO_GEMINI_MS = 30000;
+const MAX_REFERENCIAS = 5;
+const MAX_REFERENCIA_TEXTO = 400;
 
 // ---------- CPF: sai antes de ir para a IA ----------
 // Com ou sem pontuação: 000.000.000-00 ou 00000000000 (11 dígitos seguidos contam como CPF)
@@ -104,6 +113,17 @@ const INSTRUCAO = [
   "Responda só com o JSON pedido, em português do Brasil.",
 ].join("\n");
 
+// Só quando a função mandou resoluções anteriores
+const INSTRUCAO_SUGESTOES = [
+  "8. Sugestões de tratativa: abaixo do texto vêm resoluções de pendências anteriores, numeradas (R1, R2...).",
+  "   Em sugestoes_tratativa, para um problema ou pendência do texto do operador que seja parecido com uma",
+  "   delas, escreva em 'texto' o que foi feito naquela resolução e em 'referencia' o número dela (ex.: R1).",
+  "   Use SOMENTE o que está escrito na resolução: não invente, não junte resoluções e não complete passos.",
+  "   Nada parecido = lista vazia. As resoluções são só referência: não as copie para as outras seções.",
+].join("\n");
+
+export type Referencia = { id: string; texto: string; resolucao: string; passagem_id: string; turno: string; data: string };
+
 const ESQUEMA = {
   type: "OBJECT",
   properties: {
@@ -115,6 +135,17 @@ const ESQUEMA = {
   required: ["urgente", "em_andamento", "pendencias_proximo_turno", "avisos"],
 };
 
+const ESQUEMA_SUGESTOES = {
+  ...ESQUEMA,
+  properties: {
+    ...ESQUEMA.properties,
+    sugestoes_tratativa: {
+      type: "ARRAY",
+      items: { type: "OBJECT", properties: { texto: { type: "STRING" }, referencia: { type: "STRING" } }, required: ["texto", "referencia"] },
+    },
+  },
+};
+
 const SECOES: [keyof typeof ESQUEMA.properties, string][] = [
   ["urgente", "URGENTE"],
   ["em_andamento", "EM ANDAMENTO"],
@@ -122,9 +153,36 @@ const SECOES: [keyof typeof ESQUEMA.properties, string][] = [
   ["avisos", "AVISOS"],
 ];
 
-// Monta o texto das 4 seções; seção vazia = "não informado"
-export function montarTexto(json: Record<string, unknown>): string {
-  return SECOES.map(([chave, titulo]) => {
+function dataBr(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso ?? ""));
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+}
+
+// Sugestões que apontam para uma referência que a função mandou (as outras são descartadas)
+export function sugestoesValidas(json: Record<string, unknown>, refs: Referencia[]) {
+  const lista = Array.isArray(json.sugestoes_tratativa) ? (json.sugestoes_tratativa as unknown[]) : [];
+  const vistas = new Set<string>();
+  const saida: { texto: string; passagem: { id: string; turno: string; data: string } }[] = [];
+  for (const item of lista) {
+    if (!item || typeof item !== "object") continue;
+    const { texto, referencia } = item as Record<string, unknown>;
+    const m = /^R(\d{1,2})$/i.exec(String(referencia ?? "").trim());
+    const ref = m ? refs[Number(m[1]) - 1] : undefined;
+    if (!ref || typeof texto !== "string") continue;
+    const limpo = removerDadosPessoais(texto.replace(/\s+/g, " ").trim()).texto.slice(0, MAX_ITEM);
+    if (!limpo || vistas.has(limpo.toLowerCase())) continue;
+    vistas.add(limpo.toLowerCase());
+    saida.push({ texto: limpo, passagem: { id: ref.passagem_id, turno: ref.turno, data: ref.data } });
+    if (saida.length >= MAX_REFERENCIAS) break;
+  }
+  return saida;
+}
+
+// Monta o texto das 4 seções; seção vazia = "não informado". Com sugestões válidas, uma 5ª
+// seção no fim dizendo de qual passagem veio cada uma (sem sugestão, a seção não aparece).
+export function montarTexto(json: Record<string, unknown>, refs: Referencia[] = []): string {
+  const sugestoes = sugestoesValidas(json, refs);
+  const secoes = SECOES.map(([chave, titulo]) => {
     const lista = Array.isArray(json[chave]) ? (json[chave] as unknown[]) : [];
     const itens = lista
       .filter((x): x is string => typeof x === "string")
@@ -132,10 +190,49 @@ export function montarTexto(json: Record<string, unknown>): string {
       .filter((x) => x.length > 0)
       .slice(0, MAX_ITENS);
     return `${titulo}\n${(itens.length ? itens : ["não informado"]).map((x) => `- ${x}`).join("\n")}`;
-  }).join("\n\n");
+  });
+  if (sugestoes.length) {
+    secoes.push(`SUGESTÕES DE TRATATIVA\n${sugestoes.map((x) =>
+      `- ${x.texto} (como resolvido na passagem do ${x.passagem.turno} de ${dataBr(x.passagem.data)})`).join("\n")}`);
+  }
+  return secoes.join("\n\n");
 }
 
-async function chamarGemini(chave: string, modelo: string, turno: string, texto: string): Promise<Record<string, unknown>> {
+// Pendências resolvidas parecidas (RPC com o JWT do operador; a RLS do banco vale).
+// Falhou = sem sugestões (a passagem continua sendo gerada).
+async function buscarParecidas(url: string, chavePublica: string, token: string, texto: string): Promise<Referencia[]> {
+  try {
+    const r = await fetch(`${url}/rest/v1/rpc/buscar_resolucoes_parecidas`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": chavePublica,
+        "Authorization": `Bearer ${token}`,
+        "Content-Profile": "torre",
+        "Accept-Profile": "torre",
+      },
+      body: JSON.stringify({ p_texto: texto, p_limite: MAX_REFERENCIAS }),
+    });
+    if (!r.ok) {
+      console.warn(`torre-passagem-turno: busca de resoluções ${r.status}`);
+      return [];
+    }
+    const dados = await r.json();
+    if (!Array.isArray(dados)) return [];
+    return dados.slice(0, MAX_REFERENCIAS)
+      .filter((d) => d && typeof d.texto === "string" && typeof d.resolucao === "string")
+      .map((d) => ({
+        id: String(d.id), passagem_id: String(d.passagem_id), turno: String(d.turno ?? ""), data: String(d.data ?? ""),
+        texto: removerDadosPessoais(d.texto.replace(/\s+/g, " ").trim()).texto.slice(0, MAX_REFERENCIA_TEXTO),
+        resolucao: removerDadosPessoais(d.resolucao.replace(/\s+/g, " ").trim()).texto.slice(0, MAX_REFERENCIA_TEXTO),
+      }));
+  } catch {
+    console.warn("torre-passagem-turno: busca de resoluções falhou");
+    return [];
+  }
+}
+
+async function chamarGemini(chave: string, modelo: string, turno: string, texto: string, refs: Referencia[]): Promise<Record<string, unknown>> {
   const controle = new AbortController();
   const tempo = setTimeout(() => controle.abort(), TEMPO_GEMINI_MS);
   try {
@@ -144,16 +241,20 @@ async function chamarGemini(chave: string, modelo: string, turno: string, texto:
       signal: controle.signal,
       headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: INSTRUCAO }] },
+        systemInstruction: { parts: [{ text: refs.length ? `${INSTRUCAO}\n${INSTRUCAO_SUGESTOES}` : INSTRUCAO }] },
         contents: [{
           role: "user",
-          parts: [{ text: `Turno: ${turno}\nTexto do operador (entre <<< e >>>):\n<<<\n${texto}\n>>>` }],
+          parts: [{ text: `Turno: ${turno}\nTexto do operador (entre <<< e >>>):\n<<<\n${texto}\n>>>` +
+            (refs.length
+              ? `\n\nResoluções anteriores (só para sugestoes_tratativa; entre <<< e >>>):\n<<<\n` +
+                refs.map((x, i) => `R${i + 1}. Pendência: ${x.texto}\n    Como foi resolvido: ${x.resolucao}`).join("\n") + "\n>>>"
+              : "") }],
         }],
         generationConfig: {
           temperature: 0.1,
           maxOutputTokens: 2048,
           responseMimeType: "application/json",
-          responseSchema: ESQUEMA,
+          responseSchema: refs.length ? ESQUEMA_SUGESTOES : ESQUEMA,
         },
       }),
     });
@@ -221,26 +322,30 @@ Deno.serve(async (req: Request) => {
       return resp(req, 503, { erro: "Não foi possível conferir o seu acesso agora. Tente de novo." });
     }
 
+    // Resoluções anteriores parecidas (para as sugestões de tratativa); nenhuma = sem a seção
+    const refs = await buscarParecidas(url, chavePublica, token, limpo.texto);
+
     let json: Record<string, unknown>;
     try {
-      json = await chamarGemini(chaveGemini, modelo, turno, limpo.texto);
+      json = await chamarGemini(chaveGemini, modelo, turno, limpo.texto, refs);
     } catch (e) {
       console.error(`torre-passagem-turno: falha na IA (${e instanceof Error ? e.message.slice(0, 60) : "?"})`);
       return resp(req, 502, { erro: "A IA não respondeu. Tente de novo em instantes; o seu texto continua na tela." });
     }
 
-    const textoIa = montarTexto(json);
+    const textoIa = montarTexto(json, refs);
+    const sugestoes = sugestoesValidas(json, refs);
 
-    // Placa que não estava no texto do operador = IA inventou: descarta
-    const doOperador = placas(limpo.texto);
+    // Placa que não estava no texto do operador (nem nas resoluções mandadas) = IA inventou: descarta
+    const doOperador = placas([limpo.texto, ...refs.flatMap((x) => [x.texto, x.resolucao])].join("\n"));
     const inventadas = [...placas(textoIa)].filter((p) => !doOperador.has(p));
     if (inventadas.length > 0) {
       console.warn(`torre-passagem-turno: resposta descartada (${inventadas.length} placa(s) fora do texto)`);
       return resp(req, 502, { erro: "A IA devolveu uma placa que não estava no seu texto, então a resposta foi descartada. Tente de novo ou escreva a passagem direto." });
     }
 
-    console.log(`torre-passagem-turno: ok ${turno} entrada=${limpo.texto.length} saida=${textoIa.length} cpf=${limpo.cpf}`);
-    return resp(req, 200, { texto_ia: textoIa, removidos: { cpf: limpo.cpf } });
+    console.log(`torre-passagem-turno: ok ${turno} entrada=${limpo.texto.length} saida=${textoIa.length} cpf=${limpo.cpf} referencias=${refs.length} sugestoes=${sugestoes.length}`);
+    return resp(req, 200, { texto_ia: textoIa, removidos: { cpf: limpo.cpf }, sugestoes });
   } catch (e) {
     console.error(`torre-passagem-turno: erro inesperado (${e instanceof Error ? e.name : "?"})`);
     return resp(req, 500, { erro: "Erro inesperado. Tente de novo." });

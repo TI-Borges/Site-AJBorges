@@ -9,6 +9,11 @@
  * hora vêm do servidor. No topo fica a última passagem publicada; abaixo, o
  * histórico com filtro por data e turno. Horários dos turnos em torre.turnos
  * (em branco até o operador preencher).
+ * Pendências (T03_pendencias.sql): as pendências abertas herdadas aparecem no
+ * topo do formulário; cada uma é fechada como "Resolvida" ou "Continua", com
+ * "Como foi resolvido" obrigatório. A publicação vai pela RPC
+ * torre.publicar_passagem, que fecha as herdadas, publica e cria as pendências
+ * da passagem nova numa transação só (o banco recusa se faltar alguma).
  * Tudo que vem do banco ou da IA entra na tela por escapeHtml/textContent.
  */
 (function () {
@@ -21,6 +26,8 @@
         turnos: [],
         ultima: null,
         historico: [],
+        herdadas: [],
+        fechamentos: {},   // id da pendência -> { status, resolucao } (o que o operador já preencheu)
         textoIa: null,
         gerando: false,
         publicando: false
@@ -113,10 +120,24 @@
         renderizarHistorico();
     }
 
+    // Pendências abertas = as herdadas pelo próximo turno (mais antigas primeiro)
+    async function carregarHerdadas() {
+        const { data, error } = await banco().from('passagem_pendencias').select('*')
+            .eq('status', 'aberta').order('criado_em', { ascending: true });
+        if (error) throw error;
+        estado.herdadas = Array.isArray(data) ? data : [];
+        const ids = new Set(estado.herdadas.map((p) => p.id));
+        Object.keys(estado.fechamentos).forEach((id) => { if (!ids.has(id)) delete estado.fechamentos[id]; });
+        renderizarHerdadas();
+        if (typeof window.torreAtualizarContadorPendencias === 'function') {
+            window.torreAtualizarContadorPendencias(estado.herdadas.length);
+        }
+    }
+
     async function atualizar() {
         if (!estado.ativo) return;
         try {
-            await Promise.all([carregarUltima(), carregarHistorico()]);
+            await Promise.all([carregarUltima(), carregarHistorico(), carregarHerdadas()]);
         } catch (erro) {
             console.warn('[Torre] Falha ao ler as passagens:', erro);
             const el = $('passagem-ultima');
@@ -199,6 +220,54 @@
             </details>`).join('');
     }
 
+    function renderizarHerdadas() {
+        const el = $('passagem-herdadas');
+        if (!el) return;
+        el.hidden = estado.herdadas.length === 0;
+        if (!estado.herdadas.length) {
+            el.innerHTML = '';
+            return;
+        }
+        el.innerHTML = `
+            <h4 class="passagem-subtitulo">Pendências herdadas (${estado.herdadas.length})</h4>
+            <p class="passagem-ajuda">Feche cada uma antes de publicar: "Resolvida" ou "Continua" (passa para o próximo turno), sempre com "Como foi resolvido".</p>
+            ${estado.herdadas.map((p) => {
+                const id = esc(p.id);
+                const f = estado.fechamentos[p.id] || {};
+                return `
+                <fieldset class="pendencia-herdada" data-pendencia-id="${id}">
+                    <legend class="pendencia-herdada-texto">${esc(p.texto)}</legend>
+                    <p class="passagem-meta">Da passagem do ${esc(p.turno)} de ${esc(dataBr(p.data))}${p.origem_id ? ' · já veio de um turno anterior' : ''}</p>
+                    <div class="pendencia-escolha">
+                        <label><input type="radio" name="fechar-${id}" value="resolvida" data-fechar-status="${id}"${f.status === 'resolvida' ? ' checked' : ''}> Resolvida</label>
+                        <label><input type="radio" name="fechar-${id}" value="continua" data-fechar-status="${id}"${f.status === 'continua' ? ' checked' : ''}> Continua</label>
+                    </div>
+                    <label class="passagem-campo">
+                        <span>Como foi resolvido <span class="passagem-obrigatorio" aria-hidden="true">*</span></span>
+                        <textarea rows="2" maxlength="1000" data-fechar-resolucao="${id}" aria-required="true"
+                            placeholder="O que foi feito (ou por que continua)">${esc(f.resolucao || '')}</textarea>
+                    </label>
+                </fieldset>`;
+            }).join('')}`;
+    }
+
+    // Falta fechar alguma? Marca os campos e devolve o primeiro a corrigir
+    function conferirFechamentos() {
+        let primeiro = null;
+        estado.herdadas.forEach((p) => {
+            const f = estado.fechamentos[p.id] || {};
+            const caixa = document.querySelector(`[data-pendencia-id="${CSS.escape(p.id)}"]`);
+            if (!caixa) return;
+            const semStatus = !['resolvida', 'continua'].includes(f.status);
+            const semResolucao = !String(f.resolucao || '').trim();
+            caixa.classList.toggle('pendencia-incompleta', semStatus || semResolucao);
+            const texto = caixa.querySelector('[data-fechar-resolucao]');
+            if (texto) texto.setAttribute('aria-invalid', String(semResolucao));
+            if (!primeiro && (semStatus || semResolucao)) primeiro = semStatus ? caixa.querySelector('input[type="radio"]') : texto;
+        });
+        return primeiro;
+    }
+
     /* ------------------------------------------------------------------------
        Ações
        ------------------------------------------------------------------------ */
@@ -250,7 +319,11 @@
             finalEl.value = r.dados.texto_ia;
             const rem = r.dados.removidos || {};
             const removidos = [rem.cpf ? `${rem.cpf} CPF` : '', rem.telefone ? `${rem.telefone} telefone(s)` : ''].filter(Boolean).join(' e ');
-            status(`Passagem gerada. Revise e edite antes de publicar.${removidos ? ` Retirado antes de ir para a IA: ${removidos}.` : ''}`, 'ok');
+            const qtdSugestoes = Array.isArray(r.dados.sugestoes) ? r.dados.sugestoes.length : 0;
+            const sugestoes = qtdSugestoes
+                ? ` Inclui ${qtdSugestoes} sugestão(ões) de tratativa tirada(s) de passagens anteriores: confira antes de publicar.`
+                : '';
+            status(`Passagem gerada. Revise e edite antes de publicar.${sugestoes}${removidos ? ` Retirado antes de ir para a IA: ${removidos}.` : ''}`, 'ok');
         } finally {
             estado.gerando = false;
             btn.disabled = false;
@@ -269,18 +342,28 @@
         if (!data) return status('Informe a data do turno.', 'erro');
         if (!original) return status('O texto original está vazio.', 'erro');
         if (!final) return status('A passagem formal está vazia: gere ou escreva antes de publicar.', 'erro');
+        const faltando = conferirFechamentos();
+        if (faltando) {
+            faltando.focus();
+            return status('Feche cada pendência herdada: escolha "Resolvida" ou "Continua" e preencha "Como foi resolvido".', 'erro');
+        }
 
         estado.publicando = true;
         const btn = $('btn-publicar-passagem');
         btn.disabled = true;
         try {
-            const { error } = await banco().from('passagens_turno').insert({
-                turno,
-                data,
-                texto_original: original,
-                texto_ia: estado.textoIa,
-                texto_final: final
-            }).select();
+            const { data: r, error } = await banco().rpc('publicar_passagem', {
+                p_turno: turno,
+                p_data: data,
+                p_texto_original: original,
+                p_texto_ia: estado.textoIa,
+                p_texto_final: final,
+                p_fechamentos: estado.herdadas.map((p) => ({
+                    id: p.id,
+                    status: estado.fechamentos[p.id].status,
+                    resolucao: estado.fechamentos[p.id].resolucao.trim()
+                }))
+            });
             if (error) {
                 status(mensagemErro(error, 'publicar a passagem'), 'erro');
                 return;
@@ -289,7 +372,13 @@
             $('passagem-final').value = '';
             $('passagem-contador').textContent = '0';
             estado.textoIa = null;
-            status('Passagem publicada.', 'ok');
+            estado.fechamentos = {};
+            const partes = [
+                r && r.fechadas ? `${r.fechadas} pendência(s) herdada(s) fechada(s)` : '',
+                r && r.continuam ? `${r.continuam} continua(m) no próximo turno` : '',
+                r && r.novas ? `${r.novas} nova(s) pendência(s) para o próximo turno` : ''
+            ].filter(Boolean);
+            status(`Passagem publicada.${partes.length ? ` ${partes.join(', ')}.` : ''}`, 'ok');
             await atualizar();
         } catch (erro) {
             status(mensagemErro(erro, 'publicar a passagem'), 'erro');
@@ -332,6 +421,20 @@
         $('btn-gerar-passagem')?.addEventListener('click', gerar);
         $('form-passagem')?.addEventListener('submit', publicar);
         $('btn-salvar-horarios')?.addEventListener('click', salvarHorarios);
+        // Fechamento das herdadas: guarda o que o operador marca/escreve (sobrevive a trocar de aba)
+        const herdadas = $('passagem-herdadas');
+        const guardarFechamento = (e) => {
+            const alvo = e.target;
+            const id = alvo.getAttribute('data-fechar-status') || alvo.getAttribute('data-fechar-resolucao');
+            if (!id) return;
+            const f = estado.fechamentos[id] = estado.fechamentos[id] || {};
+            if (alvo.hasAttribute('data-fechar-status')) f.status = alvo.value;
+            else f.resolucao = alvo.value;
+            const caixa = alvo.closest('.pendencia-herdada');
+            if (caixa && caixa.classList.contains('pendencia-incompleta')) conferirFechamentos();
+        };
+        herdadas?.addEventListener('input', guardarFechamento);
+        herdadas?.addEventListener('change', guardarFechamento);
         ['historico-data', 'historico-turno'].forEach((id) => {
             $(id)?.addEventListener('change', () => carregarHistorico().catch((erro) => {
                 $('passagem-historico').innerHTML = `<p class="passagem-vazio">${esc(mensagemErro(erro, 'ler o histórico'))}</p>`;
@@ -370,5 +473,5 @@
             .forEach((id) => { const el = $(id); if (el) el.hidden = false; });
     }
 
-    window.torrePassagem = { ativar, desativar, atualizar };
+    window.torrePassagem = { ativar, desativar, atualizar, carregarHerdadas };
 })();
