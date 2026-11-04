@@ -1210,6 +1210,17 @@ function abrirModalResumoFicha(fichaId) {
             anexosHtml = `<span style="font-size: 0.82rem; color: #94a3b8;">Nenhum comprovante anexado.</span>`;
         }
 
+        // Adiantamentos (passo 23): a lista e o total (valorAdiantamento, a soma gravada pelo banco).
+        // Ficha antiga (sem a lista): só o valor único, como antes.
+        const adiantamentosModal = (Array.isArray(ficha.adiantamentos) ? ficha.adiantamentos : [])
+            .map(a => String((a && typeof a === 'object' ? a.valor : a) ?? '').trim()).filter(Boolean);
+        const totalAdiantamentosTxt = `R$ ${escaparHtml(ficha.valorAdiantamento || '0,00')}`;
+        const adiantamentosHtml = adiantamentosModal.length
+            ? `<div class="modal-info-linha modal-info-adiantamentos"><span>Adiantamentos (${adiantamentosModal.length}):</span>
+                    <ol class="modal-lista-adiantamentos">${adiantamentosModal.map(v => `<li>R$ ${escaparHtml(v)}</li>`).join('')}</ol></div>
+               <div class="modal-info-linha"><span>Total de adiantamentos:</span> <strong>${totalAdiantamentosTxt}</strong></div>`
+            : `<div class="modal-info-linha"><span>Adiantamento Concedido:</span> <strong>${totalAdiantamentosTxt}</strong></div>`;
+
         const semValorModal = fichaTemFreteSemValor(ficha);
         const pendenteModal = '<em class="valor-pendente">pendente</em>';
         elConteudo.innerHTML = `${semValorModal ? `
@@ -1231,7 +1242,7 @@ function abrirModalResumoFicha(fichaId) {
                     <div class="modal-info-linha"><span>Total Diesel:</span> <strong>${totalCombustivelTxt(totaisCombustivel.diesel)}</strong></div>
                     <div class="modal-info-linha"><span>Total ARLA:</span> <strong>${totalCombustivelTxt(totaisCombustivel.arla)}</strong></div>
                     <div class="modal-info-linha"><span>Pedágios + Imposto:</span> <strong>R$ ${formatarMoedaSemPrefixo(parseValorMoeda(ficha.totalPedagio) + parseValorMoeda(ficha.impFederal))}</strong></div>
-                    <div class="modal-info-linha"><span>Adiantamento Concedido:</span> <strong>R$ ${escaparHtml(ficha.valorAdiantamento || '0,00')}</strong></div>
+                    ${adiantamentosHtml}
                     <div class="modal-info-linha"><span>Saldo Comissão:</span> <strong style="color: #8b5cf6;">${semValorModal ? pendenteModal : `R$ ${escaparHtml(ficha.saldoComissao || '0,00')}`}</strong></div>
                 </div>
             </div>

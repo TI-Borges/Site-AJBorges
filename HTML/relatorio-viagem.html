@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../CSS/relatorio.css?v=3.5">
+    <link rel="stylesheet" href="../CSS/relatorio.css?v=3.6">
     <link rel="icon" href="../Imagens/favicon/favicon.ico?v=1" sizes="16x16 32x32 48x48">
     <link rel="icon" type="image/svg+xml" href="../Imagens/favicon/favicon.svg?v=1">
     <link rel="icon" type="image/png" sizes="32x32" href="../Imagens/favicon/favicon-32.png?v=1">
@@ -531,18 +531,75 @@
                         </div>
 
                         <div class="grid-campos grid-1-col">
-                            <!-- Valor Adiantamento -->
-                            <div class="campo-grupo">
+                            <!-- Adiantamentos (passo 23): uma linha por adiantamento, como fretes e abastecimentos
+                                 (o relatorio.js cria até 100). O total vai no valorAdiantamento (acerto e saldo). -->
+                            <div class="campo-grupo bloco-adiantamentos">
                                 <div class="label-com-tag">
                                     <label for="valor-adiantamento">
-                                        VALOR ADIANTAMENTO: R$ <span class="asterisco">*</span>
+                                        ADIANTAMENTOS: R$ <span class="asterisco">*</span>
                                     </label>
                                     <span class="tag-motorista">Motorista</span>
                                 </div>
-                                <div class="input-wrapper">
-                                    <span class="input-prefixo">R$</span>
-                                    <input type="text" id="valor-adiantamento" name="valor_adiantamento" required
-                                        placeholder="0,00" inputmode="decimal">
+                                <small class="dica-adiantamentos">Um valor por adiantamento recebido (0,00 se não houve).</small>
+                                <div class="tabela-adiantamentos-wrapper">
+                                    <table class="tabela-adiantamentos">
+                                        <thead>
+                                            <tr>
+                                                <th class="th-num">#</th>
+                                                <th>VALOR EM R$</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="td-num">
+                                                    <span class="num-rotulo">1</span>
+                                                    <button type="button" class="btn-limpar-linha-inline"
+                                                        data-linha-adiant="1" title="Remover linha 1" aria-label="Remover linha 1">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12"
+                                                            height="12" viewBox="0 0 24 24" fill="none"
+                                                            stroke="currentColor" stroke-width="2.5"
+                                                            stroke-linecap="round" stroke-linejoin="round">
+                                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                                            <path
+                                                                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                                            </path>
+                                                        </svg>
+                                                    </button>
+                                                </td>
+                                                <td>
+                                                    <div class="tabela-moeda-wrap">
+                                                        <span class="tabela-moeda-prefixo">R$</span>
+                                                        <input type="text" id="valor-adiantamento" name="valor_adiantamento_1"
+                                                            class="input-tabela input-valor-adiantamento"
+                                                            placeholder="0,00" inputmode="decimal" autocomplete="off">
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr class="linha-adicionar-celular">
+                                                <td colspan="2">
+                                                    <button type="button" class="btn-adicionar-linha-celular" data-adicionar="adiantamentos"><span aria-hidden="true">+</span> Adicionar adiantamento</button>
+                                                    <small class="texto-limite-linhas" hidden>Limite de 100 adiantamentos atingido</small>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="linha-total-adiantamentos">
+                                                <td colspan="2">
+                                                    <div class="total-adiantamentos-linha">
+                                                        <span class="td-totais-label">
+                                                            <span class="tag-auto-pequena">Soma Automática</span>
+                                                            <strong>TOTAL DE ADIANTAMENTOS &gt;&gt;</strong>
+                                                        </span>
+                                                        <div class="tabela-moeda-wrap wrap-total-destaque">
+                                                            <span class="tabela-moeda-prefixo">R$</span>
+                                                            <input type="text" id="total-adiantamentos" readonly
+                                                                value="0,00" class="input-tabela input-total-campo" title="Total de adiantamentos em R$">
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -3031,7 +3088,7 @@
     <script src="../JavaScript/aviso-atualizacao.js?v=3" data-aviso-local="ficha"></script>
     <script src="../JavaScript/auth.js"></script>
     <script src="../JavaScript/celular.js"></script>
-    <script src="../JavaScript/relatorio.js?v=3.8"></script>
+    <script src="../JavaScript/relatorio.js?v=3.9"></script>
     <script>
         // Mede a altura real do header fixo e grava em --altura-header,
         // usada pela .barra-admin-operacional para grudar logo abaixo dele.

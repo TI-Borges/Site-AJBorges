@@ -2302,6 +2302,25 @@ body.admin-body {
     border-bottom: none;
 }
 
+/* Adiantamentos da ficha (passo 23): a lista quebra em várias linhas e rola se for longa */
+.modal-info-adiantamentos {
+    flex-wrap: wrap;
+}
+
+.modal-lista-adiantamentos {
+    width: 100%;
+    max-height: 168px;
+    overflow-y: auto;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: decimal inside;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+    gap: 2px 14px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
 .modal-tabela-resumo {
     width: 100%;
     border-collapse: collapse;

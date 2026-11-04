@@ -35,13 +35,15 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     // Fretes e abastecimentos sem limite visível: o HTML traz 8 e 10 linhas e as outras (até
     // MAX_LINHAS_BLOCO por bloco) são criadas quando precisa, copiando a linha 1 com o número
     // novo nos name. Os loops vão até qtdFretes()/qtdAbast() (as linhas que existem na página).
+    // Adiantamentos (passo 23) funcionam igual: o HTML traz 1 linha.
     const MAX_LINHAS_BLOCO = 100;
     const SELETOR_TABELA_BLOCO = {
         fretes: 'table.tabela-fretes-ml',
-        abastecimentos: 'table.tabela-abastecimento:not(.tabela-fretes-ml)'
+        abastecimentos: 'table.tabela-abastecimento:not(.tabela-fretes-ml)',
+        adiantamentos: 'table.tabela-adiantamentos'
     };
     // Quem liga eventos numa linha registra aqui (recebe o número da linha); vale para as linhas novas
-    const configuradoresLinha = { fretes: [], abastecimentos: [] };
+    const configuradoresLinha = { fretes: [], abastecimentos: [], adiantamentos: [] };
 
     // Campo da ficha pelo name. Com 100 + 100 linhas, procurar no documento inteiro a cada tecla
     // (milhares de vezes) deixa a digitação lenta; o campo achado fica guardado (os name são únicos).
@@ -72,6 +74,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     }
     const qtdFretes = () => qtdLinhasDoBloco('fretes');
     const qtdAbast = () => qtdLinhasDoBloco('abastecimentos');
+    const qtdAdiant = () => qtdLinhasDoBloco('adiantamentos');
 
     function criarLinhaDoBloco(tipo, n) {
         const linhas = linhasDoBloco(tipo);
@@ -83,6 +86,9 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         nova.querySelectorAll('[name]').forEach(el => { el.name = el.name.replace(/_\d+$/, `_${n}`); });
         nova.querySelectorAll('[data-linha]').forEach(el => el.setAttribute('data-linha', String(n)));
         nova.querySelectorAll('[data-linha-abast]').forEach(el => el.setAttribute('data-linha-abast', String(n)));
+        nova.querySelectorAll('[data-linha-adiant]').forEach(el => el.setAttribute('data-linha-adiant', String(n)));
+        // id é só da linha 1 (ex.: #valor-adiantamento, do label)
+        nova.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
         nova.querySelectorAll('.btn-limpar-linha-inline').forEach(el => {
             el.title = `Remover linha ${n}`;
             el.setAttribute('aria-label', `Remover linha ${n}`);
@@ -1572,16 +1578,67 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         });
     }
 
-    // Aplica máscara no valor do adiantamento
-    if (inputAdiantamento) {
-        aplicarMascaraMoeda(inputAdiantamento, () => {
-            if (typeof calcularIndicadoresViagemMl === 'function') {
-                calcularIndicadoresViagemMl();
-            }
-            if (typeof salvarProgressoMl === 'function') {
-                salvarProgressoMl();
-            }
+    // Adiantamentos (passo 23): uma linha por adiantamento; o valorAdiantamento da ficha é a soma
+    // (o acerto, o saldo de comissão e o dashboard continuam lendo só ele)
+    function configurarLinhaAdiantamento(i) {
+        aplicarMascaraMoeda(campoPorNome(`valor_adiantamento_${i}`), () => {
+            calcularIndicadoresViagemMl();
+            salvarProgressoMl();
         });
+        // Lixeira na coluna de numeração: "Remover" a linha (da 2ª em diante)
+        const btnRemover = document.querySelector(`.btn-limpar-linha-inline[data-linha-adiant="${i}"]`);
+        if (btnRemover) {
+            btnRemover.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                removerLinhaLista('adiantamentos', i);
+            });
+        }
+    }
+    for (let i = 1; i <= qtdAdiant(); i++) configurarLinhaAdiantamento(i);
+    configuradoresLinha.adiantamentos.push(configurarLinhaAdiantamento);
+
+    // Linhas em uso com valor digitado ("0,00" conta: é o "não houve"), na ordem da tela
+    function adiantamentosDaTela() {
+        const lista = [];
+        for (let i = 1; i <= qtdAdiant(); i++) {
+            const campo = campoPorNome(`valor_adiantamento_${i}`);
+            if (!campo || campo.closest('tr')?.classList.contains('linha-oculta-celular')) continue;
+            const valor = (campo.value || '').trim();
+            if (valor) lista.push({ valor });
+        }
+        return lista;
+    }
+
+    // Soma em centavos (100 linhas de 0,10 dão 10,00 exatos)
+    function somaAdiantamentos(lista) {
+        return lista.reduce((c, a) => c + Math.round(parseMoeda(a.valor) * 100), 0) / 100;
+    }
+
+    // O que vai no valorAdiantamento: a soma, ou '' se nenhuma linha tem valor (no envio é obrigatório)
+    function valorAdiantamentoDaTela() {
+        const lista = adiantamentosDaTela();
+        return lista.length ? formatarMoedaSemPrefixo(somaAdiantamentos(lista)) : '';
+    }
+
+    // Põe os adiantamentos na tela. Ficha antiga (sem a lista): 1 linha com o valorAdiantamento.
+    function preencherAdiantamentosNaTela(lista, valorAntigo) {
+        const valores = (Array.isArray(lista) ? lista : [])
+            .map(a => String((a && typeof a === 'object' ? a.valor : a) ?? '').trim()).filter(Boolean);
+        if (!valores.length && String(valorAntigo ?? '').trim()) valores.push(String(valorAntigo).trim());
+        const mostrar = garantirLinhas('adiantamentos', Math.max(1, valores.length));
+        for (let i = 1; i <= qtdAdiant(); i++) {
+            const campo = campoPorNome(`valor_adiantamento_${i}`);
+            if (campo) campo.value = i <= mostrar ? (valores[i - 1] || '') : '';
+        }
+        const tabela = tabelaDoBloco('adiantamentos');
+        if (tabela) tabela.dataset.mostrar = String(Math.max(1, Math.min(valores.length, mostrar)));
+        atualizarTotalAdiantamentos();
+    }
+
+    function atualizarTotalAdiantamentos() {
+        const total = document.getElementById('total-adiantamentos');
+        if (total) total.value = formatarMoedaSemPrefixo(somaAdiantamentos(adiantamentosDaTela()));
     }
 
 
@@ -2501,8 +2558,9 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             }
         }
 
-        // 4. Saldo de Comissão = VR Comissão - Valor do Adiantamento
-        const adiantamentoNum = parseMoeda(inputAdiantamento ? inputAdiantamento.value : '');
+        // 4. Saldo de Comissão = VR Comissão - Total de adiantamentos
+        atualizarTotalAdiantamentos();
+        const adiantamentoNum = somaAdiantamentos(adiantamentosDaTela());
         const saldoComissao = vrComissaoNum - adiantamentoNum;
 
         if (mlIndicadorSaldoComissao) {
@@ -3353,7 +3411,9 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                 kmEntrada2: inputKmChegada2?.value || '',
                 destinoInicial: inputDestinoInicial?.value?.trim() || '',
                 destinoFinal: inputDestinoFinal?.value?.trim() || '',
-                valorAdiantamento: inputAdiantamento?.value || ''
+                // soma das linhas (o que o acerto lê) e as linhas
+                valorAdiantamento: valorAdiantamentoDaTela(),
+                adiantamentos: adiantamentosDaTela()
             };
 
             const fretesMl = [];
@@ -3849,7 +3909,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         limparSegundoTrecho();
         atualizarSegundoTrecho();
         // Listas do celular voltam a mostrar só a primeira linha
-        document.querySelectorAll('table.tabela-abastecimento').forEach(t => { delete t.dataset.mostrar; });
+        document.querySelectorAll('table.tabela-abastecimento, table.tabela-adiantamentos').forEach(t => { delete t.dataset.mostrar; });
         setTimeout(atualizarListasCelular, 0);
         if (inputDataSaida) inputDataSaida.value = '';
         if (inputDataChegada) inputDataChegada.value = '';
@@ -3858,7 +3918,11 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         if (inputKmTotal) inputKmTotal.value = '';
         if (inputDestinoInicial) inputDestinoInicial.value = '';
         if (inputDestinoFinal) inputDestinoFinal.value = '';
-        if (inputAdiantamento) inputAdiantamento.value = '';
+        for (let i = 1; i <= qtdAdiant(); i++) {
+            const campo = campoPorNome(`valor_adiantamento_${i}`);
+            if (campo) campo.value = '';
+        }
+        atualizarTotalAdiantamentos();
 
         // Limpar as 8 linhas de frete
         for (let i = 1; i <= qtdFretes(); i++) {
@@ -3997,7 +4061,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                     if (inputKmChegada2 && dados.cabecalho.kmEntrada2) inputKmChegada2.value = dados.cabecalho.kmEntrada2;
                     if (inputDestinoInicial && dados.cabecalho.destinoInicial) inputDestinoInicial.value = dados.cabecalho.destinoInicial;
                     if (inputDestinoFinal && dados.cabecalho.destinoFinal) inputDestinoFinal.value = dados.cabecalho.destinoFinal;
-                    if (inputAdiantamento && dados.cabecalho.valorAdiantamento) inputAdiantamento.value = dados.cabecalho.valorAdiantamento;
+                    preencherAdiantamentosNaTela(dados.cabecalho.adiantamentos, dados.cabecalho.valorAdiantamento);
                 }
 
                 // Restaurar fretes
@@ -4287,7 +4351,9 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         }
 
         const adiantamentoVal = ficha.valorAdiantamento || ficha.valor_adiantamento || ficha.dados_completos?.valorAdiantamento;
-        if (inputAdiantamento && adiantamentoVal) inputAdiantamento.value = adiantamentoVal;
+        // Lista de adiantamentos (passo 23); ficha antiga só tem o valor único: abre com 1 linha
+        const adiantamentosLista = Array.isArray(ficha.adiantamentos) ? ficha.adiantamentos : ficha.dados_completos?.adiantamentos;
+        preencherAdiantamentosNaTela(adiantamentosLista, adiantamentoVal);
 
         // Frete origem, retornos, total frete e vr comissão de fichas antigas não têm mais
         // campo na tela: o total frete e a comissão vêm da Relação de fretes
@@ -4409,7 +4475,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     // ------------------------------------------
     const TABELAS_CELULAR = [
         { tipo: 'fretes', seletor: 'table.tabela-fretes-ml', item: 'Frete' },
-        { tipo: 'abastecimentos', seletor: 'table.tabela-abastecimento:not(.tabela-fretes-ml)', item: 'Abastecimento' }
+        { tipo: 'abastecimentos', seletor: 'table.tabela-abastecimento:not(.tabela-fretes-ml)', item: 'Abastecimento' },
+        { tipo: 'adiantamentos', seletor: 'table.tabela-adiantamentos', item: 'Adiantamento' }
     ];
 
     function linhaPreenchida(tr) {
@@ -5061,7 +5128,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                     el.setAttribute('readonly', 'true');
                     el.setAttribute('disabled', 'true');
                 });
-                document.querySelectorAll('table.tabela-abastecimento').forEach(t => t.setAttribute('data-somente-leitura', ''));
+                document.querySelectorAll('table.tabela-abastecimento, table.tabela-adiantamentos').forEach(t => t.setAttribute('data-somente-leitura', ''));
                 atualizarListasCelular();
 
                 if (barraMotorista) {
@@ -5122,7 +5189,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             input.setAttribute('readonly', 'true');
             input.classList.add('campo-bloqueado-gestao');
         });
-        [inputDestinoInicial, inputDestinoFinal, inputAdiantamento].forEach(input => liberarCampoBloqueado(input));
+        [inputDestinoInicial, inputDestinoFinal, ...document.querySelectorAll('.input-valor-adiantamento')].forEach(input => liberarCampoBloqueado(input));
         document.querySelectorAll('.th-tag-gestao').forEach(t => t.style.display = 'inline-flex');
 
         // 3. Bloqueio de Campos Operacionais Corporativos
@@ -5240,7 +5307,14 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         html += linha('Saída / chegada', `${(inputDataSaida?.value || '').trim() || '—'} → ${(inputDataChegada?.value || '').trim() || '—'}`);
         html += linha('Destino inicial', (inputDestinoInicial?.value || '').trim() || '—');
         html += linha('Destino final', (inputDestinoFinal?.value || '').trim() || '—');
-        html += linha('Adiantamento', inputAdiantamento?.value ? `R$ ${inputAdiantamento.value}` : '—');
+        // Um por linha (com 2 ou mais, também o total)
+        const adiantamentos = adiantamentosDaTela();
+        if (adiantamentos.length > 1) {
+            adiantamentos.forEach((a, k) => { html += linha(`Adiantamento ${k + 1}`, `R$ ${a.valor}`); });
+            html += linha('Total de adiantamentos', `R$ ${formatarMoedaSemPrefixo(somaAdiantamentos(adiantamentos))}`);
+        } else {
+            html += linha('Adiantamento', adiantamentos.length ? `R$ ${adiantamentos[0].valor}` : '—');
+        }
 
         html += '<h3>Quilometragem</h3>';
         html += linha('Placa principal', principal ? formatarPlaca(principal) : '—');
@@ -5407,7 +5481,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             }
             if (chegada < saida) return falharValidacao(inputDataChegada, 'A data de chegada não pode ser antes da data de saída.');
             if (!(inputDestinoInicial?.value || '').trim()) return falharValidacao(inputDestinoInicial, 'Informe o destino inicial.');
-            if (!(inputAdiantamento?.value || '').trim()) return falharValidacao(inputAdiantamento, 'Informe o valor do adiantamento (0,00 se não houve).');
+            // Pelo menos uma linha com valor; linhas extras vazias não vão no envio
+            if (!adiantamentosDaTela().length) return falharValidacao(inputAdiantamento, 'Informe o valor do adiantamento (0,00 se não houve).');
 
             // Pelo menos um frete ou um abastecimento
             if (coletarFretesAtuais().length === 0 && coletarAbastecimentosAtuais().length === 0) {
@@ -5518,8 +5593,10 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             totalFrete: totais.totalFrete,
             vr_comissao: totais.vrComissao,
             vrComissao: totais.vrComissao,
-            valor_adiantamento: inputAdiantamento?.value || '',
-            valorAdiantamento: inputAdiantamento?.value || '',
+            // total (acerto e saldo) e cada adiantamento (passo 23)
+            valor_adiantamento: valorAdiantamentoDaTela(),
+            valorAdiantamento: valorAdiantamentoDaTela(),
+            adiantamentos: adiantamentosDaTela(),
             fretes: coletarFretesAtuais(),
             abastecimentos: coletarAbastecimentosAtuais(),
             totalAbastecimento: totais.totalAbastecimento,
@@ -5645,8 +5722,9 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             total_frete: totais.totalFrete,
             vrComissao: totais.vrComissao,
             vr_comissao: totais.vrComissao,
-            valorAdiantamento: inputAdiantamento?.value || '',
-            valor_adiantamento: inputAdiantamento?.value || '',
+            valorAdiantamento: valorAdiantamentoDaTela(),
+            valor_adiantamento: valorAdiantamentoDaTela(),
+            adiantamentos: adiantamentosDaTela(),
             fretes: coletarFretesAtuais(),
             abastecimentos: coletarAbastecimentosAtuais(),
             totalAbastecimento: totais.totalAbastecimento,
