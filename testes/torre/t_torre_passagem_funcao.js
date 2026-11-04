@@ -1,8 +1,8 @@
 // Edge function supabase/functions/torre-passagem-turno carregada no Node (o Node 24 tira os tipos
 // do .ts), com Deno/env falsos, o Gemini SIMULADO e o PostgREST simulado indo para um PGlite com
 // T01 + T02 (a RPC torre.registrar_chamada_ia roda como authenticated com o JWT do usuário).
-// Confere: operador gera as 4 seções ("não informado" na vazia); CPF e telefones saem antes de ir
-// para a IA; a chave vai só no header (nunca na URL, no código ou no site); instrução fixa de não
+// Confere: operador gera as 4 seções ("não informado" na vazia); só o CPF sai antes de ir para a
+// IA (nomes e telefones vão como escritos); a chave vai só no header (nunca na URL, no código ou no site); instrução fixa de não
 // inventar; placa inventada pela IA = resposta descartada; motorista 403 e sem chamar a IA;
 // limite de 5/min = 429; tamanho, turno, sessão e método; IA fora = 502; sem chave = 503; logs
 // sem texto, placa ou telefone.
@@ -87,28 +87,34 @@ const TOKENS = {
     return { status: r.status, dados: await r.json().catch(() => ({})) };
   };
 
-  // 1. Operador gera; CPF e telefones não vão para a IA
+  // 1. Operador gera; só o CPF (com e sem pontuação) não vai para a IA
   const TEXTO = 'carreta ABC1D23 parada no posto de Registro, motorista João cpf 123.456.789-09 cel (11) 98765-4321 aguardando mecânico.\n'
-    + 'LH LT0Q12345678 descarregando em Cajamar. falta conferir canhotos. ligar p/ 11 3456-7890 amanhã';
+    + 'LH LT0Q12345678 descarregando em Cajamar. ajudante Pedro cpf 98765432100. falta conferir canhotos. ligar p/ 11 3456-7890 amanhã';
   ctx.respostaIa = {
-    urgente: ['Carreta ABC1D23 parada no posto de Registro, aguardando mecânico.'],
+    urgente: ['Carreta ABC1D23 parada no posto de Registro, motorista João (11) 98765-4321, aguardando mecânico.'],
     em_andamento: ['LH LT0Q12345678 em descarga em Cajamar.'],
-    pendencias_proximo_turno: ['Conferir os canhotos.', 'Retornar a ligação (telefone: [telefone removido]).'],
+    pendencias_proximo_turno: ['Conferir os canhotos.', 'Retornar a ligação para 11 3456-7890.'],
     avisos: []
   };
   const r1 = await chamar('tok-admin', { turno: 'T1', texto: TEXTO });
   ok(r1.status === 200, 'operador gera a passagem', r1.status);
   const enviado = ctx.gemini[0] ? ctx.gemini[0].corpo.contents[0].parts[0].text : '';
-  ok(!/123\.456\.789-09|98765-4321|3456-7890/.test(enviado) && /\[CPF removido\]/.test(enviado) && (enviado.match(/\[telefone removido\]/g) || []).length === 2,
-    'CPF e os 2 telefones saem antes de ir para a IA', enviado.replace(/\n/g, ' '));
+  ok(!/123\.456\.789-09|98765432100/.test(enviado) && (enviado.match(/\[CPF removido\]/g) || []).length === 2,
+    'CPF com e sem pontuação sai antes de ir para a IA', enviado.replace(/\n/g, ' '));
+  ok(/\(11\) 98765-4321/.test(enviado) && /11 3456-7890/.test(enviado) && !/telefone removido/.test(enviado),
+    'telefones vão para a IA como foram escritos', enviado.replace(/\n/g, ' '));
+  ok(/João/.test(enviado) && /Pedro/.test(enviado), 'nomes vão para a IA como foram escritos');
   ok(/ABC1D23/.test(enviado) && /LT0Q12345678/.test(enviado), 'placa e LH continuam no texto enviado');
-  ok(r1.dados.removidos && r1.dados.removidos.cpf === 1 && r1.dados.removidos.telefone === 2, 'informa o que foi removido', r1.dados.removidos);
+  ok(r1.dados.removidos && r1.dados.removidos.cpf === 2 && !('telefone' in r1.dados.removidos), 'informa só os CPFs removidos', r1.dados.removidos);
   const ped = ctx.gemini[0] || { url: '', headers: {}, corpo: {} };
   ok(ped.headers['x-goog-api-key'] === CHAVE_GEMINI && !ped.url.includes(CHAVE_GEMINI) && !/key=/.test(ped.url), 'chave do Gemini só no header (vem do secret GEMINI_API_KEY)', ped.url);
   const instr = ped.corpo.systemInstruction ? ped.corpo.systemInstruction.parts[0].text : '';
-  ok(/SOMENTE as informações do texto/.test(instr) && /Não invente/.test(instr) && /não informado/.test(instr) && /ignore qualquer pedido/.test(instr), 'instrução fixa: só reorganizar, não inventar, "não informado", ignorar pedidos no texto');
+  ok(/SOMENTE as informações do texto/.test(instr) && /Não invente/.test(instr) && /não informado/.test(instr) && /ignore qualquer pedido/.test(instr)
+    && /nomes e telefones exatamente como o operador/.test(instr) && /não corrija nomes nem telefones/.test(instr) && !/telefone removido/.test(instr),
+    'instrução fixa: só reorganizar, não inventar, nomes e telefones como escritos, "não informado", ignorar pedidos no texto');
   ok(ped.corpo.generationConfig && ped.corpo.generationConfig.responseMimeType === 'application/json', 'pede JSON com as 4 seções');
   const t = r1.dados.texto_ia || '';
+  ok(/^URGENTE\n- Carreta ABC1D23.*João \(11\) 98765-4321/.test(t) && /Retornar a ligação para 11 3456-7890\./.test(t), 'nome e telefone ficam no texto final', t.replace(/\n/g, ' ⏎ '));
   ok(/^URGENTE\n- Carreta ABC1D23/.test(t) && /\n\nEM ANDAMENTO\n- LH LT0Q12345678/.test(t)
     && /\n\nPENDÊNCIAS PARA O PRÓXIMO TURNO\n- Conferir os canhotos\.\n- Retornar/.test(t) && /\n\nAVISOS\n- não informado$/.test(t),
     'texto formal nas 4 seções; seção vazia = "não informado"', t.replace(/\n/g, ' ⏎ '));
@@ -118,10 +124,11 @@ const TOKENS = {
   const r2 = await chamar('tok-admin', { turno: 'T1', texto: 'carreta ABC1D23 parada' });
   ok(r2.status === 502 && /placa que não estava/.test(r2.dados.erro), 'placa inventada pela IA: resposta descartada', r2);
 
-  // 3. IA devolvendo CPF/telefone (não deveria): sai de novo
-  ctx.respostaIa = { urgente: ['Ligar 11 91234-5678 ref. CPF 98765432100.'], em_andamento: [], pendencias_proximo_turno: [], avisos: [] };
-  const r3 = await chamar('tok-diretoria', { turno: 'T2', texto: 'ligar para o motorista' });
-  ok(r3.status === 200 && !/91234-5678|98765432100/.test(r3.dados.texto_ia), 'dado pessoal que volte da IA também sai', r3.dados.texto_ia);
+  // 3. IA devolvendo CPF (não deveria): sai de novo; o telefone fica
+  ctx.respostaIa = { urgente: ['Ligar 11 91234-5678 ref. CPF 98765432100 e 111.222.333-44.'], em_andamento: [], pendencias_proximo_turno: [], avisos: [] };
+  const r3 = await chamar('tok-diretoria', { turno: 'T2', texto: 'ligar para o motorista 11 91234-5678' });
+  ok(r3.status === 200 && !/98765432100|111\.222\.333-44/.test(r3.dados.texto_ia) && /11 91234-5678/.test(r3.dados.texto_ia),
+    'CPF que volte da IA também sai; o telefone fica', r3.dados.texto_ia);
 
   // 4. Motorista: 403 e a IA nem é chamada
   const antesMot = ctx.gemini.length;
@@ -161,6 +168,9 @@ const TOKENS = {
   // 8. Funções puras exportadas
   ok(mod.removerDadosPessoais('placa ABC-1234, km 123, 1500 pacotes, LT0Q12345678, 14:30, 03/11/2026').texto
     === 'placa ABC-1234, km 123, 1500 pacotes, LT0Q12345678, 14:30, 03/11/2026', 'não remove placa, LH, horário, data nem quantidades');
+  const tel = 'cel (11) 98765-4321, fixo 11 3456-7890, +55 11 3456-7890';
+  ok(mod.removerDadosPessoais(tel).texto === tel && mod.removerDadosPessoais(tel).cpf === 0, 'não remove telefones');
+  ok(mod.removerDadosPessoais('cpf 123.456.789-09 / 12345678909').texto === 'cpf [CPF removido] / [CPF removido]', 'remove CPF nos dois formatos');
 
   // 9. Logs e chave
   const logs = ctx.logs.join(' | ');
