@@ -168,14 +168,16 @@ async function enviar(page) {
         { ...base, id: 'b2', tipo: 'pf', status: 'recusado', nome: 'Beltrano de Teste', cpf: '11144477735' },
         { ...base, id: 'c1', tipo: 'pj', status: 'pendente', nome: 'Ciclano de Teste', cpf: '22255588846', dados: { 'nome-empresa': 'Empresa <b>de Teste</b>', cnpj: '11.222.333/0001-81' } },
         { ...base, id: 'c2', tipo: 'pj', status: 'aprovado', nome: 'Outro de Teste', cpf: '33366699957', dados: { 'nome-empresa': 'Empresa de Teste', cnpj: '11222333000181' } },
-        // Mesmo CPF, mas um é PF e o outro é o motorista de uma PJ: a regra da PJ é o CNPJ
-        { ...base, id: 'd1', tipo: 'pj', status: 'pendente', nome: 'Beltrano de Teste', cpf: '11144477735', dados: { cnpj: '99.888.777/0001-66' } }
+        // Mesmo CPF de motorista num PF e numa PJ: o CPF vale em qualquer tipo
+        { ...base, id: 'd1', tipo: 'pj', status: 'pendente', nome: 'Beltrano de Teste', cpf: '11144477735', dados: { cnpj: '99.888.777/0001-66' } },
+        // Repetido nos dois: CPF de motorista (a1/a2) e CNPJ (c1/c2)
+        { ...base, id: 'e1', tipo: 'pj', status: 'pendente', nome: 'Fulano de Teste', cpf: '52316915930', dados: { cnpj: '11222333000181' } }
       ];
       cadastros = lista; // eslint-disable-line no-undef
       renderTabela(); // eslint-disable-line no-undef
       const linhas = () => Array.from(document.querySelectorAll('#driver-table-body tr')).map((tr) => {
         const id = tr.querySelector('[data-acao="abrir"]')?.getAttribute('data-id');
-        return `${id}:${tr.querySelector('.selo-repetido')?.textContent || '-'}`;
+        return `${id}:${Array.from(tr.querySelectorAll('.selo-repetido')).map((s) => s.textContent).join('+') || '-'}`;
       });
       const todos = linhas();
       document.getElementById('btn-tab-repetidos').click();
@@ -185,10 +187,10 @@ async function enviar(page) {
       const semTagInjetada = !document.querySelector('#driver-table-body b');
       return { todos, filtrados, botao, selosNoHtml, semTagInjetada, cadastrosIntactos: JSON.stringify(cadastros) === JSON.stringify(lista) }; // eslint-disable-line no-undef
     });
-    confere(JSON.stringify(d.filtrados.sort()) === JSON.stringify(['a1:CPF repetido', 'a2:CPF repetido', 'c1:CNPJ repetido', 'c2:CNPJ repetido']),
+    confere(JSON.stringify(d.filtrados.sort()) === JSON.stringify(['a1:CPF repetido', 'a2:CPF repetido', 'b1:CPF repetido', 'c1:CNPJ repetido', 'c2:CNPJ repetido', 'd1:CPF repetido', 'e1:CPF repetido+CNPJ repetido']),
       `${largura}: filtro Só repetidos errado: ${d.filtrados}`);
-    confere(d.todos.length === 8 && d.todos.filter((t) => !t.endsWith(':-')).length === 4, `${largura}: selos errados: ${d.todos}`);
-    confere(d.botao === 'Só repetidos (4)', `${largura}: botão ${d.botao}`);
+    confere(d.todos.length === 9 && d.todos.filter((t) => !t.endsWith(':-')).length === 7, `${largura}: selos errados: ${d.todos}`);
+    confere(d.botao === 'Só repetidos (7)', `${largura}: botão ${d.botao}`);
     confere(d.semTagInjetada && d.cadastrosIntactos, `${largura}: HTML injetado ou cadastros mudaram`);
     d.semRolagemLateral = await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
     confere(d.semRolagemLateral, `${largura}: página com rolagem lateral`);

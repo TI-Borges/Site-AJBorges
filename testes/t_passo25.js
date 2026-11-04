@@ -126,7 +126,11 @@ const RAIZ = process.env.RAIZ || path.resolve(__dirname, '..');
     cpf_novo_de_novo: await tentar('pf', 'pendente', '000.000.006-04'),
     cnpj_ja_duplicado_hoje: await tentar('pj', 'pendente', '00000000999', '11 222 333 0001 81'),
     pj_sem_cnpj: await tentar('pj', 'pendente', '00000000999', ''),
-    tipo_nulo_conta_como_pf: await tentar(null, 'pendente', '00000000604')
+    tipo_nulo_conta_como_pf: await tentar(null, 'pendente', '00000000604'),
+    // CPF do motorista vale em qualquer tipo
+    pj_com_cpf_de_pf_ativo: await tentar('pj', 'pendente', '000.000.002-72', '55.666.777/0001-00'),
+    pf_com_cpf_de_motorista_de_pj_ativa: await tentar('pf', 'pendente', '00000000434'),
+    pj_cpf_e_cnpj_novos: await tentar('pj', 'pendente', '00000000700', '55.666.777/0001-00')
   };
   await db.exec('rollback');
   r.linhasIguaisNoFim = (await fotoLinhas()) === linhasAntes;
@@ -137,7 +141,10 @@ const RAIZ = process.env.RAIZ || path.resolve(__dirname, '..');
     r.trigger.cpf_ja_duplicado_hoje.startsWith('recusado') && r.trigger.cpf_so_com_recusados === 'aceito' &&
     r.trigger.cpf_novo === 'aceito' && r.trigger.cpf_novo_de_novo.startsWith('recusado') &&
     r.trigger.cnpj_ja_duplicado_hoje.startsWith('recusado') && r.trigger.pj_sem_cnpj === 'aceito' &&
-    r.trigger.tipo_nulo_conta_como_pf.startsWith('recusado');
+    r.trigger.tipo_nulo_conta_como_pf.startsWith('recusado') &&
+    r.trigger.pj_com_cpf_de_pf_ativo.endsWith('com este CPF') &&
+    r.trigger.pf_com_cpf_de_motorista_de_pj_ativa.endsWith('com este CPF') &&
+    r.trigger.pj_cpf_e_cnpj_novos === 'aceito';
   console.log(ok ? 'OK' : 'FALHOU');
   process.exit(ok ? 0 : 1);
 })().catch((e) => { console.error(e); process.exit(1); });
