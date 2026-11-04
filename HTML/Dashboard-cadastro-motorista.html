@@ -309,6 +309,7 @@
         .etapas-selos { display: flex; gap: 4px; flex-wrap: wrap; }
         .selo-etapa { padding: 3px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #cbd5e1; background: #f1f5f9; color: #64748b; white-space: nowrap; }
         .selo-etapa.feito { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+        .selo-repetido { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #fdba74; background: #fff7ed; color: #c2410c; white-space: nowrap; }
 
         /* Projeto 2: caixinhas de etapas (mesmo checkbox personalizado do formulário) */
         .etapas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
@@ -612,6 +613,8 @@
                                 id="btn-tab-concluidos">Cadastro concluído (0)</button>
                             <button type="button" class="btn-action-small" data-tab="recusado"
                                 id="btn-tab-recusados">Recusados (0)</button>
+                            <button type="button" class="btn-action-small" data-tab="repetidos" id="btn-tab-repetidos"
+                                title="Cadastros ativos com outro ativo do mesmo CPF (PF) ou CNPJ (PJ)">Só repetidos (0)</button>
                         </div>
                     </div>
 
@@ -991,7 +994,29 @@
             renderTabela();
         }
 
+        // CPF (PF) ou CNPJ (PJ) com mais de um cadastro ativo (não recusado), comparando só os números,
+        // como o trigger do passo25: selo "CPF repetido" e filtro "Só repetidos" para a gestão recusar
+        // os extras à mão. Só mostra; não muda nenhum cadastro.
+        let repetidos = new Set(); // ids
+        const chaveDocumento = (c) => String((c.tipo === 'pj' ? (c.dados || {}).cnpj : c.cpf) || '').replace(/\D/g, '');
+        function calcularRepetidos() {
+            const grupos = new Map();
+            cadastros.forEach((c) => {
+                const k = chaveDocumento(c);
+                if (!k || c.status === 'recusado') return;
+                const g = `${c.tipo === 'pj' ? 'pj' : 'pf'}:${k}`;
+                grupos.set(g, [...(grupos.get(g) || []), c.id]);
+            });
+            repetidos = new Set([...grupos.values()].filter((ids) => ids.length > 1).flat());
+        }
+        function seloRepetido(c) {
+            if (!repetidos.has(c.id)) return '';
+            const doc = c.tipo === 'pj' ? 'CNPJ' : 'CPF';
+            return `<div><span class="selo-repetido" title="Há outro cadastro ativo com o mesmo ${doc}. Confira e recuse o que sobrar.">${doc} repetido</span></div>`;
+        }
+
         function atualizarMetricas() {
+            calcularRepetidos();
             const total = cadastros.length;
             const n = (s) => cadastros.filter((c) => statusExibido(c) === s).length;
             const docsOk = n('aprovado') + n('concluido');
@@ -1009,6 +1034,8 @@
             document.getElementById('btn-tab-aprovados').textContent = `Documentos ok (${n('aprovado')})`;
             document.getElementById('btn-tab-concluidos').textContent = `Cadastro concluído (${n('concluido')})`;
             document.getElementById('btn-tab-recusados').textContent = `Recusados (${n('recusado')})`;
+            const btnRepetidos = document.getElementById('btn-tab-repetidos');
+            if (btnRepetidos) btnRepetidos.textContent = `Só repetidos (${repetidos.size})`;
         }
 
         // Busca por nome, CPF (com ou sem pontos) ou placa de qualquer CRLV
@@ -1037,7 +1064,9 @@
             if (!tbody) return;
 
             const filtrados = cadastros.filter((c) => {
-                if (filtroAtual !== 'todos' && statusExibido(c) !== filtroAtual) return false;
+                if (filtroAtual === 'repetidos') {
+                    if (!repetidos.has(c.id)) return false;
+                } else if (filtroAtual !== 'todos' && statusExibido(c) !== filtroAtual) return false;
                 return bateBusca(c);
             });
 
@@ -1068,6 +1097,7 @@
                                     <div style="font-weight: 600; color: #0f172a;">${esc(c.nome || 'Sem nome')}</div>
                                     <div style="font-size: 0.78rem; color: #64748b;">CPF ${esc(formatarCpf(c.cpf))} &bull; ${esc(c.celular || '')}</div>
                                     ${c.tipo === 'pj' && d['nome-empresa'] ? `<div style="font-size: 0.75rem; color: #059669; font-weight: 500;">Empresa: ${esc(d['nome-empresa'])}</div>` : ''}
+                                    ${seloRepetido(c)}
                                 </div>
                             </div>
                         </td>
