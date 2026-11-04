@@ -5826,7 +5826,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         if (btnNovoEnvioComLogin) {
             btnNovoEnvioComLogin.addEventListener('click', () => {
                 localStorage.removeItem(STORAGE_ML_KEY);
-                window.location.href = 'index.html';
+                window.location.href = '/';
             });
         }
 

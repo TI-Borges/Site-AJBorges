@@ -2,7 +2,12 @@ Options -Indexes
 RewriteEngine On
 RewriteCond %{HTTPS} !=on
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-RewriteRule ^$ /HTML/index.html [L,R=302]
+# Endereço antigo da home (/HTML/index.html ou /HTML/) -> raiz. THE_REQUEST é o pedido do navegador,
+# então a reescrita interna da linha de baixo não cai aqui (sem laço).
+RewriteCond %{THE_REQUEST} \s/HTML/(index\.html)?[\s?]
+RewriteRule ^HTML/(index\.html)?$ https://%{HTTP_HOST}/ [L,R=301]
+# A raiz mostra a home sem mudar o endereço (o arquivo continua em HTML/index.html)
+RewriteRule ^$ HTML/index.html [L]
 RedirectMatch 404 ^/(supabase|testes|node_modules|\.git|\.github|\.vscode)(/|$)
 RedirectMatch 404 \.(sql|md|json|lock|csv|xlsx|xls|env|zip|yml)$
 <IfModule mod_headers.c>

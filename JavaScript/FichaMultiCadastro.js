@@ -542,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h3 id="titulo-sucesso">Cadastro enviado!</h3>
                     <p id="texto-sucesso-cadastro">Cadastro enviado! O time de Cadastros da AJBorges vai conferir seus documentos e entrar em contato pelo celular informado.</p>
                     <div class="modal-cadastro-botoes">
-                        <a class="btn-modal-pri" href="index.html">Página principal</a>
+                        <a class="btn-modal-pri" href="/">Página principal</a>
                     </div>
                 </div>
             </div>
