@@ -560,7 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h3 id="titulo-falha-envio">Alguns documentos não foram enviados</h3>
                     <p>Seu cadastro foi registrado, mas estes arquivos não chegaram. Confira a internet e tente de novo; os outros já foram enviados.</p>
                     <ul class="lista-falhas-envio" id="lista-falhas-envio"></ul>
-                    <p class="texto-whatsapp-rh" id="texto-whatsapp-rh" hidden>Se não der certo, mande estes documentos pelo WhatsApp do RH da AJBorges.</p>
+                    <p class="texto-whatsapp-rh" id="texto-whatsapp-rh" hidden>Se não der certo, mande estes documentos pelo WhatsApp do RH da AJBorges: (14) 99858-4705.</p>
                     <div class="modal-cadastro-botoes">
                         <a class="btn-modal-sec" id="btn-whatsapp-rh" target="_blank" rel="noopener" hidden>Enviar pelo WhatsApp do RH</a>
                         <button type="button" class="btn-modal-pri" id="btn-tentar-de-novo">Tentar enviar de novo</button>
@@ -711,7 +711,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Envio registrado cujos arquivos ainda não subiram todos (para "Tentar enviar de novo")
     let envioComFalhas = null;
 
-    const WHATSAPP_RH = '5514998627375';
+    const WHATSAPP_RH = '5514998584705';
 
     function mostrarFalhas(falharam, tentativas) {
         const lista = document.getElementById('lista-falhas-envio');
