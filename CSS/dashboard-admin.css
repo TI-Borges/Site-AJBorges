@@ -1740,6 +1740,16 @@ body.admin-body {
 .diesel-bom { background-color: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
 .diesel-atencao { background-color: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
 .diesel-alerta { background-color: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+/* Passo 24: média em aberto (falta o abastecimento de chegada) e ficha antiga (conta de antes) */
+.diesel-em-aberto { background-color: #fff7ed; color: #b45309; border: 1px dashed #fdba74; }
+.diesel-badge.media-antiga sup { font-size: 0.7em; color: #64748b; }
+.medias-ficha { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.media-aviso-antiga { font-size: 0.75rem; color: #64748b; font-style: italic; text-align: right; }
+.media-abertas-nota { display: block; font-size: 0.72rem; color: #b45309; }
+.kpi-media-em-aberto { display: block; font-size: 0.75rem; color: #b45309; font-weight: 600; margin-top: 2px; }
+.kpi-media-em-aberto[hidden] { display: none; }
+.filtro-media-aberto { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: 600; color: #334155; cursor: pointer; min-height: 36px; }
+.filtro-media-aberto input { width: 16px; height: 16px; accent-color: #b45309; }
 
 /* Status Badges */
 .status-pill {

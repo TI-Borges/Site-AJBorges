@@ -557,6 +557,7 @@
                                 <div class="kpi-title-block">
                                     <span class="kpi-label">Média Geral de Combustível</span>
                                     <h3 class="kpi-value" id="kpi-media-consumo-geral">0.00 km/l</h3>
+                                    <span class="kpi-media-em-aberto" id="kpi-media-em-aberto" hidden></span>
                                 </div>
                                 <div class="kpi-icon-box icon-consumo">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
@@ -758,6 +759,11 @@
                                         <option value="todos">Todos os Motoristas</option>
                                     </select>
                                 </div>
+                                <!-- Passo 24: só as fichas com a média em aberto (falta o abastecimento de chegada) -->
+                                <label class="filtro-media-aberto" for="filtro-media-em-aberto">
+                                    <input type="checkbox" id="filtro-media-em-aberto">
+                                    <span>Só média em aberto</span>
+                                </label>
                             </div>
                             <div class="toolbar-right">
                                 <span class="tabela-info-registros" id="tabela-info-registros">Nenhuma ficha
@@ -901,7 +907,7 @@
                             </div>
                         </div>
                         <div class="tabela-fichas-responsive analises-tabela-box" id="analises-tabela-placas"></div>
-                        <p class="analises-nota">Quando a ficha tem placa secundária (troca de cavalo), o KM de cada trecho e os abastecimentos (pela coluna "Placa" do abastecimento) vão para a placa certa. A receita (fretes), a comissão, o pedágio, o imposto e as outras despesas ficam na placa principal. Fichas antigas, sem esses dados, ficam inteiras na principal. A média km/l usa só diesel (S10 + S500); o ARLA entra nos custos.</p>
+                        <p class="analises-nota">Quando a ficha tem placa secundária (troca de cavalo), o KM de cada trecho e os abastecimentos (pela coluna "Placa" do abastecimento) vão para a placa certa. A receita (fretes), a comissão, o pedágio, o imposto e as outras despesas ficam na placa principal. Fichas antigas, sem esses dados, ficam inteiras na principal. A média km/l usa só diesel (S10 + S500); o ARLA entra nos custos. Média tanque cheio a tanque cheio: o abastecimento de Saída fica fora, Durante e Chegada entram; viagem sem Chegada fica em aberto e fora da média até o abastecimento ser lançado. A média do período é Σ KM ÷ Σ litros das viagens fechadas (nunca a média das médias); fichas antigas, sem Momento, entram com a conta de antes.</p>
                     </div>
 
                     <div class="analises-grid-2">
@@ -1684,7 +1690,8 @@
     <script src="../JavaScript/aviso-atualizacao-gestao.js?v=3"></script>
     <script src="../JavaScript/aviso-atualizacao.js?v=3" data-aviso-local="frota"></script>
     <script src="../JavaScript/notificacoes-gestao.js?v=1"></script>
-    <script src="../JavaScript/dashboard-admin.js?v=3.6"></script>
+    <script src="../JavaScript/media-combustivel.js?v=1"></script>
+    <script src="../JavaScript/dashboard-admin.js?v=3.7"></script>
 </body>
 
 </html>
