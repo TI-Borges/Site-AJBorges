@@ -61,7 +61,7 @@ async function preencher(page, cpf) {
   await page.select('#pf-tipologia', 'Toco (4×2)');
   await page.evaluate(async (cpf) => {
     const v = (id, val) => { const el = document.getElementById(id); el.value = val; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('blur', { bubbles: true })); };
-    v('pf-motorista-nome', 'Fulano'); v('pf-motorista-sobrenome', 'de Teste');
+    v('pf-motorista-nome', 'Fulano de Teste');
     v('pf-cpf', cpf); v('pf-celular', '(11) 90000-0000');
     v('pf-rastreador-marca', 'Sascar'); v('pf-rastreador-id', 'TESTE-000123');
     __arq.escolher('#pf-anexo-cnh', [__arq.pdf('cnh.pdf')]);
@@ -126,7 +126,7 @@ async function enviar(page) {
     confere(f.segundo.duplicado && !f.segundo.sucesso, `${largura}: segundo envio não mostrou o aviso`);
     confere(f.segundo.texto === MSG, `${largura}: mensagem do aviso diferente`);
     confere(!f.segundo.alertas, `${largura}: abriu alert em vez do aviso`);
-    confere(f.segundo.preenchido.nome === 'Fulano' && f.segundo.preenchido.cpf === '523.169.159-30' &&
+    confere(f.segundo.preenchido.nome === 'Fulano de Teste' && f.segundo.preenchido.cpf === '523.169.159-30' &&
       f.segundo.preenchido.tipologia === 'Toco (4×2)' && f.segundo.preenchido.anexos === 4 && f.segundo.preenchido.aceite,
       `${largura}: o formulário foi apagado`);
     confere(!/523|169|Fulano/.test(decodeURIComponent(f.segundo.whatsapp)), `${largura}: link do WhatsApp com dados`);

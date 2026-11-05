@@ -337,18 +337,12 @@
                 </div>
 
                 <div class="step-body">
+                    <!-- Um campo só (antes "Nome" + "Sobrenome"): grava em dados["motorista-nome"] -->
                     <div class="form-group mb-2">
-                        <label>Nome do Motorista: <span class="required-asterisk">*</span></label>
-                        <div class="form-row col-2">
-                            <div class="subfield-group">
-                                <input type="text" id="pj-motorista-nome" autocomplete="given-name" name="motorista_nome" required>
-                                <span class="field-sublabel">Nome</span>
-                            </div>
-                            <div class="subfield-group">
-                                <input type="text" id="pj-motorista-sobrenome" autocomplete="family-name" name="motorista_sobrenome" required>
-                                <span class="field-sublabel">Sobrenome</span>
-                            </div>
-                        </div>
+                        <label for="pj-motorista-nome">Nome completo: <span class="required-asterisk">*</span></label>
+                        <input type="text" id="pj-motorista-nome" autocomplete="name" name="motorista_nome" required
+                            placeholder="Ex.: João da Silva Souza">
+                        <span class="field-subtext">Nome e sobrenome do motorista, como na CNH.</span>
                     </div>
 
                     <div class="form-row col-2">
@@ -619,18 +613,12 @@
                 </div>
 
                 <div class="step-body">
+                    <!-- Um campo só (antes "Nome" + "Sobrenome"): grava em dados["motorista-nome"] -->
                     <div class="form-group mb-2">
-                        <label>Nome do Motorista: <span class="required-asterisk">*</span></label>
-                        <div class="form-row col-2">
-                            <div class="subfield-group">
-                                <input type="text" id="pf-motorista-nome" autocomplete="given-name" name="motorista_nome" required>
-                                <span class="field-sublabel">Nome</span>
-                            </div>
-                            <div class="subfield-group">
-                                <input type="text" id="pf-motorista-sobrenome" autocomplete="family-name" name="motorista_sobrenome" required>
-                                <span class="field-sublabel">Sobrenome</span>
-                            </div>
-                        </div>
+                        <label for="pf-motorista-nome">Nome completo: <span class="required-asterisk">*</span></label>
+                        <input type="text" id="pf-motorista-nome" autocomplete="name" name="motorista_nome" required
+                            placeholder="Ex.: João da Silva Souza">
+                        <span class="field-subtext">Nome e sobrenome do motorista, como na CNH.</span>
                     </div>
 
                     <div class="form-row col-2">
@@ -802,7 +790,7 @@
     <script src="../JavaScript/aviso-atualizacao.js?v=3" data-aviso-local="site"></script>
     <script src="../JavaScript/auth.js"></script>
     <script src="../JavaScript/celular.js"></script>
-    <script src="../JavaScript/FichaMultiCadastro.js?v=5"></script>
+    <script src="../JavaScript/FichaMultiCadastro.js?v=6"></script>
 </body>
 
 </html>

@@ -212,12 +212,45 @@ const MENSAGEM_DUPLICADO =
 
 // ---------- Campos aceitos ----------
 
+// "motorista-nome" é o nome completo do motorista (um campo só na ficha).
 const CAMPOS_ACESSO = [
   "motorista-nome",
-  "motorista-sobrenome",
   "cpf",
   "celular",
 ];
+
+// Ficha antiga ainda aberta no navegador (Nome + Sobrenome): aceito, mas não
+// obrigatório; é juntado ao "motorista-nome" e não é gravado separado.
+const CAMPOS_LEGADO = [
+  "motorista-sobrenome",
+];
+
+const MAX_NOME_COMPLETO = 120;
+
+// Compara nomes ignorando maiúsculas, acentos e espaços
+const chaveNome = (v: string) =>
+  v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/\s+/g, "");
+
+// Junta nome e sobrenome com cuidado (motoristas punham o nome completo nos
+// dois): sobrenome vazio → nome; iguais → um só; um contém o outro → o mais
+// longo; senão → "nome sobrenome". Espaços das pontas e repetidos saem.
+function juntarNome(nome: string, sobrenome: string): string {
+  const n = (nome || "").replace(/\s+/g, " ").trim();
+  const s = (sobrenome || "").replace(/\s+/g, " ").trim();
+
+  if (!s) return n;
+  if (!n) return s;
+
+  const kn = chaveNome(n);
+  const ks = chaveNome(s);
+
+  if (kn === ks) return n;
+  if (kn.includes(ks)) return n;
+  if (ks.includes(kn)) return s;
+
+  return `${n} ${s}`;
+}
 
 const CAMPOS_EMPRESA = [
   "nome-empresa",
@@ -280,8 +313,7 @@ const ROTULOS: Record<string, string> = {
   "cnpj": "CNPJ",
   "telefone-empresa": "Telefone da empresa",
   "responsavel": "Responsável",
-  "motorista-nome": "Nome",
-  "motorista-sobrenome": "Sobrenome",
+  "motorista-nome": "Nome completo",
   "cpf": "CPF",
   "celular": "Celular",
   "rastreador-marca": "Marca do rastreador",
@@ -521,6 +553,7 @@ Deno.serve(async (req: Request) => {
 
     const permitidos = new Set([
       ...CAMPOS_ACESSO,
+      ...CAMPOS_LEGADO,
       ...(tipo === "pj" ? CAMPOS_EMPRESA : []),
       ...CAMPOS_RASTREADOR,
     ]);
@@ -655,6 +688,23 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // ---------- Nome completo ----------
+    // Um campo só; da ficha antiga, nome + sobrenome juntos com cuidado.
+    // Grava só em "motorista-nome" (o sobrenome não fica separado).
+
+    const nomeCompleto = juntarNome(
+      dados["motorista-nome"] ?? "",
+      dados["motorista-sobrenome"] ?? "",
+    );
+
+    delete dados["motorista-sobrenome"];
+
+    if (nomeCompleto) {
+      dados["motorista-nome"] = nomeCompleto;
+    } else {
+      delete dados["motorista-nome"];
+    }
+
     const faltando: string[] = [];
 
     const exigir = (
@@ -692,6 +742,18 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    if (nomeCompleto.split(" ").length < 2) {
+      return resp(req, 400, {
+        erro: "Informe o nome completo",
+      });
+    }
+
+    if (nomeCompleto.length > MAX_NOME_COMPLETO) {
+      return resp(req, 400, {
+        erro: `Nome completo: no máximo ${MAX_NOME_COMPLETO} letras.`,
+      });
+    }
+
     if (
       dados["rastreador-marca"].length > MAX_MARCA_RASTREADOR ||
       dados["rastreador-id"].length > MAX_ID_RASTREADOR
@@ -721,11 +783,7 @@ Deno.serve(async (req: Request) => {
 
     dados.cpf = cpf;
 
-    const nome = `${
-      dados["motorista-nome"]
-    } ${dados["motorista-sobrenome"]}`
-      .trim()
-      .slice(0, 120);
+    const nome = nomeCompleto;
 
     // ---------- Criação sem conta de login ----------
     // O CPF do motorista (PF ou PJ) só tem um cadastro ativo (não recusado):

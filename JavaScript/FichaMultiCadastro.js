@@ -103,11 +103,27 @@ document.addEventListener('DOMContentLoaded', () => {
             ? '' : 'Informe o celular com DDD: 10 ou 11 números, ex.: (11) 96123-4567.');
     }
 
+    // Nome completo do motorista (um campo só): sem espaços nas pontas nem repetidos, pelo menos
+    // 2 palavras e no máximo 120 letras (a mesma regra da edge function solicitar-cadastro)
+    const MAX_NOME_COMPLETO = 120;
+    const limparNomeCompleto = (v) => String(v ?? '').replace(/\s+/g, ' ').trim();
+    function conferirNomeCompleto(input) {
+        if (!input) return;
+        const nome = limparNomeCompleto(input.value);
+        input.setCustomValidity(!nome || nome.split(' ').length >= 2
+            ? (nome.length > MAX_NOME_COMPLETO ? `Nome completo: no máximo ${MAX_NOME_COMPLETO} letras.` : '')
+            : 'Informe o nome completo');
+    }
+
     ['pj', 'pf'].forEach((p) => {
         applyMask(document.getElementById(`${p}-cpf`), maskCPF);
         applyMask(document.getElementById(`${p}-celular`), maskPhone);
         document.getElementById(`${p}-celular`)?.addEventListener('input', (e) => conferirCelular(e.target));
-        ['motorista-nome', 'motorista-sobrenome'].forEach((s) => bloquearNumeros(document.getElementById(`${p}-${s}`)));
+        const nome = document.getElementById(`${p}-motorista-nome`);
+        bloquearNumeros(nome);
+        nome?.addEventListener('input', () => conferirNomeCompleto(nome));
+        // Ao sair do campo: tira os espaços das pontas e os repetidos
+        nome?.addEventListener('blur', () => { nome.value = limparNomeCompleto(nome.value); conferirNomeCompleto(nome); });
     });
     // Rastreador: escolher "Outra" na lista limpa o campo para digitar o nome da marca
     ['pj', 'pf'].forEach((p) => {
@@ -403,7 +419,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'Rodotrem': ['Cavalo', '1ª carreta', '2ª carreta'],
         'Treminhão/Tritrem': ['Caminhão', '1º reboque', '2º reboque', '3º reboque']
     };
-    const CAMPOS_ACESSO = ['motorista-nome', 'motorista-sobrenome', 'cpf', 'celular'];
+    // "motorista-nome" guarda o nome completo; "motorista-sobrenome" não é mais enviado
+    const CAMPOS_ACESSO = ['motorista-nome', 'cpf', 'celular'];
     const CAMPOS_EMPRESA = ['nome-empresa', 'cnpj', 'telefone-empresa', 'responsavel'];
     // Rastreador do veículo (PF e PJ), obrigatório
     const CAMPOS_RASTREADOR = ['rastreador-marca', 'rastreador-id'];
@@ -640,6 +657,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const el = campo(prefixo, s);
             if (el && !el.disabled && el.value.trim()) dados[s] = el.value.trim();
         });
+        if (dados['motorista-nome']) dados['motorista-nome'] = limparNomeCompleto(dados['motorista-nome']);
         const documentos = {};
         const arquivos = [];
         const titulos = []; // nome do documento de cada arquivo (lista do que falhou)
@@ -812,6 +830,9 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             atualizarDocs(prefixo);
             conferirCelular(campo(prefixo, 'celular'));
+            const nomeMotorista = campo(prefixo, 'motorista-nome');
+            if (nomeMotorista) nomeMotorista.value = limparNomeCompleto(nomeMotorista.value);
+            conferirNomeCompleto(nomeMotorista);
             if (!form.reportValidity()) return;
 
             const problemaArquivo = validarArquivos(prefixo);
@@ -835,7 +856,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (pdfs) partes.push(`${pdfs} ${pdfs === 1 ? 'PDF' : 'PDFs'}`);
                 return `Anexado: ${partes.join(' + ')}`;
             };
-            const nome = `${corpo.dados['motorista-nome'] || ''} ${corpo.dados['motorista-sobrenome'] || ''}`.trim();
+            const nome = corpo.dados['motorista-nome'] || '';
             document.getElementById('resumo-cadastro').innerHTML = `
                 <div>Tipo: <b>${prefixo === 'pj' ? 'Pessoa Jurídica' : 'Pessoa Física'}</b> · Veículo: <b>${esc(corpo.tipologia)}</b></div>
                 <div>Motorista: <b>${esc(nome)}</b> · CPF <b>${esc(corpo.dados.cpf || '')}</b></div>
@@ -882,7 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Não mostra sucesso: lista o que faltou e deixa tentar de novo só esses
             envioComFalhas = {
                 form, prefixo, pendentes: falharam, tentativas: 1,
-                nome: `${corpo.dados['motorista-nome'] || ''} ${corpo.dados['motorista-sobrenome'] || ''}`.trim(),
+                nome: corpo.dados['motorista-nome'] || '',
                 cpf: corpo.dados.cpf || ''
             };
             mostrarFalhas(falharam, 1);

@@ -127,7 +127,7 @@ const ARQUIVOS_NA_PAGINA = () => {
   // Envio: preenche o resto e captura o corpo enviado à edge function
   await page.evaluate(() => {
     const v = (id, val) => { const el = document.getElementById(id); el.value = val; el.dispatchEvent(new Event('input', { bubbles: true })); };
-    v('pf-motorista-nome', 'Fulano'); v('pf-motorista-sobrenome', 'de Teste');
+    v('pf-motorista-nome', 'Fulano de Teste');
     v('pf-cpf', '523.169.159-30'); v('pf-celular', '(11) 90000-0000');
     v('pf-rastreador-marca', 'Sascar'); v('pf-rastreador-id', 'TESTE-000123');
     document.getElementById('pf-aceite-lgpd').checked = true;

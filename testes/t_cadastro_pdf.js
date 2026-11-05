@@ -66,7 +66,7 @@ async function preencherValido(page, { tipologia = 'Toco (4×2)', selfie = true,
   await page.select('#pf-tipologia', tipologia);
   await page.evaluate(async (o) => {
     const v = (id, val) => { const el = document.getElementById(id); el.value = val; el.dispatchEvent(new Event('input', { bubbles: true })); };
-    v('pf-motorista-nome', 'Fulano'); v('pf-motorista-sobrenome', 'de Teste');
+    v('pf-motorista-nome', 'Fulano de Teste');
     v('pf-cpf', '523.169.159-30'); v('pf-celular', '(11) 90000-0000');
     if (o.rastreador) { v('pf-rastreador-marca', 'Sascar'); v('pf-rastreador-id', 'TESTE-000123'); }
     __arq.escolher('#pf-anexo-cnh', [__arq.pdf('cnh.pdf')]);

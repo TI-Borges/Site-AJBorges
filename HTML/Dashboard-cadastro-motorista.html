@@ -820,7 +820,7 @@
 
         const SECOES = [
             ['Empresa (PJ)', [['nome-empresa', 'Nome da empresa'], ['cnpj', 'CNPJ'], ['telefone-empresa', 'Telefone da empresa'], ['responsavel', 'Responsável']]],
-            ['Motorista', [['motorista-nome', 'Nome'], ['motorista-sobrenome', 'Sobrenome'], ['cpf', 'CPF'], ['celular', 'Celular'],
+            ['Motorista', [['motorista-nome', 'Nome completo'], ['cpf', 'CPF'], ['celular', 'Celular'],
                 ['nascimento', 'Nascimento'], ['rg', 'RG'], ['rg-uf', 'UF do RG'], ['cidade-nasc', 'Cidade de nascimento'], ['mae', 'Nome da mãe']]],
             ['CNH', [['cnh-registro', 'Registro'], ['cnh-emissao', 'Emissão'], ['cnh-primeira', '1ª habilitação'], ['cnh-uf', 'UF'],
                 ['cnh-validade', 'Validade'], ['cnh-categoria', 'Categoria'], ['cnh-seguranca', 'Código de segurança']]],
@@ -857,7 +857,7 @@
         const nomeCrlv = (papel) => `CRLV ${/carreta$/i.test(papel) ? 'da' : 'do'} ${papel}`;
         const SECOES_FIXAS_NOVAS = [
             ['Empresa (PJ)', SECOES[0][1]],
-            ['Motorista', [['motorista-nome', 'Nome'], ['motorista-sobrenome', 'Sobrenome'], ['cpf', 'CPF'], ['celular', 'Celular']]],
+            ['Motorista', [['motorista-nome', 'Nome completo'], ['cpf', 'CPF'], ['celular', 'Celular']]],
             // Pedido desde os cadastros só com PDF; nos anteriores aparece "não informado"
             ['Rastreador', [['rastreador-marca', 'Marca do rastreador'], ['rastreador-id', 'Código / ID do rastreador']]]
         ];
@@ -934,6 +934,29 @@
                 '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;'
             }[c]));
         }
+
+        // ---------- Nome do motorista ----------
+        // A ficha agora tem um campo só ("Nome completo", em dados["motorista-nome"]). Nos cadastros antigos
+        // (Nome + Sobrenome), muitos puseram o nome completo nos dois: junta com cuidado, SÓ na tela (nada é gravado).
+        // Sobrenome vazio -> o nome; iguais (sem maiúsculas, acentos e espaços) -> um só; um contém o outro -> o mais
+        // longo; senão -> "nome sobrenome". A mesma regra vale na lista, busca, detalhes, PDF e WhatsApp.
+        const limparEspacos = (v) => String(v ?? '').replace(/\s+/g, ' ').trim();
+        const chaveNome = (v) => limparEspacos(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, '');
+        function juntarNome(nome, sobrenome) {
+            const n = limparEspacos(nome), s = limparEspacos(sobrenome);
+            if (!s) return n;
+            if (!n) return s;
+            const kn = chaveNome(n), ks = chaveNome(s);
+            if (kn === ks || kn.includes(ks)) return n;
+            if (ks.includes(kn)) return s;
+            return `${n} ${s}`;
+        }
+        function nomeMotorista(c) {
+            const d = (c && c.dados) || {};
+            if (d['motorista-nome'] || d['motorista-sobrenome']) return juntarNome(d['motorista-nome'], d['motorista-sobrenome']);
+            return limparEspacos(c && c.nome);
+        }
+        const primeiroNomeMotorista = (c) => nomeMotorista(c).split(' ')[0] || '';
 
         function formatarCpf(cpf) {
             const d = String(cpf || '').replace(/\D/g, '');
@@ -1103,7 +1126,7 @@
             // Já veio com o 55 do Brasil (12 ou 13 dígitos): tira para conferir o número nacional
             if (digitos.length >= 12 && digitos.startsWith('55')) digitos = digitos.slice(2);
             if (digitos.length < 10 || digitos.length > 11) return null;
-            const primeiroNome = String(d['motorista-nome'] || c.nome || '').trim().split(/\s+/)[0] || '';
+            const primeiroNome = primeiroNomeMotorista(c);
             const mensagem = `Olá, ${primeiroNome}! Aqui é da AJBorges Transportes. Seu cadastro foi aprovado. ✅`;
             return `https://wa.me/55${digitos}?text=${encodeURIComponent(mensagem)}`;
         }
@@ -1146,7 +1169,7 @@
             const d = c.dados || {};
             const placas = Object.keys(d).filter((k) => /^crlv\d+-placa$/.test(k)).map((k) => d[k]);
             // passo 26: também o texto das anotações (e da anotação antiga)
-            const texto = [c.nome, c.email, d['nome-empresa'], d.cnpj, d._tipologia, d['veic-placa'], d['carreta-placa'], ...placas, c.anotacoes, c.avaliacao_motivo]
+            const texto = [nomeMotorista(c), c.email, d['nome-empresa'], d.cnpj, d._tipologia, d['veic-placa'], d['carreta-placa'], ...placas, c.anotacoes, c.avaliacao_motivo]
                 .filter(Boolean).join(' ').toLowerCase();
             if (texto.includes(termoBusca)) return true;
             const semPontuacao = (v) => String(v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1183,7 +1206,7 @@
 
             tbody.innerHTML = filtrados.map((c) => {
                 const d = c.dados || {};
-                const iniciais = (c.nome || 'M').split(' ').filter(Boolean).map((n) => n[0]).slice(0, 2).join('').toUpperCase();
+                const iniciais = (nomeMotorista(c) || 'M').split(' ').filter(Boolean).map((n) => n[0]).slice(0, 2).join('').toUpperCase();
                 const docs = Array.isArray(c.documentos) ? c.documentos : [];
                 const temDoc = (campo) => docs.some((x) => x.campo === campo);
                 const novo = !!d._tipologia;
@@ -1198,7 +1221,7 @@
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <div class="driver-avatar-circle">${esc(iniciais)}</div>
                                 <div>
-                                    <div style="font-weight: 600; color: #0f172a;">${esc(c.nome || 'Sem nome')}${iconeAnotacao(c)}</div>
+                                    <div style="font-weight: 600; color: #0f172a;">${esc(nomeMotorista(c) || 'Sem nome')}${iconeAnotacao(c)}</div>
                                     <div style="font-size: 0.78rem; color: #64748b;">CPF ${esc(formatarCpf(c.cpf))} &bull; ${esc(c.celular || '')}</div>
                                     ${c.tipo === 'pj' && d['nome-empresa'] ? `<div style="font-size: 0.75rem; color: #059669; font-weight: 500;">Empresa: ${esc(d['nome-empresa'])}</div>` : ''}
                                     ${seloRepetido(c)}
@@ -1227,9 +1250,9 @@
             const c = cadastros.find((x) => x.id === id);
             if (!c) return;
             let motivo = null;
-            if (decisao === 'aprovado' && !confirm(`Marcar os documentos deste cadastro como conferidos?\n\n${c.nome}`)) return;
+            if (decisao === 'aprovado' && !confirm(`Marcar os documentos deste cadastro como conferidos?\n\n${nomeMotorista(c)}`)) return;
             if (decisao === 'recusado') {
-                motivo = prompt(`Motivo da recusa do cadastro de ${c.nome} (opcional):\n\n` +
+                motivo = prompt(`Motivo da recusa do cadastro de ${nomeMotorista(c)} (opcional):\n\n` +
                     'Pela LGPD, os dados e documentos deste cadastro serão apagados automaticamente 90 dias após a recusa.', '');
                 if (motivo === null) return;
             }
@@ -1389,7 +1412,8 @@
             const novo = !!d._tipologia;
             const tabela = (linhas) => `<table>${linhas.map(([rotulo, valor]) =>
                 `<tr><th>${esc(rotulo)}</th><td>${esc(valor) || '—'}</td></tr>`).join('')}</table>`;
-            const tabelaCampos = (campos) => tabela(campos.map(([k, rotulo]) => [rotulo, valorCampo(k, d[k]) || (CAMPOS_NAO_INFORMADO.has(k) ? 'não informado' : '')]));
+            const tabelaCampos = (campos) => tabela(campos.map(([k, rotulo]) => [rotulo,
+                (k === 'motorista-nome' ? nomeMotorista(c) : valorCampo(k, d[k])) || (CAMPOS_NAO_INFORMADO.has(k) ? 'não informado' : '')]));
             const arquivos = (lista) => (lista.length ? `<ul>${lista.map((x) =>
                 `<li>${esc(nomes[x.path] || x.nome)} <small>(enviado como "${esc(x.nome)}")${enviados.has(x.path) ? '' : ' — não chegou a ser enviado'}</small></li>`).join('')}</ul>` : '');
             const fotos = (lista) => {
@@ -1426,7 +1450,7 @@
             const aceite = d._aceite_lgpd && d._aceite_lgpd.em
                 ? `Aceita em ${formatarData(d._aceite_lgpd.em)} (versão ${d._aceite_lgpd.versao || '—'})` : 'Não registrado';
             const resumo = tabela([
-                ['Nome', c.nome],
+                ['Nome', nomeMotorista(c)],
                 ['CPF', formatarCpf(c.cpf)],
                 ['Celular', c.celular],
                 ['E-mail de contato', c.email],
@@ -1447,7 +1471,7 @@
 
             return `<!DOCTYPE html>
 <html lang="pt-br"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cadastro - ${esc(c.nome || '')}</title><style>${CSS_FICHA}</style></head>
+<title>Cadastro - ${esc(nomeMotorista(c))}</title><style>${CSS_FICHA}</style></head>
 <body>
 ${imprimir ? '<button type="button" class="imprimir" onclick="window.print()">Imprimir / Salvar como PDF</button>' : ''}
 <header><h1>Ficha do cadastro</h1><div>AJBorges Transporte &amp; Logística · gerada em ${formatarData(new Date().toISOString())}</div></header>
@@ -1541,7 +1565,7 @@ ${secao('Documentos extras', listaExtras)}
                 }));
                 progresso('Gerando o .zip...');
                 const blob = await zip.generateAsync({ type: 'blob' });
-                salvarArquivo(blob, `cadastro_${nomeArquivoSeguro(String(c.nome || 'motorista').replace(/\s+/g, '_'))}.zip`);
+                salvarArquivo(blob, `cadastro_${nomeArquivoSeguro(String(nomeMotorista(c) || 'motorista').replace(/\s+/g, '_'))}.zip`);
                 const faltaram = docs.length - noZip.size;
                 if (faltaram > 0) aviso(`${faltaram} arquivo(s) não puderam ser baixados e ficaram fora do .zip. Tente de novo.`);
             } catch (err) {
@@ -1666,16 +1690,23 @@ ${secao('Documentos extras', listaExtras)}
             const d = c.dados || {};
             const docs = Array.isArray(c.documentos) ? c.documentos : [];
 
-            document.getElementById('modal-title').textContent = `Cadastro • ${c.nome || ''}`;
+            document.getElementById('modal-title').textContent = `Cadastro • ${nomeMotorista(c)}`;
             const corpo = document.getElementById('modal-body-content');
 
+            // "Nome completo": cadastro antigo (com Sobrenome gravado) mostra o nome juntado só para ver
+            // (sem data-campo: "Editar" / "Salvar" não mexem nele); o novo continua editável
+            const nomeSoLeitura = !!limparEspacos(d['motorista-sobrenome']);
             const grade = (campos) => `
                         <div class="cad-grid">
-                            ${campos.map(([k, rotulo]) => `
+                            ${campos.map(([k, rotulo]) => (k === 'motorista-nome' ? `
+                                <label class="cad-campo">
+                                    <span>${esc(rotulo)}</span>
+                                    <input type="text" ${nomeSoLeitura ? 'data-nome-juntado' : `data-campo="${esc(k)}"`} value="${esc(nomeMotorista(c))}" readonly placeholder="—">
+                                </label>` : `
                                 <label class="cad-campo">
                                     <span>${esc(rotulo)}</span>
                                     <input type="text" data-campo="${esc(k)}" value="${esc(valorCampo(k, d[k]))}" readonly placeholder="${CAMPOS_NAO_INFORMADO.has(k) ? 'não informado' : '—'}">
-                                </label>`).join('')}
+                                </label>`)).join('')}
                         </div>`;
             const secaoFixa = ([titulo, campos]) => `
                     <fieldset class="cad-secao">
@@ -1877,7 +1908,7 @@ ${secao('Documentos extras', listaExtras)}
                 if (v && GRAVAR_CAMPO[k]) v = GRAVAR_CAMPO[k](v);
                 if (v) dados[inp.getAttribute('data-campo')] = v; else delete dados[inp.getAttribute('data-campo')];
             });
-            const nome = `${dados['motorista-nome'] || ''} ${dados['motorista-sobrenome'] || ''}`.trim() || c.nome;
+            const nome = limparEspacos(dados['motorista-sobrenome']) ? c.nome : (limparEspacos(dados['motorista-nome']) || c.nome);
             const { error } = await window.supabaseClient.from('cadastros_agregados')
                 .update({ dados, nome, celular: dados.celular || c.celular })
                 .eq('id', c.id);
