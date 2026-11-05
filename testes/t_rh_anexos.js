@@ -173,6 +173,7 @@ function servidor() {
   });
 
   let pendentes = 0;
+  let seq = 0;
   let atrasoEnvio = 0;
   const comoUsuario = (papel, fn) => db.transaction(async (tx) => {
     const claims = JSON.stringify({ sub: SUBS[papel], role: 'authenticated', email: `${papel}@teste.local`, app_metadata: { role: papel } });
@@ -181,7 +182,7 @@ function servidor() {
     return fn(tx);
   });
   await page.exposeFunction('__rhBanco', async (papel, pedido) => {
-    pendentes++;
+    pendentes++; seq++;
     try {
       const data = await comoUsuario(papel, async (tx) => {
         const [sql, params] = montarSql(pedido);
@@ -191,13 +192,13 @@ function servidor() {
     } catch (e) {
       return { data: null, error: { message: e.message, code: e.code || '', details: e.detail || '' } };
     } finally {
-      pendentes--;
+      pendentes--; seq++;
     }
   });
   // Imitação do serviço de Storage: limite e tipos do bucket, depois insert com a RLS do usuário
   const erroStorage = (status, message) => ({ data: null, error: { name: 'StorageApiError', status, statusCode: String(status), message } });
   await page.exposeFunction('__rhStorage', async (papel, p) => {
-    pendentes++;
+    pendentes++; seq++;
     try {
       if (p.op === 'upload') {
         await esperar(atrasoEnvio);
@@ -226,13 +227,24 @@ function servidor() {
       return erroStorage(e.code === '42501' ? 403 : (e.code === '23505' ? 409 : 500),
         e.code === '42501' ? 'new row violates row-level security policy' : e.message);
     } finally {
-      pendentes--;
+      pendentes--; seq++;
     }
   });
+  const esperarFila = () => page.evaluate(async () => {
+    if (typeof filaGravacao !== 'undefined') await filaGravacao;
+  }).catch(() => {});
   const ocioso = async () => {
+    await esperarFila();
     for (let i = 0; i < 200; i++) {
       await esperar(60);
-      if (pendentes === 0) { await esperar(150); if (pendentes === 0) return; }
+      if (pendentes === 0) {
+        const s = seq;
+        await esperar(150);
+        if (pendentes === 0 && seq === s) {
+          await esperarFila();
+          return;
+        }
+      }
     }
   };
   const aviso = () => page.evaluate(() => {
