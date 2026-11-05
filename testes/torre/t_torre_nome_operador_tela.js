@@ -306,6 +306,20 @@ function servidor() {
   await page.evaluate(() => { document.getElementById('passagem-operador-nome').scrollIntoView({ block: 'start' }); window.scrollBy(0, -70); });
   await esperar(150);
   await page.screenshot({ path: path.join(RAIZ, 'testes/capturas/torre_nome_operador_390.png') });
+  // O texto de ajuda "Todos usam o mesmo login..." saiu da tela; o campo continua obrigatório
+  const semAjuda = await page.evaluate(() => {
+    const el = document.getElementById('passagem-operador-nome');
+    return { texto: /Todos usam o mesmo login|Não vai para a IA/.test(document.getElementById('torre-passagem').textContent),
+      required: el.required, ajudaNoCampo: !!el.closest('label').querySelector('.passagem-ajuda') };
+  });
+  ok(!semAjuda.texto && !semAjuda.ajudaNoCampo && semAjuda.required, 'texto "Todos usam o mesmo login..." não aparece mais; "Seu nome" segue obrigatório', semAjuda);
+  for (const largura of [1366, 390]) {
+    await page.setViewport({ width: largura, height: largura === 390 ? 844 : 900 });
+    await esperar(250);
+    await page.evaluate(() => { document.getElementById('form-passagem').scrollIntoView({ block: 'start' }); window.scrollBy(0, -70); });
+    await esperar(150);
+    await page.screenshot({ path: path.join(RAIZ, `testes/capturas/torre_passagem_sem_ajuda_${largura}.png`) });
+  }
   await page.setViewport({ width: 1366, height: 900 });
 
   // 7. Sem localStorage (navegador bloqueando): a tela continua funcionando, só não lembra
