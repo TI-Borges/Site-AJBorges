@@ -103,7 +103,7 @@
         if (el) el.setAttribute('aria-invalid', String(!valido));
         if (valido) return nome;
         if (el) el.focus();
-        status(`Preencha "Seu nome" (${NOME_MIN} a ${NOME_MAX} letras): todos usam o mesmo login e o nome mostra quem escreveu.`, 'erro');
+        status(`Preencha "Seu nome" (${NOME_MIN} a ${NOME_MAX} letras)`, 'erro');
         return null;
     }
 

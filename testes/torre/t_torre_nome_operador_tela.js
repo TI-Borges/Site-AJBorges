@@ -222,11 +222,11 @@ function servidor() {
   await ocioso();
   let st = await statusTxt();
   let campo = await nomeCampo();
-  ok(/^Preencha "Seu nome" \(2 a 80 letras\)/.test(st) && ia.pedidos.length === 0 && campo.invalido === 'true' && campo.foco, 'sem nome: não gera (nada vai para a IA), campo marcado e com foco', st);
+  ok(st === 'Preencha "Seu nome" (2 a 80 letras)' && ia.pedidos.length === 0 && campo.invalido === 'true' && campo.foco, 'sem nome: não gera (nada vai para a IA), campo marcado e com foco', st);
   await valor('#passagem-operador-nome', ' A ');
   await page.click('#btn-gerar-passagem');
   await ocioso();
-  ok(/^Preencha "Seu nome"/.test(await statusTxt()) && ia.pedidos.length === 0, 'nome de 1 letra: não gera');
+  ok(await statusTxt() === 'Preencha "Seu nome" (2 a 80 letras)' && ia.pedidos.length === 0, 'nome de 1 letra: não gera');
 
   // Publicar sem nome (com a herdada fechada e o texto pronto): recusado na tela, nada gravado
   await valor('#passagem-operador-nome', '');
