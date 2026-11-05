@@ -1,7 +1,8 @@
-// Estilo (só CSS/HTML): aviso do login abaixo do header; "+ Adicionar frete" e "+ Adicionar abastecimento"
+// Estilo (só CSS/HTML): aviso do login e da ficha abaixo do header; "+ Adicionar frete" e "+ Adicionar abastecimento"
 // do mesmo tamanho; títulos e campos da Relação de Fretes alinhados; bloco de adiantamentos centralizado.
 // Dados simulados. Prints em testes/capturas/estilo_<sufixo>_<parte>_<largura>.png
 // Uso: node testes/t_estilo_ficha_login.js [sufixo]   (sufixo "antes" só mede e tira os prints, sem conferir)
+const fs = require('fs');
 const path = require('path');
 const { abrir } = require('./harness');
 
@@ -15,6 +16,10 @@ const ok = (cond, msg, extra) => {
 };
 const esperar = (ms) => new Promise(r => setTimeout(r, ms));
 const rolagemLateral = (page) => page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+const salvarPrint = async (page, arq, opts = {}, sempre = false) => {
+  const p = path.join(CAP, arq);
+  if (sempre || !fs.existsSync(p)) await page.screenshot({ ...opts, path: p });
+};
 
 // Mostra o aviso do mesmo jeito que o showToast do login.js (classe "show" + tipo)
 const mostrarAviso = (page, msg, tipo) => page.evaluate((msg, tipo) => {
@@ -26,11 +31,18 @@ const mostrarAviso = (page, msg, tipo) => page.evaluate((msg, tipo) => {
   t.setAttribute('aria-hidden', 'false');
 }, msg, tipo);
 
-const medirAviso = (page) => page.evaluate(() => {
+const medirAviso = (page, id = 'login-toast') => page.evaluate((id) => {
   const h = document.querySelector('header').getBoundingClientRect();
-  const t = document.getElementById('login-toast').getBoundingClientRect();
+  const t = document.getElementById(id).getBoundingClientRect();
   return { fimHeader: Math.round(h.bottom), topoAviso: Math.round(t.top), respiro: Math.round(t.top - Math.max(h.bottom, 0)), dentro: t.left >= 0 && t.right <= window.innerWidth + 0.5 };
-});
+}, id);
+
+// Mostra o aviso da ficha do mesmo jeito que o exibirToast do relatorio.js
+const mostrarAvisoFicha = (page, msg, tipo) => page.evaluate((msg, tipo) => {
+  const t = document.getElementById('toast-notificacao');
+  t.querySelector('.toast-mensagem').textContent = msg;
+  t.className = `toast toast-${tipo} toast-visivel`;
+}, msg, tipo);
 
 (async () => {
   const { srv, base, browser, page, erros } = await abrir({});
@@ -45,7 +57,7 @@ const medirAviso = (page) => page.evaluate(() => {
       await esperar(450);
       const m = await medirAviso(page);
       ok(m.respiro >= 10 && m.respiro <= 14 && m.dentro, `aviso (${nome}) abaixo do header com ~12px de respiro`, m);
-      if (nome === 'admin') await page.screenshot({ path: path.join(CAP, `estilo_${SUF}_aviso_login_${largura}.png`), clip: { x: 0, y: 0, width: largura, height: Math.min(420, m.topoAviso + 160) } });
+      if (nome === 'admin') await salvarPrint(page, `estilo_${SUF}_aviso_login_${largura}.png`, { clip: { x: 0, y: 0, width: largura, height: Math.min(420, m.topoAviso + 160) } });
     }
     // Página rolada (no celular o header sai da tela): o aviso continua visível, no topo
     await page.evaluate(() => window.scrollTo(0, 600));
@@ -65,6 +77,36 @@ const medirAviso = (page) => page.evaluate(() => {
     await page.goto(`${base}/HTML/relatorio-viagem.html?novo=true`, { waitUntil: 'load' });
     await esperar(400);
 
+    // Aviso da ficha (#toast-notificacao): acionado de verdade ao remover o Frete 2 e também nos outros tipos
+    const visiveisFrete = `${tabFretes} tbody tr:not(.linha-oculta-celular):not(.linha-adicionar-celular)`;
+    await page.evaluate((tabFretes) => document.querySelector(`${tabFretes} .btn-adicionar-linha-celular`).click(), tabFretes);
+    await esperar(150);
+    await page.evaluate((visiveisFrete) => {
+      document.querySelectorAll(visiveisFrete)[1].querySelector('.btn-limpar-linha-inline').click();
+      window.scrollTo(0, 0);
+    }, visiveisFrete);
+    await esperar(450);
+    const mReal = await medirAviso(page, 'toast-notificacao');
+    const txtReal = await page.evaluate(() => document.querySelector('#toast-notificacao .toast-mensagem')?.textContent?.trim());
+    ok(txtReal === 'Frete 2 removido.' && mReal.topoAviso > mReal.fimHeader && mReal.respiro >= 10 && mReal.respiro <= 14 && mReal.dentro, 'aviso da ficha ("Frete 2 removido.") abaixo do header com ~12px de respiro', { txtReal, ...mReal });
+    await salvarPrint(page, `estilo_${SUF}_aviso_ficha_${largura}.png`, { clip: { x: 0, y: 0, width: largura, height: Math.min(460, Math.max(mReal.fimHeader, mReal.topoAviso) + 140) } }, true);
+
+    for (const [tipo, msg] of [['sucesso', 'Tudo o que foi preenchido nesta viagem foi apagado.'], ['erro', 'A placa deve conter obrigatoriamente exatamente 7 caracteres alfanuméricos (Ex: GAB-1234 ou GAB-1C34).']]) {
+      await mostrarAvisoFicha(page, msg, tipo);
+      await esperar(450);
+      const m = await medirAviso(page, 'toast-notificacao');
+      ok(m.topoAviso > m.fimHeader && m.respiro >= 10 && m.respiro <= 14 && m.dentro, `aviso da ficha (${tipo}) abaixo do header com ~12px de respiro`, m);
+    }
+    await page.evaluate(() => window.scrollTo(0, 600));
+    await esperar(200);
+    const roladoFicha = await medirAviso(page, 'toast-notificacao');
+    ok(roladoFicha.topoAviso >= 10 && roladoFicha.topoAviso < 900 && roladoFicha.respiro >= 10, 'ficha rolada: aviso continua visível e fora do header', roladoFicha);
+    await page.evaluate(() => {
+      document.getElementById('toast-notificacao').className = 'toast';
+      window.scrollTo(0, 0);
+    });
+    await esperar(200);
+
     // 2.2 Botões "+ Adicionar"
     const botoes = await page.evaluate((tabFretes, tabAbast) => {
       const med = (sel) => {
@@ -78,10 +120,10 @@ const medirAviso = (page) => page.evaluate(() => {
     ok(igual, '"+ Adicionar frete" e "+ Adicionar abastecimento" do mesmo tamanho (mesma classe)', botoes);
     await page.evaluate((tabFretes) => document.querySelector(`${tabFretes} .btn-adicionar-linha-celular`).scrollIntoView({ block: 'center' }), tabFretes);
     await esperar(200);
-    await page.screenshot({ path: path.join(CAP, `estilo_${SUF}_botao_frete_${largura}.png`) });
+    await salvarPrint(page, `estilo_${SUF}_botao_frete_${largura}.png`);
     await page.evaluate((tabAbast) => document.querySelector(`${tabAbast} .btn-adicionar-linha-celular`).scrollIntoView({ block: 'center' }), tabAbast);
     await esperar(200);
-    await page.screenshot({ path: path.join(CAP, `estilo_${SUF}_botao_abastecimento_${largura}.png`) });
+    await salvarPrint(page, `estilo_${SUF}_botao_abastecimento_${largura}.png`);
 
     // 2.3 Relação de Fretes (no computador é tabela; no celular vira cartões)
     const fretes = await page.evaluate((tabFretes) => {
@@ -124,7 +166,7 @@ const medirAviso = (page) => page.evaluate(() => {
     }
     await page.evaluate((tabFretes) => { document.querySelector(tabFretes).scrollIntoView({ block: 'start' }); window.scrollBy(0, -130); }, tabFretes);
     await esperar(200);
-    await page.screenshot({ path: path.join(CAP, `estilo_${SUF}_relacao_fretes_${largura}.png`) });
+    await salvarPrint(page, `estilo_${SUF}_relacao_fretes_${largura}.png`);
 
     // Abastecimento: mesmos critérios de alinhamento (se tiver selo)
     const abast = await page.evaluate((tabAbast) => {
@@ -146,7 +188,7 @@ const medirAviso = (page) => page.evaluate(() => {
     else ok(adiant.esq <= 1 && adiant.dir <= 1, 'adiantamentos no celular: largura toda', adiant);
     await page.evaluate(() => { document.querySelector('.bloco-adiantamentos').scrollIntoView({ block: 'start' }); window.scrollBy(0, -130); });
     await esperar(200);
-    await page.screenshot({ path: path.join(CAP, `estilo_${SUF}_adiantamentos_${largura}.png`) });
+    await salvarPrint(page, `estilo_${SUF}_adiantamentos_${largura}.png`);
 
     // Número da linha (e a lixeira, da 2ª linha em diante) no meio da altura dos campos (depois dos prints:
     // o "Remover" mostra um aviso da ficha)

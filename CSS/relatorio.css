@@ -2116,10 +2116,19 @@ select.input-tabela option {
 /* ==========================================
    Toast Notificação
    ========================================== */
-/* No topo da tela (o rodapé tem os botões de envio e o indicador do salvamento) */
+/* Âncora do aviso: logo depois do header, sem altura (não empurra nada) */
+.toast-ancora {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: 0;
+    z-index: 2000;
+}
+
+/* Computador: header fixo de 100px -> aviso 12px abaixo dele */
 .toast {
     position: fixed;
-    top: 24px;
+    top: calc(var(--altura-header, 100px) + 12px);
     right: 24px;
     padding: 14px 22px;
     border-radius: 12px;
@@ -4127,6 +4136,13 @@ input.campo-bloqueado-gestao {
 
     .barra-admin-operacional {
         top: 0;
+    }
+
+    /* Header rola: o aviso fica 12px abaixo do fim do header; quando o header sai da tela,
+       a âncora (sticky) gruda no topo e o aviso fica a 12px do topo */
+    .toast {
+        position: absolute;
+        top: calc(12px + env(safe-area-inset-top));
     }
 }
 

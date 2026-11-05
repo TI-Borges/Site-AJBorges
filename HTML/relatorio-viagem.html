@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../CSS/relatorio.css?v=3.7">
+    <link rel="stylesheet" href="../CSS/relatorio.css?v=3.8">
     <link rel="icon" href="../Imagens/favicon/favicon.ico?v=1" sizes="16x16 32x32 48x48">
     <link rel="icon" type="image/svg+xml" href="../Imagens/favicon/favicon.svg?v=1">
     <link rel="icon" type="image/png" sizes="32x32" href="../Imagens/favicon/favicon-32.png?v=1">
@@ -37,6 +37,14 @@
             </nav>
         </div>
     </header>
+
+    <!-- Notificação Toast: fica logo abaixo do header (a âncora acompanha o fim do header) -->
+    <div class="toast-ancora">
+        <div id="toast-notificacao" class="toast" role="alert">
+            <span class="toast-icone"></span>
+            <span class="toast-mensagem"></span>
+        </div>
+    </div>
 
     <!-- Barra de Ações Rápidas do Administrador (Ativada no modo admin) -->
     <div class="barra-admin-operacional" id="barra-admin-operacional">
@@ -2869,12 +2877,6 @@
                     </div>
                 </form>
             </div>
-        </div>
-
-        <!-- Notificação Toast -->
-        <div id="toast-notificacao" class="toast" role="alert">
-            <span class="toast-icone"></span>
-            <span class="toast-mensagem"></span>
         </div>
 
         <!-- Salvamento automático da viagem em andamento (motorista) -->
