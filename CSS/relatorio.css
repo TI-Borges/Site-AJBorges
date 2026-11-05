@@ -4817,3 +4817,50 @@ select[aria-invalid="true"] {
     color: #1d4ed8;
     background: rgba(59, 130, 246, 0.12);
 }
+
+/* ==========================================
+   Relação de Fretes no computador: títulos todos na mesma linha (o selo "Motorista" / "Gestão"
+   fica embaixo do título, sem empurrar os outros) e campos de cada linha na mesma altura
+   (a dica "Não sabe o valor?..." fica embaixo do campo, sem subir o campo)
+   ========================================== */
+.tabela-fretes-ml thead th {
+    vertical-align: top;
+}
+
+.tabela-fretes-ml thead th .tag-motorista {
+    display: block;
+    width: fit-content;
+    margin: 4px 0 0;
+}
+
+.tabela-fretes-ml thead th .th-tag-gestao {
+    display: flex;
+    width: fit-content;
+    margin: 4px 0 0;
+}
+
+.tabela-fretes-ml tbody td {
+    vertical-align: top;
+}
+
+/* Número (e a lixeira de 44px, da 2ª linha em diante) no meio da altura dos campos (38px):
+   3px + 44px / 2 = 6px + 38px / 2 */
+.tabela-fretes-ml tbody td.td-num {
+    padding-top: 3px;
+    line-height: 44px;
+}
+
+/* Botão "+ Adicionar" do frete e do abastecimento: mesmo tamanho (o do abastecimento é a referência:
+   259px = largura do "+ Adicionar abastecimento" com a fonte Poppins). No celular (cartões) os dois
+   já têm 100% da largura, sem mínimo (em 320px o mínimo passaria do cartão). */
+@media (min-width: 901px) and (min-height: 501px) {
+    .tabela-abastecimento tr.linha-adicionar-celular .btn-adicionar-linha-celular {
+        min-width: 259px;
+    }
+}
+
+/* Adiantamentos: o bloco (tabela + "+ Adicionar adiantamento" + total) centralizado na área */
+.tabela-adiantamentos-wrapper {
+    margin-left: auto;
+    margin-right: auto;
+}

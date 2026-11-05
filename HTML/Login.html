@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="../CSS/Login.css">
+    <link rel="stylesheet" href="../CSS/Login.css?v=2">
     <link rel="icon" href="../Imagens/favicon/favicon.ico?v=1" sizes="16x16 32x32 48x48">
     <link rel="icon" type="image/svg+xml" href="../Imagens/favicon/favicon.svg?v=1">
     <link rel="icon" type="image/png" sizes="32x32" href="../Imagens/favicon/favicon-32.png?v=1">
@@ -31,6 +31,16 @@
             </nav>
         </div>
     </header>
+
+    <!-- Toast de Notificação Dinâmica: fica logo abaixo do header (a âncora acompanha o fim do header) -->
+    <div class="login-toast-ancora">
+        <div id="login-toast" class="login-toast" role="alert" aria-live="assertive" aria-hidden="true">
+            <div class="toast-content">
+                <span class="toast-icon">✓</span>
+                <span class="toast-message">Mensagem</span>
+            </div>
+        </div>
+    </div>
 
     <main class="login-main">
         <!-- Elementos decorativos de fundo para profundidade visual -->
@@ -224,14 +234,6 @@
             </div>
         </div>
     </main>
-
-    <!-- Toast de Notificação Dinâmica -->
-    <div id="login-toast" class="login-toast" role="alert" aria-live="assertive" aria-hidden="true">
-        <div class="toast-content">
-            <span class="toast-icon">✓</span>
-            <span class="toast-message">Mensagem</span>
-        </div>
-    </div>
 
     <footer>
         <div class="footer-container">
