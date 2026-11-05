@@ -310,16 +310,17 @@
         .selo-etapa { padding: 3px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #cbd5e1; background: #f1f5f9; color: #64748b; white-space: nowrap; }
         .selo-etapa.feito { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
         .selo-repetido { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #fdba74; background: #fff7ed; color: #c2410c; white-space: nowrap; }
-        /* Avaliação Apto / Inapto (controle interno da gestão; não muda status nem a trava por CPF) */
-        .selo-avaliacao { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; white-space: nowrap; border: 1px solid; }
-        .selo-avaliacao.apto { background: #ecfdf5; border-color: #6ee7b7; color: #047857; }
-        .selo-avaliacao.inapto { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
-        .filtro-avaliacao { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.8rem; color: #475569; }
-        .filtro-avaliacao select { height: 32px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0 8px; font-size: 0.8rem; background: #fff; color: #1e293b; }
-        .avaliacao-opcoes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
-        .avaliacao-opcoes label { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; cursor: pointer; background: #fff; }
-        .avaliacao-motivo { width: 100%; min-height: 70px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px 10px; font: inherit; font-size: 0.85rem; resize: vertical; box-sizing: border-box; }
-        .avaliacao-rodape { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.78rem; color: #64748b; }
+        /* Anotações da gestão (passo 26): campo livre em cada cadastro; o motorista não vê */
+        .icone-anotacao { display: inline-block; margin-left: 6px; font-size: 0.9rem; cursor: help; }
+        .filtro-anotacao { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.8rem; color: #475569; cursor: pointer; min-height: 32px; }
+        .filtro-anotacao input { width: 16px; height: 16px; accent-color: #059669; }
+        .anotacao-texto { width: 100%; min-height: 160px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 0.9rem; line-height: 1.45; resize: vertical; box-sizing: border-box; }
+        .anotacao-rodape { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.78rem; color: #64748b; }
+        .anotacao-contador.no-limite { color: #b91c1c; font-weight: 700; }
+        .anotacao-antiga { margin-top: 10px; padding: 8px 10px; border-left: 3px solid #cbd5e1; background: #f8fafc; color: #475569; font-size: 0.82rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+        /* Botão "Avisar no WhatsApp" (só cadastro aprovado; abre o WhatsApp com a mensagem pronta, não envia sozinho) */
+        .btn-whatsapp { display: inline-flex; align-items: center; gap: 6px; background: #16a34a !important; color: #fff !important; border-color: #16a34a !important; text-decoration: none; }
+        .btn-whatsapp[aria-disabled="true"], .btn-whatsapp:disabled { background: #e2e8f0 !important; color: #64748b !important; border-color: #cbd5e1 !important; cursor: not-allowed; }
 
         /* Projeto 2: caixinhas de etapas (mesmo checkbox personalizado do formulário) */
         .etapas-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
@@ -607,13 +608,8 @@
                         <div>
                             <h2 style="font-size: 1.15rem; font-weight: 700; color: #0f172a;">Fichas de Solicitações
                             </h2>
-                            <label class="filtro-avaliacao">Avaliação
-                                <select id="filtro-avaliacao">
-                                    <option value="todas">Todas</option>
-                                    <option value="sem">Sem avaliação</option>
-                                    <option value="apto">Apto</option>
-                                    <option value="inapto">Inapto</option>
-                                </select>
+                            <label class="filtro-anotacao" for="filtro-com-anotacao">
+                                <input type="checkbox" id="filtro-com-anotacao"> Com anotação
                             </label>
                         </div>
 
@@ -795,7 +791,7 @@
         // =====================================================================
         let cadastros = [];
         let filtroAtual = 'todos';
-        let filtroAvaliacao = 'todas';
+        let soComAnotacao = false; // filtro "Com anotação" (passo 26)
         let termoBusca = '';
         let cadastroAberto = null;
 
@@ -1033,65 +1029,92 @@
             return '<div><span class="selo-repetido" title="Há outro cadastro ativo com o mesmo CPF de motorista. Confira e recuse o que sobrar.">CPF repetido</span></div>';
         }
 
-        // Avaliação Apto / Inapto (passo25b): marcação extra da gestão, gravada pela RPC avaliar_cadastro.
-        // Não muda o status nem a trava por CPF/CNPJ. Quem marcou e quando vêm do servidor.
-        const avaliacaoDe = (c) => (c.avaliacao === 'apto' || c.avaliacao === 'inapto' ? c.avaliacao : 'sem');
-        function seloAvaliacao(c) {
-            const a = avaliacaoDe(c);
-            if (a === 'sem') return '';
-            const dica = c.avaliacao_motivo ? ` title="${esc(c.avaliacao_motivo)}"` : '';
-            return `<div><span class="selo-avaliacao ${a}"${dica}>${a === 'apto' ? 'Apto' : 'Inapto'}</span></div>`;
+        // Anotações (passo 26): texto livre da gestão, gravado pela RPC anotar_cadastro (até 2000 letras;
+        // quem e quando vêm do servidor). A antiga marcação Apto / Inapto (passo 25b) não aparece mais; o
+        // motivo que já tiver sido escrito nela aparece só para leitura como "Anotação antiga".
+        const LIMITE_ANOTACAO = 2000;
+        const temAnotacao = (c) => !!(c.anotacoes && String(c.anotacoes).trim());
+        const anotacaoAntiga = (c) => String(c.avaliacao_motivo || '').trim();
+        function iconeAnotacao(c) {
+            if (!temAnotacao(c)) return '';
+            const texto = String(c.anotacoes).trim();
+            const inicio = texto.length > 120 ? `${texto.slice(0, 120)}…` : texto;
+            return `<span class="icone-anotacao" title="${esc(inicio)}" aria-label="Tem anotação">📝</span>`;
         }
 
-        function secaoAvaliacao(c) {
-            const a = avaliacaoDe(c);
-            const opcao = (valor, rotulo) => `<label><input type="radio" name="avaliacao" value="${valor}" ${a === (valor || 'sem') ? 'checked' : ''}> ${rotulo}</label>`;
-            const motivo = c.avaliacao_motivo || '';
+        function secaoAnotacoes(c) {
+            const texto = c.anotacoes || '';
+            const antiga = anotacaoAntiga(c);
             return `
-                <fieldset class="cad-secao" id="secao-avaliacao">
-                    <legend>Avaliação (controle interno da gestão)</legend>
-                    <div class="etapas-aviso">Só para controle: não muda a aprovação/recusa nem a trava por CPF. O motorista não vê.</div>
-                    <div class="avaliacao-opcoes">
-                        ${opcao('', 'Sem avaliação')}
-                        ${opcao('apto', 'Apto')}
-                        ${opcao('inapto', 'Inapto')}
+                <fieldset class="cad-secao" id="secao-anotacoes">
+                    <legend>Anotações</legend>
+                    <div class="etapas-aviso">Só para a gestão: não muda a aprovação/recusa nem a trava por CPF. O motorista não vê.</div>
+                    <textarea id="anotacao-texto" class="anotacao-texto" aria-label="Anotações" maxlength="${LIMITE_ANOTACAO}" placeholder="Escreva aqui (ligações, combinados, pendências...)">${esc(texto)}</textarea>
+                    <div class="anotacao-rodape">
+                        <span id="anotacao-contador" class="anotacao-contador${texto.length >= LIMITE_ANOTACAO ? ' no-limite' : ''}">${texto.length}/${LIMITE_ANOTACAO}</span>
+                        <span id="anotacao-ultima">${c.anotado_por ? `Última anotação por <b>${esc(c.anotado_por)}</b> em ${formatarData(c.anotado_em)}` : 'Ainda sem anotação.'}</span>
+                        <button type="button" class="btn-action-small" data-acao="salvar-anotacao" data-id="${esc(c.id)}" style="background:#059669; color:#fff; border-color:#059669;">Salvar anotação</button>
                     </div>
-                    <label for="avaliacao-motivo" style="font-size: 0.8rem; color: #475569;">Motivo (opcional, até 300 letras)</label>
-                    <textarea id="avaliacao-motivo" class="avaliacao-motivo" maxlength="300">${esc(motivo)}</textarea>
-                    <div class="avaliacao-rodape">
-                        <span id="avaliacao-contador">${motivo.length}/300</span>
-                        <span>${c.avaliado_por ? `Marcado por <b>${esc(c.avaliado_por)}</b> em ${formatarData(c.avaliado_em)}` : 'Ainda sem avaliação.'}</span>
-                        <button type="button" class="btn-action-small" data-acao="salvar-avaliacao" data-id="${esc(c.id)}" style="background:#059669; color:#fff; border-color:#059669;">Salvar avaliação</button>
-                    </div>
+                    ${antiga ? `<div class="anotacao-antiga" id="anotacao-antiga">Anotação antiga: ${esc(antiga)}</div>` : ''}
                 </fieldset>`;
         }
 
-        async function salvarAvaliacao(id, botao) {
+        async function salvarAnotacao(id, botao) {
             const c = cadastros.find((x) => x.id === id);
             if (!c) return;
-            const escolhida = document.querySelector('#secao-avaliacao input[name="avaliacao"]:checked');
-            const valor = escolhida ? escolhida.value : '';
-            const motivo = (document.getElementById('avaliacao-motivo')?.value || '').trim();
-            if (motivo.length > 300) return aviso('O motivo tem no máximo 300 letras.');
+            const texto = document.getElementById('anotacao-texto')?.value || '';
+            if (texto.trim().length > LIMITE_ANOTACAO) return aviso(`A anotação tem no máximo ${LIMITE_ANOTACAO} letras.`);
             if (botao) botao.disabled = true;
             try {
-                const { data, error } = await window.supabaseClient.rpc('avaliar_cadastro', {
-                    p_id: id, p_avaliacao: valor || null, p_motivo: valor ? (motivo || null) : null
-                });
+                const { data, error } = await window.supabaseClient.rpc('anotar_cadastro', { p_id: id, p_texto: texto });
                 if (error || !data) {
-                    console.error('Erro ao salvar a avaliação:', error);
-                    return aviso('Não foi possível salvar a avaliação. Tente novamente.');
+                    console.error('Erro ao salvar a anotação:', error);
+                    return aviso('Não foi possível salvar a anotação. Tente novamente.');
                 }
-                Object.assign(c, {
-                    avaliacao: data.avaliacao || null, avaliacao_motivo: data.avaliacao_motivo || null,
-                    avaliado_por: data.avaliado_por || null, avaliado_em: data.avaliado_em || null
-                });
+                Object.assign(c, { anotacoes: data.anotacoes || null, anotado_por: data.anotado_por || null, anotado_em: data.anotado_em || null });
                 renderTabela();
-                if (cadastroAberto === id) abrirModal(id);
-                exibirToast('Avaliação salva.');
+                // Atualiza só o bloco de anotações (sem recarregar os documentos do modal)
+                if (cadastroAberto === id) {
+                    const caixa = document.getElementById('anotacao-texto');
+                    if (caixa) caixa.value = c.anotacoes || '';
+                    atualizarContadorAnotacao();
+                    const ultima = document.getElementById('anotacao-ultima');
+                    if (ultima) ultima.innerHTML = c.anotado_por ? `Última anotação por <b>${esc(c.anotado_por)}</b> em ${formatarData(c.anotado_em)}` : 'Ainda sem anotação.';
+                }
+                exibirToast(c.anotacoes ? 'Anotação salva.' : 'Anotação apagada.');
             } finally {
                 if (botao) botao.disabled = false;
             }
+        }
+
+        function atualizarContadorAnotacao() {
+            const caixa = document.getElementById('anotacao-texto');
+            const cont = document.getElementById('anotacao-contador');
+            if (!caixa || !cont) return;
+            cont.textContent = `${caixa.value.length}/${LIMITE_ANOTACAO}`;
+            cont.classList.toggle('no-limite', caixa.value.length >= LIMITE_ANOTACAO);
+        }
+
+        // "Avisar no WhatsApp" (só cadastro aprovado): abre o WhatsApp com a mensagem pronta. Não grava nada
+        // e não envia nada sozinho. Número: só os dígitos do celular, com o 55 na frente (sem duplicar).
+        function linkWhatsApp(c) {
+            const d = c.dados || {};
+            let digitos = String(c.celular || d.celular || '').replace(/\D/g, '');
+            // Já veio com o 55 do Brasil (12 ou 13 dígitos): tira para conferir o número nacional
+            if (digitos.length >= 12 && digitos.startsWith('55')) digitos = digitos.slice(2);
+            if (digitos.length < 10 || digitos.length > 11) return null;
+            const primeiroNome = String(d['motorista-nome'] || c.nome || '').trim().split(/\s+/)[0] || '';
+            const mensagem = `Olá, ${primeiroNome}! Aqui é da AJBorges Transportes. Seu cadastro foi aprovado. ✅`;
+            return `https://wa.me/55${digitos}?text=${encodeURIComponent(mensagem)}`;
+        }
+
+        function botaoWhatsApp(c) {
+            if (c.status !== 'aprovado') return '';
+            const link = linkWhatsApp(c);
+            if (!link) {
+                return '<button type="button" class="btn-action-small btn-whatsapp" disabled aria-disabled="true" title="Celular inválido">Avisar no WhatsApp · Celular inválido</button>';
+            }
+            return `<a class="btn-action-small btn-whatsapp" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Avisar no WhatsApp</a>`;
         }
 
         function atualizarMetricas() {
@@ -1117,12 +1140,13 @@
             if (btnRepetidos) btnRepetidos.textContent = `Só repetidos (${repetidos.size})`;
         }
 
-        // Busca por nome, CPF (com ou sem pontos) ou placa de qualquer CRLV
+        // Busca por nome, CPF (com ou sem pontos), placa de qualquer CRLV ou texto das anotações
         function bateBusca(c) {
             if (!termoBusca) return true;
             const d = c.dados || {};
             const placas = Object.keys(d).filter((k) => /^crlv\d+-placa$/.test(k)).map((k) => d[k]);
-            const texto = [c.nome, c.email, d['nome-empresa'], d.cnpj, d._tipologia, d['veic-placa'], d['carreta-placa'], ...placas]
+            // passo 26: também o texto das anotações (e da anotação antiga)
+            const texto = [c.nome, c.email, d['nome-empresa'], d.cnpj, d._tipologia, d['veic-placa'], d['carreta-placa'], ...placas, c.anotacoes, c.avaliacao_motivo]
                 .filter(Boolean).join(' ').toLowerCase();
             if (texto.includes(termoBusca)) return true;
             const semPontuacao = (v) => String(v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1146,7 +1170,7 @@
                 if (filtroAtual === 'repetidos') {
                     if (!repetidos.has(c.id)) return false;
                 } else if (filtroAtual !== 'todos' && statusExibido(c) !== filtroAtual) return false;
-                if (filtroAvaliacao !== 'todas' && avaliacaoDe(c) !== filtroAvaliacao) return false;
+                if (soComAnotacao && !temAnotacao(c)) return false;
                 return bateBusca(c);
             });
 
@@ -1174,7 +1198,7 @@
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <div class="driver-avatar-circle">${esc(iniciais)}</div>
                                 <div>
-                                    <div style="font-weight: 600; color: #0f172a;">${esc(c.nome || 'Sem nome')}</div>
+                                    <div style="font-weight: 600; color: #0f172a;">${esc(c.nome || 'Sem nome')}${iconeAnotacao(c)}</div>
                                     <div style="font-size: 0.78rem; color: #64748b;">CPF ${esc(formatarCpf(c.cpf))} &bull; ${esc(c.celular || '')}</div>
                                     ${c.tipo === 'pj' && d['nome-empresa'] ? `<div style="font-size: 0.75rem; color: #059669; font-weight: 500;">Empresa: ${esc(d['nome-empresa'])}</div>` : ''}
                                     ${seloRepetido(c)}
@@ -1187,7 +1211,7 @@
                             <div style="font-size: 0.78rem; color: #64748b;">Placa: <strong>${esc(placa)}</strong>${c.sem_carreta && !novo ? ' &bull; sem carreta' : ''}</div></td>
                         <td style="padding: 16px;"><span style="font-size: 0.82rem; color: #334155;">${cnh}</span></td>
                         <td style="padding: 16px; color: #64748b; font-size: 0.82rem;">${formatarData(c.criado_em)}</td>
-                        <td style="padding: 16px;">${ROTULOS_STATUS[statusExibido(c)] || esc(c.status)}${prazoExclusao(c)}${seloAvaliacao(c)}</td>
+                        <td style="padding: 16px;">${ROTULOS_STATUS[statusExibido(c)] || esc(c.status)}${prazoExclusao(c)}</td>
                         <td style="padding: 16px;">${selosEtapas(c)}</td>
                         <td style="padding: 16px 20px; text-align: right;">
                             <div class="table-action-btns" style="justify-content: flex-end;">
@@ -1744,9 +1768,8 @@ ${secao('Documentos extras', listaExtras)}
                     ${c.analisado_por ? `<div>Última análise: <b>${esc(c.analisado_por)}</b> em ${formatarData(c.analisado_em)}</div>` : ''}
                     ${c.status === 'recusado' && c.motivo_recusa ? `<div style="color:#b91c1c;">Motivo da recusa: <b>${esc(c.motivo_recusa)}</b></div>` : ''}
                     ${prazoExclusao(c)}
-                    ${avaliacaoDe(c) !== 'sem' ? `<div>Avaliação: <span class="selo-avaliacao ${avaliacaoDe(c)}">${avaliacaoDe(c) === 'apto' ? 'Apto' : 'Inapto'}</span>${c.avaliacao_motivo ? ` · ${esc(c.avaliacao_motivo)}` : ''}</div>` : ''}
                 </div>
-                ${secaoAvaliacao(c)}
+                ${secaoAnotacoes(c)}
                 ${secaoEtapas}
                 ${novo ? '' : `<fieldset class="cad-secao">
                     <legend>Documentos</legend>
@@ -1761,6 +1784,7 @@ ${secao('Documentos extras', listaExtras)}
                 <button type="button" class="btn-action-small" data-acao="salvar-dados" id="btn-salvar-dados" style="display:none;">Salvar dados</button>
                 <button type="button" class="btn-action-small" data-acao="baixar-zip" data-id="${esc(c.id)}">Baixar documentos (.zip)</button>
                 <button type="button" class="btn-action-small" data-acao="baixar-ficha" data-id="${esc(c.id)}">Baixar ficha do cadastro (PDF)</button>
+                ${botaoWhatsApp(c)}
                 ${c.status !== 'analise' && c.status !== 'aprovado' ? `<button type="button" class="btn-action-small" data-acao="analise" data-id="${esc(c.id)}">Colocar em análise</button>` : ''}
                 ${c.status !== 'recusado' ? `<button type="button" class="btn-action-small btn-action-delete" data-acao="recusar" data-id="${esc(c.id)}">Recusar</button>` : ''}
                 ${c.status !== 'aprovado' ? `<button type="button" class="btn-action-small btn-action-approve" data-acao="aprovar" data-id="${esc(c.id)}">Documentos ok</button>` : ''}`;
@@ -1927,15 +1951,13 @@ ${secao('Documentos extras', listaExtras)}
                 renderTabela();
             });
 
-            document.getElementById('filtro-avaliacao')?.addEventListener('change', (e) => {
-                filtroAvaliacao = e.target.value;
+            document.getElementById('filtro-com-anotacao')?.addEventListener('change', (e) => {
+                soComAnotacao = !!e.target.checked;
                 renderTabela();
             });
-            // Contador do motivo da avaliação (no modal)
+            // Contador da anotação (no modal)
             document.addEventListener('input', (e) => {
-                if (e.target.id !== 'avaliacao-motivo') return;
-                const cont = document.getElementById('avaliacao-contador');
-                if (cont) cont.textContent = `${e.target.value.length}/300`;
+                if (e.target.id === 'anotacao-texto') atualizarContadorAnotacao();
             });
 
             const container = document.getElementById('tab-filter-container');
@@ -1994,7 +2016,7 @@ ${secao('Documentos extras', listaExtras)}
                         document.getElementById('btn-salvar-dados').style.display = '';
                         break;
                     case 'salvar-dados': salvarDados(); break;
-                    case 'salvar-avaliacao': salvarAvaliacao(id, alvo); break;
+                    case 'salvar-anotacao': salvarAnotacao(id, alvo); break;
                     default: break;
                 }
             });
