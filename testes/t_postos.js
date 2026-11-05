@@ -121,6 +121,8 @@ const GESTAO = { role: 'admin', nome: 'Gestão', id: 'a1', email: 'g@x' };
   r.outroEscolhido = await campoOutro();
   await page.keyboard.type(`Posto da Estrada ${XSS}`);
   await escolher('[name="combustivel_ml_1"]', 'diesel_s10');
+  // Passo 24: Momento obrigatório no diesel ("Chegada" mantém a média de antes)
+  await escolher('[name="momento_ml_1"]', 'chegada');
   await digitar('[name="valor_ml_1"]', '50000');
   await page.click('#btn-lixeira-abast-ml');
   await espera(100);
@@ -173,6 +175,8 @@ const GESTAO = { role: 'admin', nome: 'Gestão', id: 'a1', email: 'g@x' };
   await digitar('#valor-adiantamento', '0');
   await escolher('[name="posto_ml_1"]', 'Outro');
   await escolher('[name="combustivel_ml_1"]', 'diesel_s10');
+  // Passo 24: Momento obrigatório no diesel ("Chegada" mantém a média de antes)
+  await escolher('[name="momento_ml_1"]', 'chegada');
   await digitar('[name="valor_ml_1"]', '50000');
   await page.click('#btn-finalizar-relatorio-ml');
   await espera(300);

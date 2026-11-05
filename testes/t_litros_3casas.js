@@ -34,6 +34,8 @@ const espera = (ms) => new Promise(res => setTimeout(res, ms));
   const abastecimento = async (i, comb, valor, litros) => {
     await page.select(`[name="posto_ml_${i}"]`, 'Marília - Posto Esmeralda');
     await page.select(`[name="combustivel_ml_${i}"]`, comb);
+    // Passo 24: Momento obrigatório no diesel ("Chegada" mantém a média de antes)
+    if (comb !== 'arla') await page.select(`[name="momento_ml_${i}"]`, 'chegada');
     await page.$eval(`[name="valor_ml_${i}"]`, el => { el.value = ''; });
     await digitar(`[name="valor_ml_${i}"]`, valor);
     await page.$eval(campo(i), el => { el.value = '0,000'; });

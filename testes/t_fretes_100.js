@@ -76,6 +76,8 @@ const TAB_ABAST = 'table.tabela-abastecimento:not(.tabela-fretes-ml)';
             if (q('valor').value) continue;
             disparar(q('posto'), 'Marília - Posto Esmeralda');
             disparar(q('combustivel'), i % 10 === 0 ? 'arla' : 'diesel_s10');
+            // Passo 24: Momento obrigatório no diesel ("Chegada" mantém a média de antes)
+            if (i % 10 !== 0) disparar(q('momento'), 'chegada');
             disparar(q('nf'), String(1000 + i));
             disparar(q('km'), String(100000 + i));
             disparar(q('valor'), '5000');      // 50,00

@@ -1684,6 +1684,8 @@
                                                 <p class="subtitulo-durante-viagem">Vá adicionando durante a viagem.</p>
                                                 <p>Lance os abastecimentos realizados na viagem (Posto, Nota Fiscal,
                                                     KM, Valor em R$, Litros e Média).</p>
+                                                <p class="ajuda-momento-abast"><strong>Momento:</strong> Saída = completar o tanque antes de sair; não entra na média desta viagem.
+                                                    Durante a viagem e Chegada (completar o tanque para fechar a viagem) entram.</p>
                                             </div>
                                         </div>
                                         <div class="subbloco-acoes-limpeza">
@@ -1746,13 +1748,14 @@
                                             <thead>
                                                 <tr>
                                                     <th class="th-num">#</th>
-                                                    <th style="width: 24%;">POSTO DE ABASTECIMENTO</th>
+                                                    <th style="width: 16%;">POSTO DE ABASTECIMENTO</th>
                                                     <th style="width: 13%;">COMBUSTÍVEL</th>
+                                                    <th style="width: 16%;" class="th-momento-abast" title="Saída = completar o tanque antes de sair; não entra na média desta viagem.">MOMENTO</th>
                                                     <th style="width: 13%;" class="col-placa-abast">PLACA</th>
-                                                    <th style="width: 11%;">NOTA FISCAL</th>
-                                                    <th style="width: 11%;">KM</th>
-                                                    <th style="width: 14%;">VALOR EM R$</th>
-                                                    <th style="width: 14%;">LITROS</th>
+                                                    <th style="width: 9%;">NOTA FISCAL</th>
+                                                    <th style="width: 9%;">KM</th>
+                                                    <th style="width: 13%;">VALOR EM R$</th>
+                                                    <th style="width: 13%;">LITROS</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1780,6 +1783,12 @@
                                                             <option value="diesel_s10">Diesel S10</option>
                                                             <option value="diesel_s500">Diesel S500</option>
                                                             <option value="arla">ARLA</option>
+                                                        </select></td>
+                                                    <td><select name="momento_ml_1" class="input-tabela input-momento-abast" title="Saída = completar o tanque antes de sair; não entra na média desta viagem.">
+                                                            <option value="">Selecione...</option>
+                                                            <option value="saida">Saída</option>
+                                                            <option value="durante">Durante a viagem</option>
+                                                            <option value="chegada">Chegada</option>
                                                         </select></td>
                                                     <td class="col-placa-abast"><select name="placa_abast_ml_1" class="input-tabela input-placa-abast">
                                                             <option value="principal">Principal</option>
@@ -1834,6 +1843,12 @@
                                                             <option value="diesel_s500">Diesel S500</option>
                                                             <option value="arla">ARLA</option>
                                                         </select></td>
+                                                    <td><select name="momento_ml_2" class="input-tabela input-momento-abast" title="Saída = completar o tanque antes de sair; não entra na média desta viagem.">
+                                                            <option value="">Selecione...</option>
+                                                            <option value="saida">Saída</option>
+                                                            <option value="durante">Durante a viagem</option>
+                                                            <option value="chegada">Chegada</option>
+                                                        </select></td>
                                                     <td class="col-placa-abast"><select name="placa_abast_ml_2" class="input-tabela input-placa-abast">
                                                             <option value="principal">Principal</option>
                                                             <option value="secundaria">Secundária</option>
@@ -1886,6 +1901,12 @@
                                                             <option value="diesel_s10">Diesel S10</option>
                                                             <option value="diesel_s500">Diesel S500</option>
                                                             <option value="arla">ARLA</option>
+                                                        </select></td>
+                                                    <td><select name="momento_ml_3" class="input-tabela input-momento-abast" title="Saída = completar o tanque antes de sair; não entra na média desta viagem.">
+                                                            <option value="">Selecione...</option>
+                                                            <option value="saida">Saída</option>
+                                                            <option value="durante">Durante a viagem</option>
+                                                            <option value="chegada">Chegada</option>
                                                         </select></td>
                                                     <td class="col-placa-abast"><select name="placa_abast_ml_3" class="input-tabela input-placa-abast">
                                                             <option value="principal">Principal</option>
@@ -1940,6 +1961,12 @@
                                                             <option value="diesel_s500">Diesel S500</option>
                                                             <option value="arla">ARLA</option>
                                                         </select></td>
+                                                    <td><select name="momento_ml_4" class="input-tabela input-momento-abast" title="Saída = completar o tanque antes de sair; não entra na média desta viagem.">
+                                                            <option value="">Selecione...</option>
+                                                            <option value="saida">Saída</option>
+                                                            <option value="durante">Durante a viagem</option>
+                                                            <option value="chegada">Chegada</option>
+                                                        </select></td>
                                                     <td class="col-placa-abast"><select name="placa_abast_ml_4" class="input-tabela input-placa-abast">
                                                             <option value="principal">Principal</option>
                                                             <option value="secundaria">Secundária</option>
@@ -1992,6 +2019,12 @@
                                                             <option value="diesel_s10">Diesel S10</option>
                                                             <option value="diesel_s500">Diesel S500</option>
                                                             <option value="arla">ARLA</option>
+                                                        </select></td>
+                                                    <td><select name="momento_ml_5" class="input-tabela input-momento-abast" title="Saída = completar o tanque antes de sair; não entra na média desta viagem.">
+                                                            <option value="">Selecione...</option>
+                                                            <option value="saida">Saída</option>
+                                                            <option value="durante">Durante a viagem</option>
+                                                            <option value="chegada">Chegada</option>
                                                         </select></td>
                                                     <td class="col-placa-abast"><select name="placa_abast_ml_5" class="input-tabela input-placa-abast">
                                                             <option value="principal">Principal</option>
@@ -2046,6 +2079,12 @@
                                                             <option value="diesel_s500">Diesel S500</option>
                                                             <option value="arla">ARLA</option>
                                                         </select></td>
+                                                    <td><select name="momento_ml_6" class="input-tabela input-momento-abast" title="Saída = completar o tanque antes de sair; não entra na média desta viagem.">
+                                                            <option value="">Selecione...</option>
+                                                            <option value="saida">Saída</option>
+                                                            <option value="durante">Durante a viagem</option>
+                                                            <option value="chegada">Chegada</option>
+                                                        </select></td>
                                                     <td class="col-placa-abast"><select name="placa_abast_ml_6" class="input-tabela input-placa-abast">
                                                             <option value="principal">Principal</option>
                                                             <option value="secundaria">Secundária</option>
@@ -2098,6 +2137,12 @@
                                                             <option value="diesel_s10">Diesel S10</option>
                                                             <option value="diesel_s500">Diesel S500</option>
                                                             <option value="arla">ARLA</option>
+                                                        </select></td>
+                                                    <td><select name="momento_ml_7" class="input-tabela input-momento-abast" title="Saída = completar o tanque antes de sair; não entra na média desta viagem.">
+                                                            <option value="">Selecione...</option>
+                                                            <option value="saida">Saída</option>
+                                                            <option value="durante">Durante a viagem</option>
+                                                            <option value="chegada">Chegada</option>
                                                         </select></td>
                                                     <td class="col-placa-abast"><select name="placa_abast_ml_7" class="input-tabela input-placa-abast">
                                                             <option value="principal">Principal</option>
@@ -2152,6 +2197,12 @@
                                                             <option value="diesel_s500">Diesel S500</option>
                                                             <option value="arla">ARLA</option>
                                                         </select></td>
+                                                    <td><select name="momento_ml_8" class="input-tabela input-momento-abast" title="Saída = completar o tanque antes de sair; não entra na média desta viagem.">
+                                                            <option value="">Selecione...</option>
+                                                            <option value="saida">Saída</option>
+                                                            <option value="durante">Durante a viagem</option>
+                                                            <option value="chegada">Chegada</option>
+                                                        </select></td>
                                                     <td class="col-placa-abast"><select name="placa_abast_ml_8" class="input-tabela input-placa-abast">
                                                             <option value="principal">Principal</option>
                                                             <option value="secundaria">Secundária</option>
@@ -2204,6 +2255,12 @@
                                                             <option value="diesel_s10">Diesel S10</option>
                                                             <option value="diesel_s500">Diesel S500</option>
                                                             <option value="arla">ARLA</option>
+                                                        </select></td>
+                                                    <td><select name="momento_ml_9" class="input-tabela input-momento-abast" title="Saída = completar o tanque antes de sair; não entra na média desta viagem.">
+                                                            <option value="">Selecione...</option>
+                                                            <option value="saida">Saída</option>
+                                                            <option value="durante">Durante a viagem</option>
+                                                            <option value="chegada">Chegada</option>
                                                         </select></td>
                                                     <td class="col-placa-abast"><select name="placa_abast_ml_9" class="input-tabela input-placa-abast">
                                                             <option value="principal">Principal</option>
@@ -2258,6 +2315,12 @@
                                                             <option value="diesel_s500">Diesel S500</option>
                                                             <option value="arla">ARLA</option>
                                                         </select></td>
+                                                    <td><select name="momento_ml_10" class="input-tabela input-momento-abast" title="Saída = completar o tanque antes de sair; não entra na média desta viagem.">
+                                                            <option value="">Selecione...</option>
+                                                            <option value="saida">Saída</option>
+                                                            <option value="durante">Durante a viagem</option>
+                                                            <option value="chegada">Chegada</option>
+                                                        </select></td>
                                                     <td class="col-placa-abast"><select name="placa_abast_ml_10" class="input-tabela input-placa-abast">
                                                             <option value="principal">Principal</option>
                                                             <option value="secundaria">Secundária</option>
@@ -2288,7 +2351,7 @@
                                                 </tr>
                                                     <!-- "+ Adicionar": mostra a próxima linha (depois das do HTML, o relatorio.js cria até 100) -->
                                                     <tr class="linha-adicionar-celular">
-                                                        <td colspan="8">
+                                                        <td colspan="9">
                                                             <button type="button" class="btn-adicionar-linha-celular" data-adicionar="abastecimentos"><span aria-hidden="true">+</span> Adicionar abastecimento</button>
                                                             <small class="texto-limite-linhas" hidden>Limite de 100 abastecimentos atingido</small>
                                                         </td>
@@ -2297,7 +2360,7 @@
                                             <tfoot>
                                                 <!-- Diesel = S10 + S500 + linhas sem combustível escolhido -->
                                                 <tr class="linha-totais-abast linha-total-diesel">
-                                                    <td colspan="6" class="td-totais-label" id="td-totais-label-abast">
+                                                    <td colspan="7" class="td-totais-label" id="td-totais-label-abast">
                                                         <span class="tag-auto-pequena">Soma Automática</span>
                                                         <strong>TOTAL DIESEL &gt;&gt;</strong>
                                                     </td>
@@ -2317,7 +2380,7 @@
                                                     </td>
                                                 </tr>
                                                 <tr class="linha-totais-abast linha-total-arla">
-                                                    <td colspan="6" class="td-totais-label" id="td-totais-label-arla">
+                                                    <td colspan="7" class="td-totais-label" id="td-totais-label-arla">
                                                         <span class="tag-auto-pequena">Soma Automática</span>
                                                         <strong>TOTAL ARLA &gt;&gt;</strong>
                                                     </td>
@@ -2696,8 +2759,10 @@
                                             </div>
                                             <div class="indicador-formula-base" id="ml-media-base-geral">
                                                 KM Total (<span id="ml-calc-base-km">0</span>) / Litros de diesel (<span
-                                                    id="ml-calc-base-litros">0</span>)
+                                                    id="ml-calc-base-litros">0</span>) <span id="ml-calc-base-regra">· Durante + Chegada (Saída fora)</span>
                                             </div>
+                                            <!-- Ficha antiga (sem Momento): a conta de antes, com aviso -->
+                                            <div class="indicador-formula-base indicador-media-aviso" id="ml-media-aviso" hidden></div>
                                             <!-- Com placa secundária: no lugar do valor acima, a média de cada placa
                                                  (km do trecho ÷ diesel das linhas daquela placa), uma embaixo da outra -->
                                             <div class="indicador-media-por-placa" id="ml-media-por-placa" hidden></div>
@@ -3088,7 +3153,8 @@
     <script src="../JavaScript/aviso-atualizacao.js?v=3" data-aviso-local="ficha"></script>
     <script src="../JavaScript/auth.js"></script>
     <script src="../JavaScript/celular.js"></script>
-    <script src="../JavaScript/relatorio.js?v=3.10"></script>
+    <script src="../JavaScript/media-combustivel.js?v=1"></script>
+    <script src="../JavaScript/relatorio.js?v=3.11"></script>
     <script>
         // Mede a altura real do header fixo e grava em --altura-header,
         // usada pela .barra-admin-operacional para grudar logo abaixo dele.

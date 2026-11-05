@@ -36,6 +36,8 @@ const { abrir } = require('./harness');
     await page.evaluate((i) => { const tr = document.querySelector(`[name="posto_ml_${i}"]`).closest('tr'); tr.classList.remove('linha-oculta-celular'); tr.hidden = false; }, i);
     await page.select(`[name="posto_ml_${i}"]`, 'Marília - Posto Esmeralda');
     await page.select(`[name="combustivel_ml_${i}"]`, comb);
+    // Passo 24: Momento obrigatório no diesel. "Chegada" em todas faz todas entrarem na média (os mesmos números de antes)
+    if (comb !== 'arla') await page.select(`[name="momento_ml_${i}"]`, 'chegada');
     if (placa) await page.select(`[name="placa_abast_ml_${i}"]`, placa);
     await limparEDigitar(`[name="valor_ml_${i}"]`, valor);
     // Litros com máscara (começa em 0,000): só números, os 3 últimos são as casas (1000 -> "1000000" = 1000,000)

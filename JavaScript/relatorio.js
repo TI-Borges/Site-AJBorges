@@ -1346,9 +1346,10 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         // Com placa secundária, KM de saída e de chegada do 2º trecho são obrigatórios
         [inputKmSaida2, inputKmChegada2].forEach(input => { if (input) input.required = ativo; });
         // Os rótulos "TOTAL DIESEL" e "TOTAL ARLA" cobrem a coluna Placa só quando ela aparece
+        // (e sempre a coluna Momento, passo 24)
         ['td-totais-label-abast', 'td-totais-label-arla'].forEach(id => {
             const tdTotais = document.getElementById(id);
-            if (tdTotais) tdTotais.colSpan = ativo ? 6 : 5;
+            if (tdTotais) tdTotais.colSpan = ativo ? 7 : 6;
         });
         atualizarOpcoesPlacaAbast();
         calcularKmTotal();
@@ -2190,9 +2191,11 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         const inputLitros = campoPorNome(`litros_ml_${i}`);
         const selectCombustivel = campoPorNome(`combustivel_ml_${i}`);
         const selectPlacaAbast = campoPorNome(`placa_abast_ml_${i}`);
+        const selectMomento = campoPorNome(`momento_ml_${i}`);
 
-        // Combustível (ARLA fica fora da média) e placa (média por placa) mudam os indicadores
-        [selectCombustivel, selectPlacaAbast].forEach(sel => {
+        // Combustível (ARLA fica fora da média), placa (média por placa) e Momento (Saída fica
+        // fora da média; sem Chegada a média fica em aberto) mudam os indicadores
+        [selectCombustivel, selectPlacaAbast, selectMomento].forEach(sel => {
             if (!sel) return;
             sel.addEventListener('change', () => {
                 calcularIndicadoresViagemMl();
@@ -2327,8 +2330,10 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
     function limparCamposNovosAbast(i) {
         const comb = campoPorNome(`combustivel_ml_${i}`);
         const placa = campoPorNome(`placa_abast_ml_${i}`);
+        const momento = campoPorNome(`momento_ml_${i}`);
         if (comb) comb.value = '';
         if (placa) placa.value = 'principal';
+        if (momento) momento.value = '';
         const postoOutro = campoPorNome(`posto_outro_ml_${i}`);
         if (postoOutro) postoOutro.value = '';
         atualizarCampoPostoOutro(i);
@@ -2341,14 +2346,12 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         const placa = campoPorNome(`placa_abast_ml_${i}`);
         if (comb) comb.value = ROTULOS_COMBUSTIVEL[ab?.combustivel] ? ab.combustivel : '';
         if (placa) placa.value = ab?.placa === 'secundaria' ? 'secundaria' : 'principal';
+        // Momento (passo 24): ficha antiga não tem e fica "Selecione..."
+        const momento = campoPorNome(`momento_ml_${i}`);
+        if (momento) momento.value = MediaCombustivel.momentoValido(ab?.momento);
         const postoOutro = campoPorNome(`posto_outro_ml_${i}`);
         if (postoOutro) postoOutro.value = ab?.posto === POSTO_OUTRO ? String(ab.posto_outro || '').slice(0, 80) : '';
         atualizarCampoPostoOutro(i);
-    }
-
-    // Litros de diesel (S10 + S500 + sem combustível) por placa; o ARLA não entra na média
-    function litrosDieselPorPlaca() {
-        return litrosAbastPorPlaca(comb => comb !== 'arla');
     }
 
     // Litros de ARLA por placa, só para a "Média ARLA" informativa
@@ -2466,6 +2469,29 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         };
     }
 
+    // Média de combustível da tela (passo 24): a mesma função do dashboard (JavaScript/media-combustivel.js).
+    // Só as linhas preenchidas. O motorista está sempre numa ficha nova (linha de diesel sem Momento =
+    // falta escolher); a gestão, abrindo ficha antiga (nenhum Momento), vê a conta de antes com o aviso.
+    function mediaDaTela() {
+        const kms = kmsDaViagem();
+        const abastecimentos = [];
+        for (let i = 1; i <= qtdAbast(); i++) {
+            if (!verificarLinhaAbastPreenchida(i)) continue;
+            abastecimentos.push({
+                combustivel: campoPorNome(`combustivel_ml_${i}`)?.value || '',
+                placa: placaDaLinhaAbast(i),
+                momento: campoPorNome(`momento_ml_${i}`)?.value || '',
+                litros: parseLitros(campoPorNome(`litros_ml_${i}`)?.value || '')
+            });
+        }
+        return MediaCombustivel.calcular({
+            abastecimentos,
+            km: { principal: kms.t1.total || 0, secundaria: kms.t2.total || 0 },
+            temSecundaria: segundoTrechoAtivo(),
+            novaFicha: !ehGestao
+        });
+    }
+
     // 15.4. Cards de Indicadores da Viagem
     function calcularIndicadoresViagemMl() {
         // KM da viagem toda (principal + secundária)
@@ -2474,20 +2500,33 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         const totaisCombustivel = calcularTotaisAbastecimentoMl();
         const totaisDespesas = calcularTotaisDespesasMl();
         const totalFreteRelacao = calcularTotaisFreteMl();
-        // Média só com diesel (S10 + S500); o ARLA entra só nos custos
-        const diesel = litrosDieselPorPlaca();
-        const media = (km, litros) => (km > 0 && litros > 0 && isFinite(km / litros)) ? km / litros : 0;
 
-        // 1. Média de Combustível (KM Total / Litros de diesel)
-        if (mlIndicadorMedia) {
-            mlIndicadorMedia.innerHTML = `${formatarDecimal(media(kmTotalNum, diesel.total), 2)} <span class="indicador-unidade">km/l</span>`;
-        }
-        if (mlCalcBaseKm) mlCalcBaseKm.textContent = kmTotalNum > 0 ? formatarMilhar(kmTotalNum) : '0';
-        if (mlCalcBaseLitros) mlCalcBaseLitros.textContent = formatarLitros(diesel.total);
-
-        // Com 2º trecho: no lugar do valor único, a média de cada placa, uma embaixo da outra
-        // (km do trecho ÷ diesel das linhas daquela placa). Não há média geral somando as duas.
+        // 1. Média de Combustível (passo 24, tanque cheio a tanque cheio): KM da placa ÷ litros de
+        // diesel de Durante + Chegada daquela placa; a Saída fica fora; sem Chegada = "Em aberto".
+        // Com 2º trecho, a média de cada placa, uma embaixo da outra (não há média somando as duas).
         const doisTrechos = segundoTrechoAtivo();
+        const med = mediaDaTela();
+        const principalMed = med.placas.principal;
+        const emAberto = (p) => p.situacao === 'em_aberto' || p.situacao === 'falta_momento';
+        const valorMediaHtml = (p) => (p.media !== null
+            ? `${formatarDecimal(p.media, 2)} <span class="indicador-unidade">km/l</span>`
+            : (emAberto(p) ? '<span class="media-em-aberto">Em aberto</span>' : '—'));
+        if (mlIndicadorMedia) mlIndicadorMedia.innerHTML = valorMediaHtml(principalMed);
+        if (mlCalcBaseKm) mlCalcBaseKm.textContent = principalMed.km > 0 ? formatarMilhar(principalMed.km) : '0';
+        if (mlCalcBaseLitros) mlCalcBaseLitros.textContent = formatarLitros(principalMed.litros);
+        const regraBase = document.getElementById('ml-calc-base-regra');
+        if (regraBase) regraBase.textContent = med.antiga ? '' : '· Durante + Chegada (Saída fora)';
+        // "Em aberto, falta o abastecimento de chegada" ou "média antiga (inclui o acerto da saída)"
+        const avisoMedia = document.getElementById('ml-media-aviso');
+        if (avisoMedia) {
+            let aviso = '';
+            if (med.antiga) aviso = MediaCombustivel.AVISO_ANTIGA;
+            else if (!doisTrechos && emAberto(principalMed)) aviso = principalMed.texto;
+            avisoMedia.textContent = aviso;
+            avisoMedia.hidden = !aviso;
+            avisoMedia.classList.toggle('aviso-media-antiga', med.antiga);
+        }
+
         const mediaPorPlaca = document.getElementById('ml-media-por-placa');
         const baseGeral = document.getElementById('ml-media-base-geral');
         if (mlIndicadorMedia) mlIndicadorMedia.hidden = doisTrechos;
@@ -2496,19 +2535,19 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             mediaPorPlaca.hidden = !doisTrechos;
             if (doisTrechos) {
                 const esc = escapeHTMLAutocomplete;
-                const bloco = (qual, km, litros) => {
+                const bloco = (qual, p) => {
                     const placa = qual === 'secundaria' ? placaSecundariaAtual() : placaPrincipalAtual();
                     const rotulo = placa ? formatarPlaca(placa) : (qual === 'secundaria' ? 'Secundária' : 'Principal');
-                    const temBase = km > 0 && litros > 0;
-                    const valor = temBase ? `${formatarDecimal(media(km, litros), 2)} <span class="indicador-unidade">km/l</span>` : '—';
-                    const base = temBase ? `${formatarMilhar(km)} km ÷ ${formatarLitros(litros)} L` : 'Falta KM ou litros de diesel';
-                    return `<div class="media-placa" data-placa="${qual}">` +
+                    let base;
+                    if (p.media !== null) base = `${formatarMilhar(p.km)} km ÷ ${formatarLitros(p.litros)} L`;
+                    else if (emAberto(p)) base = p.texto;
+                    else base = 'Falta KM ou litros de diesel';
+                    return `<div class="media-placa" data-placa="${qual}" data-situacao="${p.situacao}">` +
                         `<span class="media-placa-rotulo">${esc(rotulo)}</span>` +
-                        `<strong class="media-placa-valor">${valor}</strong>` +
+                        `<strong class="media-placa-valor">${valorMediaHtml(p)}</strong>` +
                         `<small class="indicador-formula-base">${esc(base)}</small></div>`;
                 };
-                mediaPorPlaca.innerHTML = bloco('principal', kms.t1.total || 0, diesel.principal) +
-                    bloco('secundaria', kms.t2.total || 0, diesel.secundaria);
+                mediaPorPlaca.innerHTML = bloco('principal', med.placas.principal) + bloco('secundaria', med.placas.secundaria);
             }
         }
 
@@ -3213,6 +3252,7 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         const litros = campoPorNome(`litros_ml_${i}`);
         const comb = campoPorNome(`combustivel_ml_${i}`);
 
+        // O Momento sozinho não faz a linha contar (passo 24)
         return !!((posto && posto.value.trim() !== '') ||
             (comb && comb.value !== '') ||
             (nf && nf.value.trim() !== '') ||
@@ -3235,6 +3275,10 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         }
         if (comb && ROTULOS_COMBUSTIVEL[comb.value]) {
             partes.push(ROTULOS_COMBUSTIVEL[comb.value]);
+        }
+        const momento = campoPorNome(`momento_ml_${i}`);
+        if (momento && MediaCombustivel.ROTULOS_MOMENTO[momento.value]) {
+            partes.push(MediaCombustivel.ROTULOS_MOMENTO[momento.value]);
         }
         if (nf && nf.value.trim()) {
             partes.push(`NF ${nf.value.trim()}`);
@@ -3440,7 +3484,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                     valor: campoPorNome(`valor_ml_${i}`)?.value || '',
                     litros: campoPorNome(`litros_ml_${i}`)?.value || '',
                     combustivel: campoPorNome(`combustivel_ml_${i}`)?.value || '',
-                    placa: campoPorNome(`placa_abast_ml_${i}`)?.value || 'principal'
+                    placa: campoPorNome(`placa_abast_ml_${i}`)?.value || 'principal',
+                    momento: campoPorNome(`momento_ml_${i}`)?.value || ''
                 });
             }
 
@@ -4247,11 +4292,13 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             const litrosCampo = campoPorNome(`litros_ml_${i}`)?.value || '';
             const litros = parseLitros(litrosCampo) > 0 ? litrosCampo : '';
             const combustivel = campoPorNome(`combustivel_ml_${i}`)?.value || '';
+            // Momento (passo 24): 'saida' | 'durante' | 'chegada' | '' (ficha antiga)
+            const momento = MediaCombustivel.momentoValido(campoPorNome(`momento_ml_${i}`)?.value || '');
             // 'principal' | 'secundaria' só quando há placa secundária (a principal pode ser definida depois)
             const placa = segundoTrechoAtivo() ? placaDaLinhaAbast(i) : '';
 
             if (posto || nf || km || valor || litros || combustivel) {
-                abasts.push({ posto, posto_outro: postoOutro, nf, km, valor, litros, combustivel, placa });
+                abasts.push({ posto, posto_outro: postoOutro, nf, km, valor, litros, combustivel, placa, momento });
             }
         }
         return abasts;
@@ -5246,41 +5293,21 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
         }
     }
 
+    // media_km_l gravada (passo 24): a média da placa principal quando a ficha tem uma placa só e a
+    // média está fechada (ou é antiga); em aberto ou com placa secundária (não existe média somando
+    // as duas) grava 0.00. O dashboard recalcula pela lista de abastecimentos.
     function extrairMediaCombustivelMlParaSalvar() {
-        const el = document.getElementById('ml-indicador-media-combustivel');
-        if (el) {
-            const texto = el.textContent || '';
-            const match = texto.match(/(\d+(?:[.,]\d+)?)/);
-            if (match) {
-                const val = parseFloat(match[1].replace(',', '.'));
-                if (!isNaN(val) && val > 0) {
-                    return val.toFixed(2);
-                }
-            }
-        }
-        // Mesma regra do indicador: KM da viagem ÷ litros de diesel
-        const kmTotal = kmsDaViagem().viagem || 0;
-        const litrosDiesel = litrosDieselPorPlaca().total;
-        if (kmTotal > 0 && litrosDiesel > 0) {
-            const med = kmTotal / litrosDiesel;
-            if (!isNaN(med) && isFinite(med) && med > 0) {
-                return med.toFixed(2);
-            }
-        }
-        return '0.00';
+        if (segundoTrechoAtivo()) return '0.00';
+        const p = mediaDaTela().placas.principal;
+        return p.media !== null && p.media > 0 ? p.media.toFixed(2) : '0.00';
     }
 
     // Média de cada placa para gravar em dados_completos (só exibição; o dashboard recalcula).
-    // Sem placa secundária, a principal é a viagem toda e a secundária fica vazia.
+    // Sem placa secundária, a principal é a viagem toda e a secundária fica vazia. Em aberto = vazio.
     function mediasPorPlacaParaSalvar() {
-        const kms = kmsDaViagem();
-        const diesel = litrosDieselPorPlaca();
-        const texto = (km, litros) => (km > 0 && litros > 0) ? (km / litros).toFixed(2) : '';
-        if (!segundoTrechoAtivo()) return { mediaPrincipal: texto(kms.t1.total || 0, diesel.total), mediaSecundaria: '' };
-        return {
-            mediaPrincipal: texto(kms.t1.total || 0, diesel.principal),
-            mediaSecundaria: texto(kms.t2.total || 0, diesel.secundaria)
-        };
+        const med = mediaDaTela();
+        const texto = (p) => (p && p.media !== null ? p.media.toFixed(2) : '');
+        return { mediaPrincipal: texto(med.placas.principal), mediaSecundaria: texto(med.placas.secundaria) };
     }
 
     // Placa secundária é opcional; se preenchida, precisa ser uma placa válida (antiga ou Mercosul)
@@ -5327,22 +5354,27 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             html += linha('KM total da viagem', km(kms.viagem));
         }
 
-        // Média de combustível (km ÷ litros de diesel) e, abaixo, a média ARLA (km ÷ litros de ARLA,
-        // só informativa): uma de cada por placa quando há placa secundária
-        const diesel = litrosDieselPorPlaca();
+        // Média de combustível (passo 24: Durante + Chegada; Saída fora; sem Chegada = em aberto) e,
+        // abaixo, a média ARLA (km ÷ litros de ARLA, só informativa): uma de cada por placa com secundária
+        const med = mediaDaTela();
         const arla = litrosArlaPorPlaca();
-        const mediaTexto = (kmTrecho, litros) => (kmTrecho > 0 && litros > 0)
+        const mediaTexto = (p) => {
+            if (p.media === null) return p.texto;
+            const base = `${formatarDecimal(p.media, 2)} km/l (${formatarMilhar(p.km)} km ÷ ${formatarLitros(p.litros)} L)`;
+            return p.aviso ? `${base} · ${p.aviso}` : base;
+        };
+        const arlaTexto = (kmTrecho, litros) => (kmTrecho > 0 && litros > 0)
             ? `${formatarDecimal(kmTrecho / litros, 2)} km/l (${formatarMilhar(kmTrecho)} km ÷ ${formatarLitros(litros)} L)`
             : '—';
         if (secundaria) {
             const rotuloPrincipal = principal ? formatarPlaca(principal) : 'principal';
-            html += linha(`Média de combustível ${rotuloPrincipal}`, mediaTexto(kms.t1.total || 0, diesel.principal));
-            html += linha(`Média ARLA ${rotuloPrincipal}`, mediaTexto(kms.t1.total || 0, arla.principal));
-            html += linha(`Média de combustível ${formatarPlaca(secundaria)}`, mediaTexto(kms.t2.total || 0, diesel.secundaria));
-            html += linha(`Média ARLA ${formatarPlaca(secundaria)}`, mediaTexto(kms.t2.total || 0, arla.secundaria));
+            html += linha(`Média de combustível ${rotuloPrincipal}`, mediaTexto(med.placas.principal));
+            html += linha(`Média ARLA ${rotuloPrincipal}`, arlaTexto(kms.t1.total || 0, arla.principal));
+            html += linha(`Média de combustível ${formatarPlaca(secundaria)}`, mediaTexto(med.placas.secundaria));
+            html += linha(`Média ARLA ${formatarPlaca(secundaria)}`, arlaTexto(kms.t2.total || 0, arla.secundaria));
         } else {
-            html += linha('Média de combustível (só diesel)', mediaTexto(kms.viagem || 0, diesel.total));
-            html += linha('Média ARLA', mediaTexto(kms.viagem || 0, arla.total));
+            html += linha('Média de combustível (só diesel)', mediaTexto(med.placas.principal));
+            html += linha('Média ARLA', arlaTexto(kms.viagem || 0, arla.total));
         }
 
         const rotulosCliente = { alimenticio: 'Alimentício', shopee: 'Shopee', mercado_livre: 'Mercado Livre' };
@@ -5374,6 +5406,8 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
             const valor = campoPorNome(`valor_ml_${i}`)?.value || '';
             const litros = campoPorNome(`litros_ml_${i}`)?.value || '';
             const partes = [ROTULOS_COMBUSTIVEL[comb] || 'Sem combustível'];
+            const momento = campoPorNome(`momento_ml_${i}`)?.value || '';
+            if (MediaCombustivel.ROTULOS_MOMENTO[momento]) partes.push(MediaCombustivel.ROTULOS_MOMENTO[momento]);
             if (secundaria) partes.push(rotuloPlacaAbast(placaDaLinhaAbast(i)));
             if (valor) partes.push(`R$ ${valor}`);
             if (parseLitros(litros) > 0) partes.push(`${litros} L`);
@@ -5516,6 +5550,12 @@ ajbAoAutenticar(['motorista', 'admin', 'diretoria'], 'Login.html', (usuarioSessa
                 const preenchida = parseMoeda(valor) > 0 || parseLitros(litros) > 0;
                 if (comb && linhaEmUso(comb) && !comb.value && preenchida) {
                     return falharValidacao(comb, 'Escolha o combustível');
+                }
+                // Momento (passo 24): obrigatório no diesel (ARLA não entra na média)
+                const selMomento = campoPorNome(`momento_ml_${i}`);
+                if (selMomento && linhaEmUso(selMomento) && preenchida && comb && comb.value !== 'arla' &&
+                    !MediaCombustivel.momentoValido(selMomento.value)) {
+                    return falharValidacao(selMomento, 'Escolha o Momento (Saída, Durante a viagem ou Chegada)');
                 }
                 // Com placa secundária, cada linha preenchida diz de qual placa é
                 const selPlaca = campoPorNome(`placa_abast_ml_${i}`);

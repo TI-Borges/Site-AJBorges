@@ -29,6 +29,8 @@ const LARGURAS = (process.argv[2] || '320,360,390,430').split(',').map(Number);
       if (i > 1) await page.click(`${tabAbast} .btn-adicionar-linha-celular`);
       await page.select(`[name="posto_ml_${i}"]`, 'Marília - Posto Esmeralda');
       await page.select(`[name="combustivel_ml_${i}"]`, comb);
+      // Passo 24: Momento obrigatório no diesel ("Chegada" mantém a média de antes)
+      await page.select(`[name="momento_ml_${i}"]`, 'chegada');
       await page.select(`[name="placa_abast_ml_${i}"]`, placa);
       await digitar(`[name="valor_ml_${i}"]`, valor);
       // Litros com máscara (começa em 0,00): 10000 = 100,00

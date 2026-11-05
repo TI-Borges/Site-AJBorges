@@ -182,6 +182,8 @@ async function testarFicha({ base, page }) {
     }, i);
     await page.select(`[name="posto_ml_${i}"]`, 'Marília - Posto Esmeralda');
     if (comb) await page.select(`[name="combustivel_ml_${i}"]`, comb);
+    // Passo 24: Momento obrigatório no diesel ("Chegada" mantém a média de antes)
+    if (comb !== 'arla') await page.select(`[name="momento_ml_${i}"]`, 'chegada');
     await page.focus(`[name="valor_ml_${i}"]`); await page.keyboard.type(valor);
     await page.focus(`[name="litros_ml_${i}"]`); await page.keyboard.type(litros);
     await page.$eval(`[name="litros_ml_${i}"]`, el => el.blur());

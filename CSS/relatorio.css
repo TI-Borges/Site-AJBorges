@@ -570,6 +570,30 @@ main {
     overflow-wrap: anywhere;
 }
 
+/* Média em aberto (passo 24): falta o abastecimento de chegada */
+.media-em-aberto {
+    color: #b45309;
+}
+
+.indicador-media-aviso {
+    color: #b45309;
+    font-weight: 600;
+}
+
+/* Ficha antiga (sem Momento): aviso discreto */
+.indicador-media-aviso.aviso-media-antiga {
+    color: #64748b;
+    font-weight: 500;
+    font-style: italic;
+}
+
+/* Ajuda do Momento no bloco de abastecimento */
+.ajuda-momento-abast {
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: #475569;
+}
+
 /* Revisão antes de enviar: KMs e abastecimentos */
 .revisar-detalhes {
     margin-top: 12px;

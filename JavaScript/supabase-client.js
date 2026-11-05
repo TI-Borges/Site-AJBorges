@@ -46,6 +46,9 @@ if (window.supabase) {
 // Valores aceitos em cada abastecimento (iguais aos do banco, passo 11)
 const COMBUSTIVEIS_FICHA = ['diesel_s10', 'diesel_s500', 'arla'];
 const PLACAS_ABASTECIMENTO = ['principal', 'secundaria'];
+// Momento do abastecimento (passo 24): Saída fica fora da média; sem Chegada a média fica em aberto.
+// Ficha antiga não tem a chave (fica '').
+const MOMENTOS_ABASTECIMENTO = ['saida', 'durante', 'chegada'];
 // Veículo de cada frete (passo 13); '' = motorista de rodotrem que não escolheu
 const VEICULOS_FRETE = ['carreta', 'rodotrem'];
 
@@ -89,7 +92,8 @@ function normalizarAbastecimento(a) {
     return {
         ...a,
         combustivel: COMBUSTIVEIS_FICHA.includes(a.combustivel) ? a.combustivel : '',
-        placa: PLACAS_ABASTECIMENTO.includes(a.placa) ? a.placa : ''
+        placa: PLACAS_ABASTECIMENTO.includes(a.placa) ? a.placa : '',
+        momento: MOMENTOS_ABASTECIMENTO.includes(a.momento) ? a.momento : ''
     };
 }
 

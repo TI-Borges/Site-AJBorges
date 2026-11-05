@@ -267,6 +267,8 @@ function supabaseFalso() {
   // 2. Outro dia: um abastecimento e uma despesa -> acumulam
   await page.select('[name="posto_ml_1"]', 'Marília - Posto Esmeralda');
   await page.select('[name="combustivel_ml_1"]', 'diesel_s10');
+  // Passo 24: Momento obrigatório no diesel ("Chegada" mantém a média de antes)
+  await page.select('[name="momento_ml_1"]', 'chegada');
   await digitar('[name="valor_ml_1"]', '60000');
   await digitar('[name="litros_ml_1"]', '2000000'); // 2.000 L: aviso de litros, mas salva
   await page.select('#ml-despesa-desc-2', 'Borracharia');
@@ -452,6 +454,8 @@ function supabaseFalso() {
   await digitar('#valor-adiantamento', '0');
   await page.select('[name="posto_ml_1"]', 'Marília - Posto Esmeralda');
   await page.select('[name="combustivel_ml_1"]', 'diesel_s10');
+  // Passo 24: Momento obrigatório no diesel ("Chegada" mantém a média de antes)
+  await page.select('[name="momento_ml_1"]', 'chegada');
   await digitar('[name="valor_ml_1"]', '60000');
   await digitar('[name="litros_ml_1"]', '100000');
   await page.click('#btn-finalizar-relatorio-ml');

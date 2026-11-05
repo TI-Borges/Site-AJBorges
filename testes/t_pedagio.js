@@ -53,6 +53,8 @@ const { abrir } = require('./harness');
   await digitar('#valor-adiantamento', '0');
   await page.select('[name="posto_ml_1"]', 'Marília - Posto Esmeralda');
   await page.select('[name="combustivel_ml_1"]', 'diesel_s10');
+  // Passo 24: Momento obrigatório no diesel ("Chegada" mantém a média de antes)
+  await page.select('[name="momento_ml_1"]', 'chegada');
   await digitar('[name="valor_ml_1"]', '180000');
   await page.$eval('[name="litros_ml_1"]', el => { el.value = ''; });
   await digitar('[name="litros_ml_1"]', '312920');
