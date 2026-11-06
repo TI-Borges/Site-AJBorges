@@ -22,7 +22,7 @@
     <!-- Folha de Estilos Base -->
     <link rel="stylesheet" href="../CSS/dashboard-admin.css?v=3.2">
     <!-- Barra lateral padrão dos dashboards (depois do CSS da página) -->
-    <link rel="stylesheet" href="/CSS/sidebar-padrao.css?v=3">
+    <link rel="stylesheet" href="/CSS/sidebar-padrao.css?v=4">
 
     <!-- Verificação de Sessão Administrativa (Route Guard) -->
     <script>
@@ -31,6 +31,30 @@
     </script>
 
     <style>
+        /* Verde da AJBorges neste painel (só aqui; Frota, RH e Torre continuam com o verde deles) */
+        :root {
+            --verde-ajb: #235347;
+            --verde-ajb-rgb: 35, 83, 71;
+            --verde-ajb-escuro: #1a3f36;      /* hover */
+            --verde-ajb-medio: #2f6b5c;       /* 2ª cor dos degradês */
+            --verde-ajb-fundo: #e8f0ee;       /* fundo de selo / fundo suave */
+            --verde-ajb-borda: #b9d0c9;       /* borda de selo / card */
+            /* Só na barra lateral escura (#0d111b): #235347 dá 2,2:1; estes dão 5,6:1 e 10:1 */
+            --verde-ajb-sidebar: #4f9a85;
+            --verde-ajb-sidebar-rgb: 79, 154, 133;
+            --verde-ajb-sidebar-claro: #8cc9b6;
+            /* Variáveis do CSS compartilhado (dashboard-admin.css): nesta página apontam para o verde AJBorges */
+            --verde-sucesso: var(--verde-ajb);
+            --verde-sucesso-escuro: var(--verde-ajb);
+            --verde-sucesso-fundo: var(--verde-ajb-fundo);
+            --verde-sucesso-borda: var(--verde-ajb-borda);
+            --verde-sucesso-glow: rgba(var(--verde-ajb-rgb), 0.3);
+        }
+
+        /* Botão "Salvar aviso" (modal do aviso de atualização; degradê fixo no CSS compartilhado) */
+        .btn-modal-sucesso { background: linear-gradient(135deg, var(--verde-ajb-medio), var(--verde-ajb)); }
+        .btn-modal-sucesso:hover { background: linear-gradient(135deg, var(--verde-ajb), var(--verde-ajb-escuro)); }
+
         .motorista-badge-status {
             display: inline-flex;
             align-items: center;
@@ -56,9 +80,9 @@
         }
 
         .status-aprovado {
-            background-color: #ecfdf5;
-            color: #047857;
-            border: 1px solid #a7f3d0;
+            background-color: var(--verde-ajb-fundo);
+            color: var(--verde-ajb);
+            border: 1px solid var(--verde-ajb-borda);
         }
 
         .status-reprovado {
@@ -71,14 +95,14 @@
             width: 38px;
             height: 38px;
             border-radius: 10px;
-            background: linear-gradient(135deg, #059669, #10b981);
+            background: linear-gradient(135deg, var(--verde-ajb), var(--verde-ajb-medio));
             color: #ffffff;
             font-weight: 700;
             font-size: 0.85rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+            box-shadow: 0 2px 6px rgba(var(--verde-ajb-rgb), 0.25);
         }
 
         .btn-hub-switch {
@@ -129,13 +153,13 @@
         }
 
         .btn-action-approve {
-            background: #10b981;
+            background: var(--verde-ajb);
             color: #ffffff;
-            border-color: #059669;
+            border-color: var(--verde-ajb);
         }
 
         .btn-action-approve:hover {
-            background: #059669;
+            background: var(--verde-ajb-escuro);
         }
 
         .btn-action-delete {
@@ -149,25 +173,26 @@
         }
 
         /* Botão Criar Cadastro Motorista na Sidebar */
+        /* Na barra escura o #235347 fica apagado (2,2:1): ali vai o tom mais claro da mesma cor */
         .btn-sidebar-create-driver {
             margin-top: 8px;
-            background: linear-gradient(135deg, rgba(5, 150, 105, 0.22), rgba(16, 185, 129, 0.12));
-            border: 1px solid rgba(16, 185, 129, 0.4);
-            color: #34d399 !important;
+            background: linear-gradient(135deg, rgba(var(--verde-ajb-sidebar-rgb), 0.22), rgba(var(--verde-ajb-sidebar-rgb), 0.12));
+            border: 1px solid rgba(var(--verde-ajb-sidebar-rgb), 0.45);
+            color: var(--verde-ajb-sidebar-claro) !important;
             font-weight: 600;
             transition: all 0.25s ease;
         }
 
         .btn-sidebar-create-driver:hover {
-            background: linear-gradient(135deg, #059669, #10b981) !important;
+            background: linear-gradient(135deg, var(--verde-ajb), var(--verde-ajb-medio)) !important;
             color: #ffffff !important;
-            border-color: #10b981 !important;
-            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+            border-color: var(--verde-ajb-sidebar) !important;
+            box-shadow: 0 4px 14px rgba(var(--verde-ajb-rgb), 0.45);
             transform: translateY(-1px);
         }
 
         .btn-sidebar-create-driver .nav-icon {
-            color: #34d399;
+            color: var(--verde-ajb-sidebar-claro);
             transition: all 0.25s ease;
         }
 
@@ -223,7 +248,7 @@
             gap: 8px;
             padding: 10px 18px;
             border-radius: 10px;
-            background-color: #059669;
+            background-color: var(--verde-ajb);
             color: #ffffff;
             font-size: 0.88rem;
             font-weight: 600;
@@ -232,7 +257,7 @@
         }
 
         .btn-open-form:hover {
-            background-color: #047857;
+            background-color: var(--verde-ajb-escuro);
             transform: translateY(-1px);
         }
 
@@ -294,7 +319,7 @@
         .cad-doc { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 8px; background: #f8fafc; border: 1px solid #e2e8f0; }
         .cad-doc-faltando { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
         .cad-etiqueta { display: inline-block; margin-left: 6px; padding: 2px 10px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; vertical-align: middle; }
-        .cad-etiqueta-anexo { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+        .cad-etiqueta-anexo { background: var(--verde-ajb-fundo); border: 1px solid var(--verde-ajb-borda); color: var(--verde-ajb); }
         .cad-etiqueta-preenchido { background: #eef2ff; border: 1px solid #c7d2fe; color: #3d3d90; }
         .cad-etiqueta-vazio { background: #f1f5f9; border: 1px solid #cbd5e1; color: #64748b; }
         .cad-vazio { color: #64748b; font-size: 0.88rem; }
@@ -306,7 +331,7 @@
         /* Projeto 2: selos GR / Shopee / Base na tabela */
         .etapas-selos { display: flex; gap: 4px; flex-wrap: wrap; }
         .selo-etapa { padding: 3px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #cbd5e1; background: #f1f5f9; color: #64748b; white-space: nowrap; }
-        .selo-etapa.feito { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+        .selo-etapa.feito { background: var(--verde-ajb-fundo); border-color: var(--verde-ajb-borda); color: var(--verde-ajb); }
         .selo-repetido { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #fdba74; background: #fff7ed; color: #c2410c; white-space: nowrap; }
         /* Anotações da gestão (passo 26): campo livre em cada cadastro; o motorista não vê */
         /* Ícone preso à última palavra do nome (white-space: nowrap): fica sempre logo depois do nome,
@@ -316,7 +341,7 @@
         .icone-anotacao { display: inline-block; margin-left: 5px; vertical-align: -2px; color: #64748b; cursor: help; }
         .icone-anotacao svg { width: 16px; height: 16px; display: block; }
         .filtro-anotacao { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.8rem; color: #475569; cursor: pointer; min-height: 32px; }
-        .filtro-anotacao input { width: 16px; height: 16px; accent-color: #059669; }
+        .filtro-anotacao input { width: 16px; height: 16px; accent-color: var(--verde-ajb); }
         .anotacao-texto { width: 100%; min-height: 160px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 0.9rem; line-height: 1.45; resize: vertical; box-sizing: border-box; }
         .anotacao-rodape { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; font-size: 0.78rem; color: #64748b; }
         .anotacao-contador.no-limite { color: #b91c1c; font-weight: 700; }
@@ -331,9 +356,9 @@
         .caixa-etapa { display: inline-flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 600; color: #0f172a; cursor: pointer; user-select: none; position: relative; }
         .caixa-etapa input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; }
         .caixa-etapa-quadrado { flex-shrink: 0; width: 18px; height: 18px; border: 1.5px solid #94a3b8; border-radius: 5px; background: #fff; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; color: #fff; font-size: 12px; font-weight: 800; }
-        .caixa-etapa:hover .caixa-etapa-quadrado { border-color: #10b981; }
-        .caixa-etapa input:focus-visible ~ .caixa-etapa-quadrado { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25); }
-        .caixa-etapa input:checked ~ .caixa-etapa-quadrado { background: #059669; border-color: #059669; }
+        .caixa-etapa:hover .caixa-etapa-quadrado { border-color: var(--verde-ajb); }
+        .caixa-etapa input:focus-visible ~ .caixa-etapa-quadrado { box-shadow: 0 0 0 3px rgba(var(--verde-ajb-rgb), 0.25); }
+        .caixa-etapa input:checked ~ .caixa-etapa-quadrado { background: var(--verde-ajb); border-color: var(--verde-ajb); }
         .caixa-etapa input:checked ~ .caixa-etapa-quadrado::after { content: '✓'; }
         .caixa-etapa input:disabled ~ .caixa-etapa-quadrado { opacity: 0.5; }
         .caixa-etapa.desabilitada { cursor: not-allowed; color: #94a3b8; }
@@ -355,7 +380,7 @@
         .cad-foto { display: grid; gap: 6px; justify-items: center; }
         .cad-foto-miniatura { width: 128px; height: 96px; padding: 0; border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #f1f5f9; cursor: zoom-in; }
         .cad-foto-miniatura img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .cad-foto-miniatura:focus-visible { outline: 3px solid #10b981; outline-offset: 2px; }
+        .cad-foto-miniatura:focus-visible { outline: 3px solid var(--verde-ajb); outline-offset: 2px; }
 
         /* Lightbox: tela inteira, botão de fechar sempre visível */
         .lightbox-foto { position: fixed; inset: 0; z-index: 1100; background: rgba(15, 23, 42, 0.94); display: flex; flex-direction: column; }
@@ -508,7 +533,7 @@
                         <h1 class="topbar-title">Fichas Cadastrais</h1>
                         <p class="topbar-subtitle">
                             <span class="live-dot"
-                                style="background-color: #10b981; box-shadow: 0 0 8px #10b981;"></span>
+                                style="background-color: var(--verde-ajb); box-shadow: 0 0 8px var(--verde-ajb);"></span>
                             Dados sincronizados exclusivamente com o seguinte formulário: Seja um Agregado Conosco.
                         </p>
                     </div>
@@ -593,13 +618,13 @@
                     </div>
 
                     <div class="card-bg"
-                        style="background: #ffffff; padding: 20px; border-radius: 14px; border: 1px solid #a7f3d0; box-shadow: var(--card-shadow); border-left: 4px solid #10b981;">
+                        style="background: #ffffff; padding: 20px; border-radius: 14px; border: 1px solid var(--verde-ajb-borda); box-shadow: var(--card-shadow); border-left: 4px solid var(--verde-ajb);">
                         <span
-                            style="font-size: 0.8rem; font-weight: 600; color: #047857; text-transform: uppercase;">Documentos
+                            style="font-size: 0.8rem; font-weight: 600; color: var(--verde-ajb); text-transform: uppercase;">Documentos
                             Ok</span>
-                        <div style="font-size: 2.2rem; font-weight: 800; color: #047857; margin-top: 6px;"
+                        <div style="font-size: 2.2rem; font-weight: 800; color: var(--verde-ajb); margin-top: 6px;"
                             id="kpi-aprovados">0</div>
-                        <span style="font-size: 0.75rem; color: #047857;" id="kpi-concluidos-texto">0 com cadastro concluído (GR, Shopee e Base)</span>
+                        <span style="font-size: 0.75rem; color: var(--verde-ajb);" id="kpi-concluidos-texto">0 com cadastro concluído (GR, Shopee e Base)</span>
                     </div>
                 </div>
 
@@ -619,7 +644,7 @@
                         <!-- Filtros por Status -->
                         <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="tab-filter-container">
                             <button type="button" class="btn-action-small active" data-tab="todos" id="btn-tab-todos"
-                                style="background: #059669; color: #ffffff; border-color: #059669;">Todos (0)</button>
+                                style="background: var(--verde-ajb); color: #ffffff; border-color: var(--verde-ajb);">Todos (0)</button>
                             <button type="button" class="btn-action-small" data-tab="pendente"
                                 id="btn-tab-pendentes">Pendentes (0)</button>
                             <button type="button" class="btn-action-small" data-tab="analise" id="btn-tab-analise">Em
@@ -1003,7 +1028,7 @@
             const iconEl = document.getElementById('toast-icon');
             if (!toast || !msgEl) return;
             msgEl.textContent = mensagem;
-            const cores = { sucesso: ['✓', '#10b981'], erro: ['✕', '#ef4444'] };
+            const cores = { sucesso: ['✓', 'var(--verde-ajb)'], erro: ['✕', '#ef4444'] };
             const [icone, cor] = cores[tipo] || ['ℹ', '#3b82f6'];
             if (iconEl) {
                 iconEl.textContent = icone;
@@ -1095,7 +1120,7 @@
                     <div class="anotacao-rodape">
                         <span id="anotacao-contador" class="anotacao-contador${texto.length >= LIMITE_ANOTACAO ? ' no-limite' : ''}">${texto.length}/${LIMITE_ANOTACAO}</span>
                         <span id="anotacao-ultima">${c.anotado_por ? `Última anotação por <b>${esc(c.anotado_por)}</b> em ${formatarData(c.anotado_em)}` : 'Ainda sem anotação.'}</span>
-                        <button type="button" class="btn-action-small" data-acao="salvar-anotacao" data-id="${esc(c.id)}" style="background:#059669; color:#fff; border-color:#059669;">Salvar anotação</button>
+                        <button type="button" class="btn-action-small" data-acao="salvar-anotacao" data-id="${esc(c.id)}" style="background:var(--verde-ajb); color:#fff; border-color:var(--verde-ajb);">Salvar anotação</button>
                     </div>
                     ${antiga ? `<div class="anotacao-antiga" id="anotacao-antiga">Anotação antiga: ${esc(antiga)}</div>` : ''}
                 </fieldset>`;
@@ -1242,7 +1267,7 @@
                                 <div>
                                     <div class="nome-com-icone" style="font-weight: 600; color: #0f172a;">${nomeComIcone(c)}</div>
                                     <div style="font-size: 0.78rem; color: #64748b;">CPF ${esc(formatarCpf(c.cpf))} &bull; ${esc(c.celular || '')}</div>
-                                    ${c.tipo === 'pj' && d['nome-empresa'] ? `<div style="font-size: 0.75rem; color: #059669; font-weight: 500;">Empresa: ${esc(d['nome-empresa'])}</div>` : ''}
+                                    ${c.tipo === 'pj' && d['nome-empresa'] ? `<div style="font-size: 0.75rem; color: var(--verde-ajb); font-weight: 500;">Empresa: ${esc(d['nome-empresa'])}</div>` : ''}
                                     ${seloRepetido(c)}
                                 </div>
                             </div>
@@ -1803,7 +1828,7 @@ ${secao('Documentos extras', listaExtras)}
                             <input type="text" id="extra-descricao" placeholder="Ex.: Consulta GR, CNH atualizada" maxlength="200">
                         </label>
                         <div>
-                            <button type="button" class="btn-action-small" id="btn-anexar-extra" data-acao="anexar-extra" data-id="${esc(c.id)}" style="background:#059669; color:#fff; border-color:#059669; height:36px;">Anexar documento</button>
+                            <button type="button" class="btn-action-small" id="btn-anexar-extra" data-acao="anexar-extra" data-id="${esc(c.id)}" style="background:var(--verde-ajb); color:#fff; border-color:var(--verde-ajb); height:36px;">Anexar documento</button>
                         </div>
                     </div>
                 </fieldset>`;
@@ -2024,7 +2049,7 @@ ${secao('Documentos extras', listaExtras)}
             botoesFiltro.forEach((btn) => {
                 btn.addEventListener('click', () => {
                     botoesFiltro.forEach((b) => { b.style.background = '#ffffff'; b.style.color = '#1e293b'; b.style.borderColor = '#cbd5e1'; });
-                    btn.style.background = '#059669'; btn.style.color = '#ffffff'; btn.style.borderColor = '#059669';
+                    btn.style.background = 'var(--verde-ajb)'; btn.style.color = '#ffffff'; btn.style.borderColor = 'var(--verde-ajb)';
                     filtroAtual = btn.getAttribute('data-tab');
                     renderTabela();
                 });

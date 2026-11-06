@@ -36,7 +36,9 @@
     overflow-y: auto;
 }
 
-.ajb-sidebar--cadastro { --sb-cor: #10b981; --sb-cor-rgb: 16, 185, 129; --sb-cor-clara: #34d399; }
+/* Cadastro: verde AJBorges #235347. No fundo escuro (#0d111b) ele dá 2,2:1 e some, então a barra usa
+   versões mais claras da mesma cor: #4f9a85 (faixa/borda, 5,6:1) e #8cc9b6 (ícone/texto, 10:1) */
+.ajb-sidebar--cadastro { --sb-cor: #4f9a85; --sb-cor-rgb: 79, 154, 133; --sb-cor-clara: #8cc9b6; }
 .ajb-sidebar--torre { --sb-cor: #ee4d2d; --sb-cor-rgb: 238, 77, 45; --sb-cor-clara: #ff8a70; }
 .ajb-sidebar--rh { --sb-cor: #7c3aed; --sb-cor-rgb: 124, 58, 237; --sb-cor-clara: #a78bfa; }
 

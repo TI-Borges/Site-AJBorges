@@ -9,7 +9,7 @@ const { abrir } = require('./harness');
 
 const TODOS = {
   frota: { url: '/HTML/dashboard-admin.html', chave: 'ajborges_sidebar_recolhida_frota', cor: '#6366f1' },
-  cadastro: { url: '/HTML/Dashboard-cadastro-motorista.html', chave: 'ajborges_sidebar_recolhida_cadastro', cor: '#10b981' },
+  cadastro: { url: '/HTML/Dashboard-cadastro-motorista.html', chave: 'ajborges_sidebar_recolhida_cadastro', cor: '#4f9a85' },
   torre: { url: '/torre-de-controle-shoppe/HTML/index.html', chave: 'ajborges_sidebar_recolhida_torre', cor: '#ee4d2d' },
   rh: { url: '/dashboard-rh/HTML/index.html', chave: 'ajborges_sidebar_recolhida_rh', cor: '#7c3aed' }
 };
