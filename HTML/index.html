@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-    <link rel="stylesheet" href="/CSS/style.css?v=2">
-    <link rel="stylesheet" href="/CSS/frota-agregados.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11.2.10/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="/CSS/style.css?v=3">
+    <link rel="stylesheet" href="/CSS/frota-agregados.css?v=2">
     <link rel="icon" href="/Imagens/favicon/favicon.ico?v=1" sizes="16x16 32x32 48x48">
     <link rel="icon" type="image/svg+xml" href="/Imagens/favicon/favicon.svg?v=1">
     <link rel="icon" type="image/png" sizes="32x32" href="/Imagens/favicon/favicon-32.png?v=1">
@@ -128,8 +128,18 @@
                 <div class="swiper-pagination"></div>
 
                 <!-- Botões de navegação -->
-                <div class="swiper-button-prev" aria-label="Slide anterior"></div>
-                <div class="swiper-button-next" aria-label="Próximo slide"></div>
+                <div class="swiper-button-prev" aria-label="Slide anterior">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.6"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </div>
+                <div class="swiper-button-next" aria-label="Próximo slide">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.6"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </div>
             </div>
         </section>
 
@@ -436,7 +446,7 @@
                 <button type="button" class="frota-lightbox-close" id="frotaLightboxClose"
                     aria-label="Fechar galeria">&times;</button>
                 <button type="button" class="frota-lightbox-nav prev" id="frotaLightboxPrev" aria-label="Foto anterior">
-                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5"
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.6"
                         stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
@@ -446,7 +456,7 @@
                     <div class="frota-lightbox-caption" id="frotaLightboxCaption"></div>
                 </div>
                 <button type="button" class="frota-lightbox-nav next" id="frotaLightboxNext" aria-label="Próxima foto">
-                    <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5"
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.6"
                         stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
@@ -1012,7 +1022,7 @@
     </footer>
 
     <!-- Swiper JS Script -->
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11.2.10/swiper-bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Inicialização do Swiper com transições cinematográficas
