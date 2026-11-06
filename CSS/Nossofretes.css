@@ -321,38 +321,52 @@ main {
     text-align: left;
 }
 
-.info-ponto {
-    background-color: #f8fafc;
-    border: 1px solid var(--cinza-borda);
-    border-radius: 14px;
-    padding: 18px 20px;
+/* Ícones da página (mural e vantagens): a mesma caixa, o mesmo ícone e o mesmo alinhamento */
+.icone-caixa {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background-color: var(--azul-ajborges-suave);
+    color: var(--azul-ajborges);
     display: flex;
     align-items: center;
-    gap: 14px;
-}
-
-.info-ponto svg {
-    width: 24px;
-    height: 24px;
-    color: var(--azul-ajborges);
+    justify-content: center;
     flex-shrink: 0;
 }
 
-.info-ponto div {
+.icone-caixa svg {
+    width: 22px;
+    height: 22px;
+}
+
+.info-ponto {
+    background-color: #f8fafc;
+    border: 1px solid var(--cinza-borda);
+    border-radius: 16px;
+    padding: 22px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.info-ponto > div:last-child {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .info-ponto strong {
-    font-size: 14px;
+    font-size: 15px;
     color: #1e293b;
     font-weight: 700;
     margin-bottom: 2px;
 }
 
 .info-ponto span {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--cinza-medio);
+    line-height: 1.5;
+    text-wrap: pretty;
 }
 
 .fretebras-acoes {
@@ -433,7 +447,7 @@ main {
 .vantagem-card {
     background: #ffffff;
     border-radius: 16px;
-    padding: 26px 22px;
+    padding: 22px;
     border: 1px solid var(--cinza-borda);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
     display: flex;
@@ -449,23 +463,6 @@ main {
     box-shadow: 0 6px 20px rgba(61, 61, 144, 0.08);
 }
 
-.vantagem-icone {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background-color: var(--azul-ajborges-suave);
-    color: var(--azul-ajborges);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.vantagem-icone svg {
-    width: 22px;
-    height: 22px;
-}
-
 .vantagem-info h4 {
     font-size: 15px;
     font-weight: 700;
@@ -477,6 +474,7 @@ main {
     font-size: 13px;
     color: var(--cinza-texto);
     line-height: 1.5;
+    text-wrap: pretty;
 }
 
 
