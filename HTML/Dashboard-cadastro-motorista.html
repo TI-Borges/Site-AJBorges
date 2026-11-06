@@ -309,7 +309,12 @@
         .selo-etapa.feito { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
         .selo-repetido { display: inline-block; margin-top: 4px; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; border: 1px solid #fdba74; background: #fff7ed; color: #c2410c; white-space: nowrap; }
         /* Anotações da gestão (passo 26): campo livre em cada cadastro; o motorista não vê */
-        .icone-anotacao { display: inline-block; margin-left: 6px; font-size: 0.9rem; cursor: help; }
+        /* Ícone preso à última palavra do nome (white-space: nowrap): fica sempre logo depois do nome,
+           nunca sozinho numa linha, mesmo quando o nome quebra */
+        .nome-com-icone { line-height: 1.45; overflow-wrap: anywhere; }
+        .nome-com-icone .nome-fim { white-space: nowrap; }
+        .icone-anotacao { display: inline-block; margin-left: 5px; vertical-align: -2px; color: #64748b; cursor: help; }
+        .icone-anotacao svg { width: 16px; height: 16px; display: block; }
         .filtro-anotacao { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.8rem; color: #475569; cursor: pointer; min-height: 32px; }
         .filtro-anotacao input { width: 16px; height: 16px; accent-color: #059669; }
         .anotacao-texto { width: 100%; min-height: 160px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px 12px; font: inherit; font-size: 0.9rem; line-height: 1.45; resize: vertical; box-sizing: border-box; }
@@ -1056,11 +1061,27 @@
         const LIMITE_ANOTACAO = 2000;
         const temAnotacao = (c) => !!(c.anotacoes && String(c.anotacoes).trim());
         const anotacaoAntiga = (c) => String(c.avaliacao_motivo || '').trim();
+        // Nome na lista: a última palavra e o ícone de anotação ficam juntos num span sem quebra de linha
+        function nomeComIcone(c) {
+            const nome = nomeMotorista(c) || 'Sem nome';
+            const icone = iconeAnotacao(c);
+            if (!icone) return esc(nome);
+            const corte = nome.lastIndexOf(' ');
+            const inicio = corte > 0 ? nome.slice(0, corte + 1) : '';
+            const ultima = corte > 0 ? nome.slice(corte + 1) : nome;
+            return `${esc(inicio)}<span class="nome-fim">${esc(ultima)}${icone}</span>`;
+        }
         function iconeAnotacao(c) {
             if (!temAnotacao(c)) return '';
             const texto = String(c.anotacoes).trim();
             const inicio = texto.length > 120 ? `${texto.slice(0, 120)}…` : texto;
-            return `<span class="icone-anotacao" title="${esc(inicio)}" aria-label="Tem anotação">📝</span>`;
+            // Caderno com lápis (traço 2, como os outros ícones do painel); vai junto da última palavra (nomeComIcone)
+            return `<span class="icone-anotacao" title="${esc(inicio)}" role="img" aria-label="Tem anotação">` +
+                '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+                '<path d="M13.4 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7.4"></path>' +
+                '<path d="M2 6h4"></path><path d="M2 10h4"></path><path d="M2 14h4"></path><path d="M2 18h4"></path>' +
+                '<path d="M21.38 5.63a1 1 0 1 0-3-3l-5.02 5.01a2 2 0 0 0-.5.85l-.84 2.87a.5.5 0 0 0 .62.62l2.87-.84a2 2 0 0 0 .85-.5z"></path>' +
+                '</svg></span>';
         }
 
         function secaoAnotacoes(c) {
@@ -1219,7 +1240,7 @@
                             <div style="display: flex; align-items: center; gap: 12px;">
                                 <div class="driver-avatar-circle">${esc(iniciais)}</div>
                                 <div>
-                                    <div style="font-weight: 600; color: #0f172a;">${esc(nomeMotorista(c) || 'Sem nome')}${iconeAnotacao(c)}</div>
+                                    <div class="nome-com-icone" style="font-weight: 600; color: #0f172a;">${nomeComIcone(c)}</div>
                                     <div style="font-size: 0.78rem; color: #64748b;">CPF ${esc(formatarCpf(c.cpf))} &bull; ${esc(c.celular || '')}</div>
                                     ${c.tipo === 'pj' && d['nome-empresa'] ? `<div style="font-size: 0.75rem; color: #059669; font-weight: 500;">Empresa: ${esc(d['nome-empresa'])}</div>` : ''}
                                     ${seloRepetido(c)}
