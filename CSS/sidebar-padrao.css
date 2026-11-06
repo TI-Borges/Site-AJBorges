@@ -30,7 +30,7 @@
     background: var(--sb-fundo);
     border-right: 1px solid var(--sb-borda);
     color: var(--sb-texto);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 16px;
     overflow-x: hidden;
     overflow-y: auto;
@@ -108,7 +108,7 @@
 }
 
 .ajb-sidebar .brand-name {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 16.8px;
     font-weight: 700;
     letter-spacing: -0.02em;
@@ -295,7 +295,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 12.75px;
     font-weight: 700;
     flex-shrink: 0;

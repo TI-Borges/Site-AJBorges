@@ -8,6 +8,11 @@
  * Sem dados inventados ou fictícios.
  */
 
+// Gráficos com a fonte única do site (o padrão do Chart.js é Helvetica/Arial)
+if (window.Chart && window.Chart.defaults && window.Chart.defaults.font) {
+    window.Chart.defaults.font.family = "'Poppins', sans-serif";
+}
+
 const STORAGE_FICHAS_KEY = 'ajborges_fichas_viagem';
 const STORAGE_USER_KEY = 'ajborges_usuario_ativo';
 const STORAGE_CONFIG_META_DIESEL = 'ajborges_config_meta_diesel';

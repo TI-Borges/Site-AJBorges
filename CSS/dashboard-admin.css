@@ -92,8 +92,18 @@ html {
     -webkit-font-smoothing: antialiased;
 }
 
+/* Fonte única: botões, campos e listas herdam a Poppins (o padrão do navegador é Arial) */
+button,
+input,
+select,
+textarea,
+kbd {
+    font-family: inherit;
+}
+
 body.admin-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Poppins', sans-serif;
+    font-variant-numeric: tabular-nums; /* números alinhados em tabelas, KPIs e totais */
     background-color: var(--fundo-pagina);
     color: var(--cor-texto-primario);
     min-height: 100vh;
@@ -186,7 +196,7 @@ body.admin-body {
 }
 
 .brand-name {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.25rem;
     font-weight: 700;
     letter-spacing: -0.3px;
@@ -551,7 +561,7 @@ body.admin-body {
 }
 
 .topbar-title {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--cor-texto-primario);
@@ -760,7 +770,7 @@ body.admin-body {
 }
 
 .section-page-header h2 {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--cor-texto-primario);
@@ -835,7 +845,7 @@ body.admin-body {
 }
 
 .kpi-value {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.7rem;
     font-weight: 700;
     color: var(--cor-texto-primario);
@@ -966,7 +976,7 @@ body.admin-body {
 }
 
 .margem-numero {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.45rem;
     font-weight: 700;
     color: #059669;
@@ -1062,7 +1072,7 @@ body.admin-body {
 
 .grid-tabelas-diarias {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); /* em 320 px de tela o card não passa da borda */
     gap: 20px;
     margin-bottom: 24px;
 }
@@ -1115,7 +1125,7 @@ body.admin-body {
 }
 
 .tabela-diaria-titulo {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.15rem;
     font-weight: 700;
     color: var(--cor-texto-primario);
@@ -1134,7 +1144,7 @@ body.admin-body {
 }
 
 .badge-total-acumulado {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 0.92rem;
     font-weight: 700;
     padding: 6px 14px;
@@ -1254,21 +1264,21 @@ body.admin-body {
 }
 
 .val-faturamento-destaque {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-weight: 700;
     color: #059669;
     font-size: 0.92rem;
 }
 
 .val-ticket-medio {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-weight: 600;
     color: #475569;
     font-size: 0.85rem;
 }
 
 .val-despesas-destaque {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-weight: 700;
     color: #dc2626;
     font-size: 0.92rem;
@@ -1371,7 +1381,7 @@ body.admin-body {
 }
 
 .chart-card-title {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.15rem;
     font-weight: 700;
     color: var(--cor-texto-primario);
@@ -1465,7 +1475,7 @@ body.admin-body {
 }
 
 .modulo-title {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.25rem;
     font-weight: 700;
     color: var(--cor-texto-primario);
@@ -1663,7 +1673,7 @@ body.admin-body {
 
 /* Células e Badges Especiais da Tabela */
 .td-ficha-id {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-weight: 700;
     color: var(--aj-azul-primario);
     white-space: nowrap;
@@ -1705,7 +1715,8 @@ body.admin-body {
 .placa-box {
     display: flex;
     flex-direction: column;
-    font-family: monospace;
+    font-family: 'Poppins', sans-serif;
+    font-variant-numeric: tabular-nums;
     font-size: 0.82rem;
     background-color: #f8fafc;
     padding: 4px 8px;
@@ -1951,7 +1962,7 @@ body.admin-body {
 
 .summary-number {
     display: block;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 2rem;
     font-weight: 700;
     color: var(--aj-azul-primario);
@@ -2233,7 +2244,7 @@ body.admin-body {
 .badge-modal {
     background-color: #e0e7ff;
     color: #3730a3;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-weight: 700;
     font-size: 0.85rem;
     padding: 3px 8px;
@@ -2243,7 +2254,7 @@ body.admin-body {
 }
 
 .modal-title {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 1.3rem;
     font-weight: 700;
     color: var(--cor-texto-primario);
@@ -3482,6 +3493,51 @@ body.admin-body {
 
     .topbar-title {
         font-size: 1rem;
+    }
+}
+
+/* Celular: os botões do rodapé dos modais quebram em linhas (como no modal de motoristas);
+   antes, com 4 botões, "Fechar" e "Apagar Ficha" ficavam fora da tela, à esquerda */
+@media (max-width: 640px) {
+    .modal-footer {
+        flex-wrap: wrap;
+    }
+
+    .modal-footer > * {
+        flex: 1 1 auto;
+        justify-content: center;
+    }
+}
+
+/* 360 e 320 px: o subtítulo do topo pode quebrar entre o texto e a data, senão a soma
+   dos dois empurra o aviso, o sino e o recarregar para fora da tela */
+@media (max-width: 374px) {
+    .topbar-subtitle {
+        flex-wrap: wrap;
+        row-gap: 0;
+    }
+
+    .topbar-title {
+        font-size: 0.875rem;
+    }
+
+    .topbar-left {
+        gap: 10px;
+    }
+
+    .topbar-quick-actions {
+        gap: 4px;
+    }
+
+    /* Poppins é mais larga que a Inter/Outfit de antes: selos dos KPIs e títulos dos gráficos
+       um pouco menores para não ganharem uma linha em 360 px */
+    .trend-badge,
+    .kpi-meta-text {
+        font-size: 10px;
+    }
+
+    .chart-card-title {
+        font-size: 15px;
     }
 }
 

@@ -79,7 +79,7 @@
     // aviso-no-painel: dentro da área do dashboard, abaixo da barra lateral (inclusive a gaveta do celular)
     const ESTILO = `
         .aviso-atualizacao-faixa { box-sizing: border-box; width: 100%; padding: 8px 16px; background: #fef3c7;
-            border-bottom: 1px solid #f59e0b; color: #78350f; font: 500 13px/1.45 'Poppins', 'Inter', system-ui, sans-serif;
+            border-bottom: 1px solid #f59e0b; color: #78350f; font: 500 13px/1.45 'Poppins', sans-serif;
             text-align: center; overflow-wrap: anywhere; position: relative; z-index: 1001; }
         .aviso-atualizacao-faixa.aviso-em-andamento { background: #fee2e2; border-bottom-color: #ef4444; color: #7f1d1d; }
         .aviso-atualizacao-faixa.aviso-fixa { position: fixed; top: 0; left: 0; right: 0; }
