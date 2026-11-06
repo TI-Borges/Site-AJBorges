@@ -283,7 +283,7 @@ main.login-main {
 
 .tabs {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr)); /* as duas abas sempre com a mesma largura */
     gap: 6px;
     background-color: #f1f5f9;
     padding: 5px;
@@ -310,9 +310,12 @@ main.login-main {
     outline: none;
 }
 
+/* Caminhão e escudo com a mesma altura visível e o mesmo traço: o viewBox de cada um é o
+   recorte justo do desenho, a altura é a mesma e a largura acompanha o desenho
+   (o traço do caminhão, 1.82, compensa o recorte menor e fica igual ao do escudo) */
 .tab-btn .tab-icon {
-    width: 18px;
-    height: 18px;
+    width: auto;
+    height: 17px;
     flex-shrink: 0;
     stroke: currentColor;
     transition: transform 0.2s ease;
@@ -337,15 +340,28 @@ main.login-main {
 
 /* --- Conteúdo dos Formulários --- */
 
-.tab-content {
-    display: none;
-    flex-direction: column;
+/* Os dois formulários ocupam a mesma célula do grid: a altura é a do maior, nas duas abas.
+   O inativo fica invisível (fora do Tab e do leitor de tela), mas segura o espaço. */
+.tab-paineis {
+    display: grid;
     flex: 1;
+}
+
+.tab-content {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
     min-height: 380px;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .tab-content.active {
-    display: flex;
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
     animation: animacaoAba 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -708,8 +724,8 @@ input::-ms-clear {
     }
 
     .tab-btn .tab-icon {
-        width: 16px;
-        height: 16px;
+        width: auto;
+        height: 15px;
     }
 
     .form-options {
@@ -1108,5 +1124,13 @@ footer {
 @media (max-width: 374px) {
     .lista-links li a {
         font-size: 13px;
+    }
+
+    /* "Administrador" não cabe ao lado do ícone em meia barra: ícone em cima do texto */
+    .tab-btn {
+        flex-direction: column;
+        gap: 3px;
+        padding: 8px 6px;
+        font-size: 12px;
     }
 }
