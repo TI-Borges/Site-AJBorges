@@ -2755,6 +2755,75 @@ body.admin-body {
     font-family: inherit;
 }
 
+/* Aba Frota: 4 ações (Editar, WhatsApp, Redefinir senha, Desativar/Reativar) em grade 2x2,
+   todas da mesma largura e altura */
+.mot-card-tabela .table-actions-cell.mot-acoes-grade {
+    display: grid;
+    grid-template-columns: repeat(2, 120px);
+    grid-auto-rows: 1fr;
+    justify-content: end;
+    gap: 6px;
+    white-space: normal;
+}
+
+.mot-card-tabela .mot-acoes-grade > * {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 36px;
+    margin: 0;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.25;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Botão do WhatsApp (mesmo padrão do "Avisar no WhatsApp" do painel de cadastros) */
+.btn-acao-whatsapp {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: #16a34a;
+    color: #ffffff;
+    border: 1px solid #16a34a;
+    padding: 6px 10px;
+    border-radius: 7px;
+    font-family: inherit;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--transicao-rapida);
+}
+
+.btn-acao-whatsapp svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.btn-acao-whatsapp:hover {
+    background: #15803d;
+    border-color: #15803d;
+}
+
+.btn-acao-whatsapp:focus-visible {
+    outline: 3px solid rgba(22, 163, 74, 0.35);
+    outline-offset: 2px;
+}
+
+.btn-acao-whatsapp:disabled,
+.btn-acao-whatsapp[aria-disabled="true"] {
+    background: #e2e8f0;
+    color: #64748b;
+    border-color: #cbd5e1;
+    cursor: not-allowed;
+}
+
 .mot-card-tabela .tabela-fichas th,
 .mot-card-tabela .tabela-fichas td {
     padding: 14px 14px;

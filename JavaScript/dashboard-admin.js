@@ -4105,6 +4105,36 @@ function seloSituacaoMotorista(m) {
     return '<span class="status-pill status-concluido">Ativo</span>';
 }
 
+// ---- WhatsApp do motorista (só abre o WhatsApp; não grava nem envia nada sozinho) ----
+// Celular com DDD (10 ou 11 dígitos, sem o 55 do Brasil); inválido: vazio, curto, só zeros ou todos os
+// dígitos iguais, como "(00) 00000-0000". Devolve os dígitos ou null.
+function celularWhatsAppMotorista(telefone) {
+    let digitos = somenteDigitos(telefone);
+    if (digitos.length >= 12 && digitos.startsWith('55')) digitos = digitos.slice(2);
+    if (digitos.length < 10 || digitos.length > 11) return null;
+    if (/^(\d)\1+$/.test(digitos)) return null;
+    return digitos;
+}
+
+// Mesma regra do painel de cadastros (primeiroNomeMotorista): primeira palavra do nome, sem espaços sobrando
+const primeiroNomeMotorista = (nome) => String(nome ?? '').replace(/\s+/g, ' ').trim().split(' ')[0] || '';
+
+const ICONE_WHATSAPP = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path>' +
+    '<path transform="translate(6.96 6.96) scale(0.42)" stroke-width="4.5" d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>' +
+    '</svg>';
+
+function botaoWhatsAppMotorista(m) {
+    const digitos = celularWhatsAppMotorista(m.telefone);
+    if (!digitos) {
+        return `<button type="button" class="btn-acao-whatsapp" disabled aria-disabled="true" title="Cadastre o celular deste motorista">${ICONE_WHATSAPP}<span>Sem celular</span></button>`;
+    }
+    const primeiroNome = primeiroNomeMotorista(m.nome);
+    const mensagem = primeiroNome ? `Olá, ${primeiroNome}! Aqui é da AJBorges.` : 'Olá! Aqui é da AJBorges.';
+    const link = `https://wa.me/55${digitos}?text=${encodeURIComponent(mensagem)}`;
+    return `<a class="btn-acao-whatsapp" href="${escaparHtml(link)}" target="_blank" rel="noopener noreferrer" title="Abrir conversa no WhatsApp">${ICONE_WHATSAPP}<span>WhatsApp</span></a>`;
+}
+
 function renderizarFrota() {
     const lista = estadoMotoristas.frota;
     // "Válidos (ativos)": todos que não foram desativados
@@ -4139,6 +4169,7 @@ function renderizarFrota() {
     const filtrados = lista.filter(m => {
         if (situacao === 'validos' && m.status === 'inativo') return false;
         if (situacao === 'inativo' && m.status !== 'inativo') return false;
+        if (situacao === 'sem_celular' && celularWhatsAppMotorista(m.telefone)) return false;
         if (veiculo && (ROTULOS_TIPO_VEICULO[m.tipo_veiculo] ? m.tipo_veiculo : 'carreta') !== veiculo) return false;
         if (!termo) return true;
         if (normalizarNomePessoa(m.nome).includes(termo)) return true;
@@ -4173,8 +4204,9 @@ function renderizarFrota() {
                 <td>${seloSituacaoMotorista(m)}</td>
                 <td class="mot-nowrap">${m.ultimo_acesso ? escaparHtml(dataHoraBR(m.ultimo_acesso)) : '<span class="mot-texto-cinza">nunca entrou</span>'}</td>
                 <td>
-                    <div class="table-actions-cell">
+                    <div class="table-actions-cell mot-acoes-grade">
                         <button type="button" class="btn-acao-conferir" data-mot-acao="editar" data-id="${id}">Editar</button>
+                        ${botaoWhatsAppMotorista(m)}
                         <button type="button" class="btn-acao-resumo" data-mot-acao="redefinir_senha" data-id="${id}">Redefinir para a senha padrão</button>
                         ${inativo
                             ? `<button type="button" class="btn-acao-aprovar-rapido" data-mot-acao="reativar" data-id="${id}">Reativar</button>`
