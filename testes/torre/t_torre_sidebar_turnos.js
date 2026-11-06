@@ -1,6 +1,6 @@
 // Barra lateral da Torre: "Passagem de turno" e "Histórico de pendências" numa seção própria
 // ("COMUNICAÇÃO ENTRE TURNOS", logo abaixo das abas da planilha) com destaque índigo AJBorges no ícone,
-// no item ativo e na faixa (as abas da planilha continuam laranja); contador de pendências herdadas
+// no item ativo e na faixa (as abas da planilha no destaque padrão da barra, igual à Frota); contador de pendências herdadas
 // abertas ao lado de "Passagem de turno" (some quando zera; vale em qualquer aba); as duas telas com o
 // mesmo índigo em botões, títulos e cards; barra recolhida (só ícones, tooltip pelo title, contador no
 // canto do ícone) e gaveta do celular (390 px). Banco PGlite T01+T02+T03 e auth/Supabase simulados
@@ -243,7 +243,7 @@ function servidor() {
       rolagem: document.documentElement.scrollWidth > window.innerWidth
     };
   });
-  const LARANJA = 'rgb(238, 77, 45)';
+  const PADRAO = 'rgb(99, 102, 241)'; // destaque padrão da barra, igual ao da Frota (sem laranja)
   const INDIGO_FAIXA = 'rgb(107, 107, 214)';
   const INDIGO_CLARO = 'rgb(169, 169, 242)';
   const INDIGO_AJB = 'rgb(61, 61, 144)';
@@ -259,7 +259,7 @@ function servidor() {
     'seção própria "COMUNICAÇÃO ENTRE TURNOS" logo abaixo das abas da planilha', b.grupos.join(' / '));
   ok(b.iconeTurnos === INDIGO_CLARO && b.iconeHistorico === INDIGO_CLARO && b.iconePlanilha !== INDIGO_CLARO && b.rotuloTurnos !== 'rgb(100, 116, 139)',
     'ícones da seção em índigo claro; abas da planilha não', `${b.iconeTurnos} / ${b.iconePlanilha}`);
-  ok(b.ativo === 'nav-link-matriz' && b.faixaAtivo === LARANJA, 'aba da planilha ativa continua laranja', b.faixaAtivo);
+  ok(b.ativo === 'nav-link-matriz' && b.faixaAtivo === PADRAO, 'aba da planilha ativa no destaque padrão da barra (igual à Frota)', b.faixaAtivo);
   ok(b.badge === '2' && b.badgeAria === '2 pendências herdadas abertas' && b.tituloPassagem === 'Passagem de turno (2 pendências herdadas abertas)',
     'contador "2" ao lado de "Passagem de turno" já na MATRIZ (com aria-label e tooltip)', `${b.badge} | ${b.tituloPassagem}`);
   ok(!b.rolagem, '1366px sem rolagem lateral');
@@ -271,7 +271,7 @@ function servidor() {
   await ocioso();
   b = await barra();
   ok(b.ativo === 'nav-link-passagem' && b.faixaAtivo === INDIGO_FAIXA && b.fundoAtivo === 'rgba(107, 107, 214, 0.2)',
-    'item ativo e faixa em índigo (não laranja)', `${b.faixaAtivo} / ${b.fundoAtivo}`);
+    'item ativo e faixa no índigo da seção', `${b.faixaAtivo} / ${b.fundoAtivo}`);
   const telaCores = () => page.evaluate(() => {
     const c = (sel, prop) => { const el = document.querySelector(sel); return el && el.offsetParent !== null ? getComputedStyle(el)[prop] : null; };
     return {
@@ -296,8 +296,8 @@ function servidor() {
   await page.click('#nav-link-transito');
   await ocioso();
   b = await barra();
-  ok(b.ativo === 'nav-link-transito' && b.faixaAtivo === LARANJA && !(await page.evaluate(() => document.body.classList.contains('torre-area-turnos'))),
-    'voltando para uma aba da planilha: laranja de novo', b.faixaAtivo);
+  ok(b.ativo === 'nav-link-transito' && b.faixaAtivo === PADRAO && !(await page.evaluate(() => document.body.classList.contains('torre-area-turnos'))),
+    'voltando para uma aba da planilha: destaque padrão de novo', b.faixaAtivo);
 
   // 3. Contador some quando o turno fecha tudo; volta quando surge pendência nova
   await page.click('#nav-link-passagem');

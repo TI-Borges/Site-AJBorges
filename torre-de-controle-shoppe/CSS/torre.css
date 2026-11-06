@@ -2312,7 +2312,7 @@ body.modo-tv .torre-tabela-scroll {
 /* Barra lateral: seção "COMUNICAÇÃO ENTRE TURNOS" com destaque índigo próprio.
    O #3d3d90 some no fundo escuro (#0d111b): a faixa usa #6b6bd6 (contraste 4,2:1)
    e ícone/texto ativo #a9a9f2 (8,6:1). As variáveis valem só para esta lista: as
-   abas da planilha continuam no laranja da Torre (CSS/sidebar-padrao.css). */
+   abas da planilha usam o destaque padrão da barra, igual ao da Frota (CSS/sidebar-padrao.css). */
 .ajb-sidebar .nav-list--turnos {
     --sb-cor: #6b6bd6;
     --sb-cor-rgb: 107, 107, 214;

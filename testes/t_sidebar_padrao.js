@@ -10,7 +10,7 @@ const { abrir } = require('./harness');
 const TODOS = {
   frota: { url: '/HTML/dashboard-admin.html', chave: 'ajborges_sidebar_recolhida_frota', cor: '#6366f1' },
   cadastro: { url: '/HTML/Dashboard-cadastro-motorista.html', chave: 'ajborges_sidebar_recolhida_cadastro', cor: '#4f9a85' },
-  torre: { url: '/torre-de-controle-shoppe/HTML/index.html', chave: 'ajborges_sidebar_recolhida_torre', cor: '#ee4d2d' },
+  torre: { url: '/torre-de-controle-shoppe/HTML/index.html', chave: 'ajborges_sidebar_recolhida_torre', cor: '#6366f1' },
   rh: { url: '/dashboard-rh/HTML/index.html', chave: 'ajborges_sidebar_recolhida_rh', cor: '#7c3aed' }
 };
 const PAPEIS = { frota: ['admin', 'diretoria'], cadastro: ['admin', 'diretoria'], torre: ['admin', 'diretoria'], rh: ['admin', 'rh'] };
@@ -195,7 +195,8 @@ const espera = (ms) => new Promise(r => setTimeout(r, ms));
       ok(referencia[nome].hubIcone === base0.hubIcone, `${nome}: mesmo ícone do Hub que ${lista[0]}`);
     }
     const cores = lista.map(n => referencia[n].destaque);
-    ok(new Set(cores).size === lista.length, 'cor de destaque diferente em cada um', cores.join(' / '));
+    // Torre usa o destaque padrão (igual à Frota, sem laranja na barra); os outros diferentes entre si
+    ok(new Set(cores).size === new Set(lista.map((n) => TODOS[n].cor)).size && lista.every((n, i) => cores[i] === TODOS[n].cor), 'cor de destaque de cada um (Torre igual à Frota)', cores.join(' / '));
   }
   for (const nome of lista) ok(referencia[nome].destaque === TODOS[nome].cor, `${nome}: cor de destaque certa`, referencia[nome].destaque);
 

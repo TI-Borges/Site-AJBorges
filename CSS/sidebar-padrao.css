@@ -3,7 +3,7 @@
    Modelo: a barra do Dashboard RH. Carregada DEPOIS do CSS de cada dashboard,
    vale para o <aside class="ajb-sidebar ajb-sidebar--xxx">. Tamanhos,
    espaçamentos, fontes e raios são os mesmos nos 4; só a cor de destaque muda:
-   frota azul, cadastro verde, torre laranja, rh violeta.
+   frota e torre índigo (padrão; o laranja da Torre fica só no conteúdo), cadastro verde, rh violeta.
    A barra recolhida (clique no logo) e a gaveta do celular continuam no JS de
    cada dashboard; aqui só o visual.
    ========================================================================== */
@@ -39,7 +39,6 @@
 /* Cadastro: verde AJBorges #235347. No fundo escuro (#0d111b) ele dá 2,2:1 e some, então a barra usa
    versões mais claras da mesma cor: #4f9a85 (faixa/borda, 5,6:1) e #8cc9b6 (ícone/texto, 10:1) */
 .ajb-sidebar--cadastro { --sb-cor: #4f9a85; --sb-cor-rgb: 79, 154, 133; --sb-cor-clara: #8cc9b6; }
-.ajb-sidebar--torre { --sb-cor: #ee4d2d; --sb-cor-rgb: 238, 77, 45; --sb-cor-clara: #ff8a70; }
 .ajb-sidebar--rh { --sb-cor: #7c3aed; --sb-cor-rgb: 124, 58, 237; --sb-cor-clara: #a78bfa; }
 
 /* Topo: logo (clica para recolher) */
