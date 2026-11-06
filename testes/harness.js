@@ -53,6 +53,8 @@ async function abrir(opcoes = {}) {
   await page.setRequestInterception(true);
   page.on('request', r => {
     const u = r.url();
+    // REDE_FONTES=1 (só para prints): deixa o Google Fonts e o Swiper do CDN carregarem de verdade
+    if (process.env.REDE_FONTES === '1' && /^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com|cdn\.jsdelivr\.net\/npm\/swiper@)/.test(u)) return r.continue();
     if (!u.startsWith(base)) return r.respond({ status: 200, contentType: 'text/javascript', body: '' });
     r.continue();
   });
